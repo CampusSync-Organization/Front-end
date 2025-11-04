@@ -15,5 +15,5 @@ https://www.figma.com/make/lyeuj2Xu778crdDlS5c2ZN/Design-Community-Hub-UI-UX?nod
 ## Profile
 https://www.figma.com/design/OI1yWRTLadPb9ivpCVNK1o/Profile-Page-project?node-id=24-157&t=SAZ146sJdww0DV8x-1
 
-#Chat room
-## https://www.figma.com/design/nyAcswOrfLb1VtVMun4mAG/Chat-page?node-id=0-1&t=bshPJeumbppWblPr-1
+## Chat room
+ https://www.figma.com/design/nyAcswOrfLb1VtVMun4mAG/Chat-page?node-id=0-1&t=bshPJeumbppWblPr-1
