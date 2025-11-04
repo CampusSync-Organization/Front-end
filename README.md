@@ -8,3 +8,6 @@ https://www.figma.com/make/FkcNHqnIqE3L5OagQAbETI/Login-and-Sign-Up-Pages?node-i
 
 ## Recommendation: 
 https://www.figma.com/design/N4tsqkRZy75vavpjVrNcmN/Untitled?t=v7wCGXjowJlOQI4m-0
+
+## Communities
+https://www.figma.com/make/lyeuj2Xu778crdDlS5c2ZN/Design-Community-Hub-UI-UX?node-id=0-1&p=f&t=9C4jVjigBfgoaW3Q-0&fullscreen=1
