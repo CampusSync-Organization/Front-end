@@ -1,7 +1,7 @@
 # Figmas Links 
 
 ## Home + Landing
-https://www.figma.com/design/s6PkQZpmVXwXDAIyqXuQ9Q/CampusSync?node-id=0-1&p=f&m=draw
+https://v0.app/chat/campus-bond-landing-page-u7uFtrEUIZp
 
 ## login and signup
 https://www.figma.com/make/FkcNHqnIqE3L5OagQAbETI/Login-and-Sign-Up-Pages?node-id=0-1&t=7iHeRH3NGvpEz3re-1
