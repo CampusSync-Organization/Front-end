@@ -1,5 +1,9 @@
 function App() {
-  return <h1>CampusSync</h1>;
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <h1 className="text-5xl font-bold text-yellow-400">TAILWIND FIXED</h1>
+    </div>
+  );
 }
 
 export default App;

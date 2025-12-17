@@ -1,7 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
+import Landing from "../pages/Landing";
+import Login from "../pages/Login";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <div>Landing</div> },
-  { path: "/login", element: <div>Login</div> },
+  { path: "/", element: <Landing /> },
+  { path: "/login", element: <Login /> },
   { path: "/signup", element: <div>Signup</div> },
 ]);
