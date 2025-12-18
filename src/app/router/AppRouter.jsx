@@ -7,7 +7,7 @@ import UserProfilePage from "../../features/profile/pages/UserProfilePage";
 export const router = createBrowserRouter([
   { path: "/", element: <DashboardPage /> },
   { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <div>Signup</div> },
+  { path: "/signup", element: <SignUpPage /> },
   { path: "/profile", element: <ProfilePage /> },
   { path: "/profile-view", element: <UserProfilePage /> },
 ]);
