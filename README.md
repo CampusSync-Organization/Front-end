@@ -1,16 +1,58 @@
-# React + Vite
+# CampusSync
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CampusSync is an AI-based platform designed for university students to find compatible and effective project teammates. By analyzing both academic performance and personality traits, the platform fosters balanced teams and meaningful connections.
 
-Currently, two official plugins are available:
+## Core Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **AI Recommendation System**: Generates explainable recommendations for compatible teammates based on academic scores, personality traits, and shared interests.
+- **Interactive Assessments**: Comprehensive onboarding that collects academic information, project history, and personality traits to build a compatibility profile.
+- **Profile Management**: Customizable user profiles featuring skill tags (e.g., "Coder", "Designer"), academic details, and project history.
+- **Real-time Connect & Chat**: Secure messaging system with AI-powered moderation to detect toxic content and encourage professional communication.
+- **Student Announcements**: Project-specific posts where students can advertise team openings with details like course name, deadline, and specific requirements.
+- **Peer Review System**: Verified collaboration feedback and ratings that influence future recommendation scores.
+- **Events & Communities**: Hub for joining clubs, project groups, and campus-wide events.
+- **Admin Dashboard**: Centralized control for managing content, monitoring system usage, and adjusting recommendation algorithm weights.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework:** [React 19](https://react.dev/)
+- **Build Tool:** [Vite](https://vitejs.dev/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Routing:** [React Router 7](https://reactrouter.com/)
+- **State Management:** Redux Toolkit
+- **Forms:** [React Hook Form](https://react-hook-form.com/) with [Zod](https://zod.dev/) validation
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Animations:** [Framer Motion](https://www.framer.com/motion/)
+- **HTTP Client:** [Axios](https://axios-http.com/)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (v18 or higher recommended)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd campussync-frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Available Scripts
+
+- `npm run dev` - Starts the development server with HMR.
+- `npm run build` - Builds the application for production.
+- `npm run lint` - Runs ESLint to check for code quality issues.
+- `npm run preview` - Previews the production build locally.
