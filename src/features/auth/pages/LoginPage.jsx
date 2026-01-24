@@ -1,4 +1,8 @@
-function LoginPage({ onNavigateToSignUp }) {
+import { useNavigate } from "react-router-dom";
+
+function LoginPage() {
+  const navigate = useNavigate();
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // TODO: hook up real login logic
@@ -85,7 +89,7 @@ function LoginPage({ onNavigateToSignUp }) {
                 Don&apos;t have an account?{" "}
                 <button
                   type="button"
-                  onClick={onNavigateToSignUp}
+                  onClick={() => navigate("/signup")}
                   className="underline hover:opacity-80"
                 >
                   Sign Up

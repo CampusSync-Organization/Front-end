@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Check,
   Brain,
@@ -79,7 +80,8 @@ const interestMiniCards = [
   { id: "problem-solving", label: "Problem Solving", icon: TrendingUp },
 ];
 
-function SignUpPage({ onNavigateToLogin }) {
+function SignUpPage() {
+  const navigate = useNavigate();
   const [selectedPersonality, setSelectedPersonality] = useState(null);
   const [selectedInterests, setSelectedInterests] = useState([]);
 
@@ -212,7 +214,7 @@ function SignUpPage({ onNavigateToLogin }) {
             Already have an account?{" "}
             <button
               type="button"
-              onClick={onNavigateToLogin}
+              onClick={() => navigate("/login")}
               className="underline"
             >
               Login
