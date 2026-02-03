@@ -166,21 +166,9 @@ export const ProfileInfo = ({ user }) => {
 
         <div>
           <InfoField
-            label="Email"
-            value={info.email}
-            isEditing={isEditing}
-            onChange={(val) => handleChange("email", val)}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>
-          )}
-        </div>
-
-        <div>
-          <InfoField
             label="Faculty"
             value={info.faculty}
-            isEditing={isEditing}
+            isEditing={false}
             type="select"
             options={FACULTY_OPTIONS}
             onChange={(val) => handleChange("faculty", val)}
@@ -194,7 +182,7 @@ export const ProfileInfo = ({ user }) => {
           <InfoField
             label="College"
             value={info.college}
-            isEditing={isEditing}
+            isEditing={false}
             type="select"
             options={UNI_OPTIONS}
             onChange={(val) => handleChange("college", val)}
@@ -208,7 +196,7 @@ export const ProfileInfo = ({ user }) => {
           <InfoField
             label="Gender"
             value={info.gender}
-            isEditing={isEditing}
+            isEditing={false}
             type="select"
             options={GENDER_OPTIONS}
             onChange={(val) => handleChange("gender", val)}
