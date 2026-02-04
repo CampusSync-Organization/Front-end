@@ -8,12 +8,14 @@ import HomePage from "../../features/home/pages/HomePage";
 import ProfilePage from "../../features/profile/pages/ProfilePage";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage";
+import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pages/EventsAndCommunitiesLayoutPage";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Landing /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignUpPage /> },
   { path: "/assessment", element: <AssessmentPage /> },
+  { path: "/events-communities", element: <EventsAndCommunitiesLayoutPage /> },
   {
     element: <AppLayout />,
     children: [

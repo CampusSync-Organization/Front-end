@@ -45,6 +45,7 @@ export default function Navbar() {
 
   const appLinks = [
     { label: "Home", to: "/home" },
+    { label: "Events & Communities", to: "/events-communities" },
     { label: "Profile", to: "/Profile-Page" },
     { label: "Chat", to: "/Chat-Main-Page" },
   ];

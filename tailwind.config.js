@@ -19,6 +19,7 @@ export default {
         border: "#d9d9d9",
         input: "#ffffff",
         ring: "#FCA311",
+        destructive: "#dc2626",
       },
       boxShadow: {
         "soft": "0 2px 15px -3px rgba(20, 33, 61, 0.06), 0 10px 20px -2px rgba(20, 33, 61, 0.04)",

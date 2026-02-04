@@ -1,0 +1,19 @@
+export function Avatar({ className = "", ...props }) {
+  return (
+    <span
+      className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}
+      {...props}
+    />
+  );
+}
+
+export function AvatarFallback({ className = "", children, ...props }) {
+  return (
+    <span
+      className={`flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium ${className}`}
+      {...props}
+    >
+      {children}
+    </span>
+  );
+}
