@@ -6,7 +6,7 @@ import AppFooter from "../../../components/AppFooter";
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex pt-16">
+      <div className="flex">
         <main className="flex-1 max-w-2xl mx-auto px-4 md:px-6">
           <WelcomeHeader />
           <ActivityFeed />

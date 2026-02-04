@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
-import { ModernHeader } from "../components/ModernHeader";
+import { Home, Compass, Plus, UserCog } from "lucide-react";
 import { EventsAndCommunitiesPage } from "../components/EventsAndCommunitiesPage";
 import { CommunityDetailsPage } from "../components/CommunityDetailsPage";
 import { AdminDashboard } from "../components/AdminDashboard";
@@ -220,21 +220,62 @@ export default function EventsAndCommunitiesLayoutPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen relative">
-      <ModernHeader
-        userName={mockCurrentUser.name}
-        userRole={userRole}
-        notificationCount={3}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onCreateClick={
-          userRole === "admin" ? () => setIsCreateDialogOpen(true) : undefined
-        }
-        onToggleRole={handleToggleRole}
-      />
+  const eventsSubNav = (
+    <div className="sticky top-16 z-40 -mt-16 flex items-center justify-between gap-4 border-b border-border bg-white px-4 py-3 shadow-sm md:px-6 lg:px-8">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("home")}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "home"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-muted"
+          }`}
+        >
+          <Home className="h-4 w-4" />
+          Home
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("explore")}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "explore"
+              ? "bg-primary text-white"
+              : "text-foreground hover:bg-muted"
+          }`}
+        >
+          <Compass className="h-4 w-4" />
+          Explore
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleToggleRole}
+          className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <UserCog className="h-4 w-4" />
+          <span className="hidden sm:inline">{userRole === "admin" ? "Admin" : "Student"}</span>
+        </button>
+        {userRole === "admin" && (
+          <button
+            type="button"
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-primary hover:bg-secondary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Create
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
-      <main className="min-h-screen pt-0 relative z-10">{renderContent()}</main>
+  return (
+    <div className="min-h-screen bg-background">
+      {!selectedCommunity && eventsSubNav}
+
+      <div className="relative z-10">{renderContent()}</div>
 
       <CreateContentDialog
         open={isCreateDialogOpen}

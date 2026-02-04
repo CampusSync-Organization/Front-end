@@ -15,11 +15,11 @@ export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignUpPage /> },
   { path: "/assessment", element: <AssessmentPage /> },
-  { path: "/events-communities", element: <EventsAndCommunitiesLayoutPage /> },
   {
     element: <AppLayout />,
     children: [
       { path: "/home", element: <HomePage /> },
+      { path: "/events-communities", element: <EventsAndCommunitiesLayoutPage /> },
       { path: "/Profile-Page", element: <ProfilePage /> },
       { path: "/User-profile", element: <UserProfilePage /> },
       { path: "/Chat-Main-Page", element: <ChatMainPage /> },
