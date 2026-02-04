@@ -1,7 +1,10 @@
 # Figmas Links 
 
-## Home + Landing
+## Landing
 https://v0.app/chat/campus-bond-landing-page-u7uFtrEUIZp
+
+## Home 
+https://v0.app/chat/campus-bond-home-page-kS2B9ZZrdA7?ref=085VDX
 
 ## login and signup
 https://www.figma.com/make/FkcNHqnIqE3L5OagQAbETI/Login-and-Sign-Up-Pages?node-id=0-1&t=7iHeRH3NGvpEz3re-1
