@@ -1,6 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Link } from "react-router-dom";
 import Footer from "../../components/Footer";
+import NodesBackground from "../../components/NodesBackground";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 // Simple icon components using inline SVGs
 const MenuIcon = ({ className }) => (
   <svg
@@ -71,9 +83,12 @@ const ChevronRightIcon = ({ className }) => (
 );
 
 // Navbar Component
-function Navbar() {
+const Navbar = forwardRef(function Navbar(_, forwardedRef) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const navRef = useRef(null);
+
+  useImperativeHandle(forwardedRef, () => navRef.current);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,6 +97,35 @@ function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useGSAP(
+    () => {
+      if (!navRef.current) return;
+      gsap.from(navRef.current, {
+        y: -60,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power3.out",
+      });
+      gsap.from(".landing-nav-link", {
+        opacity: 0,
+        y: -18,
+        duration: 0.6,
+        ease: "power3.out",
+        stagger: 0.08,
+        delay: 0.2,
+      });
+      gsap.from(".landing-nav-auth", {
+        opacity: 0,
+        y: -12,
+        duration: 0.5,
+        ease: "power2.out",
+        delay: 0.35,
+        stagger: 0.1,
+      });
+    },
+    { scope: navRef }
+  );
 
   const navLinks = [
     { label: "Home", href: "#home" },
@@ -92,48 +136,55 @@ function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+      ref={navRef}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out ${
         isScrolled
-          ? "bg-white shadow-lg"
-          : "bg-gradient-to-b from-[#F5F5F5] to-transparent"
+          ? "bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+          : "bg-white/70 backdrop-blur-lg border-b border-slate-200/40"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-12 md:h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#FCA311] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">CS</span>
+          <Link
+            to="/"
+            className="landing-nav-link flex items-center gap-3 group"
+            aria-label="CampusSync home"
+          >
+            <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_2px_6px_rgba(20,33,61,0.12)] group-hover:shadow-[0_3px_10px_rgba(20,33,61,0.18)] transition-shadow duration-200">
+              <span className="text-white font-bold text-xs tracking-tighter">
+                CS
+              </span>
             </div>
-            <span className="text-xl font-bold text-[#14213D] hidden sm:inline">
+            <span className="hidden sm:inline text-[15px] font-semibold text-slate-800 tracking-tight">
               CampusSync
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-[#14213D] hover:text-[#FCA311] transition-colors duration-200 text-sm font-medium"
+                className="landing-nav-link relative text-[14px] font-medium text-slate-600 hover:text-slate-900 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-slate-100/80"
               >
                 {link.label}
               </a>
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Desktop Auth */}
+          <div className="hidden md:flex items-center gap-2">
             <Link
               to="/login"
-              className="text-[#14213D] font-medium hover:text-[#FCA311] transition-colors"
+              className="landing-nav-auth text-[14px] font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100/80 transition-colors duration-200"
             >
               Sign in
             </Link>
             <Link
               to="/signup"
-              className="bg-[#FCA311] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#E89310] transition-colors shadow-md hover:shadow-lg"
+              className="landing-nav-auth text-[14px] font-semibold text-slate-900 bg-secondary hover:bg-amber-500 px-4 py-2 rounded-xl transition-all duration-200 shadow-[0_2px_6px_rgba(251,191,36,0.22)] hover:shadow-[0_3px_10px_rgba(251,191,36,0.28)] hover:-translate-y-0.5"
             >
               Register
             </Link>
@@ -141,40 +192,47 @@ function Navbar() {
 
           {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden"
+            type="button"
+            aria-expanded={isMobileOpen}
+            aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
           >
             {isMobileOpen ? (
-              <XIcon className="w-6 h-6 text-[#14213D]" />
+              <XIcon className="w-5 h-5" />
             ) : (
-              <MenuIcon className="w-6 h-6 text-[#14213D]" />
+              <MenuIcon className="w-5 h-5" />
             )}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {isMobileOpen && (
-          <div className="md:hidden pb-6 space-y-4">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="block text-[#14213D] hover:text-[#FCA311] transition-colors py-2"
-                onClick={() => setIsMobileOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
-            <div className="flex gap-3 pt-4">
+          <div className="md:hidden border-t border-slate-200/60 bg-white/95 backdrop-blur-sm -mx-4 px-4 pt-3 pb-5 rounded-b-2xl shadow-lg">
+            <div className="flex flex-col gap-0.5 pt-1">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="landing-nav-link block text-[15px] font-medium text-slate-600 hover:text-slate-900 py-3 px-3 rounded-xl hover:bg-slate-100/80 transition-colors"
+                  onClick={() => setIsMobileOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
               <Link
                 to="/login"
-                className="flex-1 text-[#14213D] font-medium border border-[#14213D] py-2 rounded-lg hover:bg-[#14213D] hover:text-white transition-colors text-center"
+                className="landing-nav-auth flex-1 text-center text-[15px] font-medium text-slate-700 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                onClick={() => setIsMobileOpen(false)}
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="flex-1 bg-[#FCA311] text-white font-medium py-2 rounded-lg hover:bg-[#E89310] transition-colors text-center"
+                className="landing-nav-auth flex-1 text-center text-[15px] font-semibold text-slate-900 py-3 rounded-xl bg-secondary hover:bg-amber-500 shadow-[0_2px_8px_rgba(251,191,36,0.25)] transition-all"
+                onClick={() => setIsMobileOpen(false)}
               >
                 Register
               </Link>
@@ -184,27 +242,64 @@ function Navbar() {
       </div>
     </nav>
   );
-}
+});
 
 // Hero Component
-function Hero() {
+const Hero = forwardRef(function Hero(_, forwardedRef) {
+  const sectionRef = useRef(null);
+  useImperativeHandle(forwardedRef, () => sectionRef.current);
+
+  useGSAP(
+    () => {
+      if (!sectionRef.current) return;
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.from(".landing-hero-heading", {
+        y: 50,
+        opacity: 0,
+        duration: 0.8,
+      })
+        .from(
+          ".landing-hero-subheading",
+          { y: 30, opacity: 0, duration: 0.6 },
+          "-=0.45"
+        )
+        .from(
+          ".landing-hero-paragraph",
+          { y: 30, opacity: 0, duration: 0.6 },
+          "-=0.35"
+        )
+        .from(
+          ".landing-hero-cta",
+          { y: 20, opacity: 0, duration: 0.5, stagger: 0.08 },
+          "-=0.4"
+        );
+
+    },
+    { scope: sectionRef }
+  );
+
   return (
-    <section id="home" className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Side - Content */}
+    <section
+      ref={sectionRef}
+      id="home"
+      className="relative pt-28 lg:pt-36 pb-20 lg:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden"
+    >
+      <NodesBackground className="opacity-100" maxNodes={32} connectRadius={160} />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-transparent to-slate-950/40 pointer-events-none" aria-hidden />
+      <div className="relative z-10 max-w-6xl mx-auto">
+        <div className="max-w-2xl">
           <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-5xl sm:text-6xl font-bold text-[#14213D] leading-tight">
+            <div className="space-y-3">
+              <h1 className="landing-hero-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight">
                 CampusSync
               </h1>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-[#D9D9D9]">
+              <h2 className="landing-hero-subheading text-xl sm:text-2xl font-medium text-amber-200/90 tracking-tight">
                 Where Learning Meets Belonging
               </h2>
             </div>
 
-            <p className="text-lg text-[#14213D] leading-relaxed max-w-lg">
-              <span className="font-semibold">
+            <p className="landing-hero-paragraph text-base sm:text-lg text-slate-300 leading-relaxed max-w-lg">
+              <span className="font-semibold text-white/95">
                 "I don't belong, and meeting people who are like me is just too
                 hard!"
               </span>
@@ -217,50 +312,26 @@ function Hero() {
               meaningful project teams.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <a
                 href="#features"
-                className="bg-[#FCA311] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#E89310] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-center"
+                className="landing-hero-cta bg-secondary text-primary px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-amber-400 transition-all shadow-accent hover:shadow-lg hover:shadow-secondary/30 text-center"
               >
                 Explore
               </a>
               <a
                 href="#contact"
-                className="border-2 border-[#14213D] text-[#14213D] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#14213D] hover:text-white transition-all text-center"
+                className="landing-hero-cta border-2 border-white/30 text-white px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-white/10 hover:border-white/50 transition-all text-center"
               >
-                Contact me
+                Contact us
               </a>
-            </div>
-          </div>
-
-          {/* Right Side - Visual */}
-          <div className="flex items-center justify-center">
-            <div className="relative w-full aspect-square max-w-md">
-              {/* Decorative shapes */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FCA311] to-[#E89310] rounded-3xl shadow-2xl opacity-10" />
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#FCA311] rounded-full opacity-20 blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#14213D] rounded-full opacity-10 blur-3xl" />
-
-              {/* Center content */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center space-y-4 z-10">
-                  <div className="w-32 h-32 mx-auto bg-white rounded-2xl shadow-xl flex items-center justify-center">
-                    <div className="w-24 h-24 bg-gradient-to-br from-[#FCA311] to-[#E89310] rounded-xl flex items-center justify-center">
-                      <span className="text-4xl">👥</span>
-                    </div>
-                  </div>
-                  <p className="text-[#14213D] font-semibold">
-                    Join your community
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
+});
 
 // Features Component
 const featuresList = [
@@ -294,8 +365,10 @@ const featuresList = [
   },
 ];
 
-function Features() {
+const Features = forwardRef(function Features(_, forwardedRef) {
   const scrollRef = useRef(null);
+  const sectionRef = useRef(null);
+  useImperativeHandle(forwardedRef, () => sectionRef.current);
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -307,14 +380,88 @@ function Features() {
     }
   };
 
+  useGSAP(
+    () => {
+      if (!sectionRef.current) return;
+
+      gsap.from(".landing-features-heading", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 85%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power3.out",
+      });
+
+      const cards = gsap.utils.toArray(".landing-feature-card");
+      cards.forEach((card, index) => {
+        gsap.from(card, {
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+            once: true,
+          },
+          y: 60,
+          opacity: 0,
+          duration: 0.6,
+          delay: index * 0.08,
+          ease: "power3.out",
+        });
+      });
+    },
+    { scope: sectionRef }
+  );
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = () => Array.from(container.querySelectorAll(".landing-feature-card"));
+
+    const updateScale = () => {
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.left + containerRect.width / 2;
+      cards().forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(centerX - cardCenter);
+        const maxDistance = containerRect.width / 2;
+        const scale = gsap.utils.clamp(
+          0.94,
+          1.05,
+          gsap.utils.mapRange(0, maxDistance, 1.05, 0.94, distance)
+        );
+        gsap.to(card, {
+          scale,
+          duration: 0.3,
+          ease: "power2.out",
+        });
+      });
+    };
+
+    updateScale();
+    container.addEventListener("scroll", updateScale, { passive: true });
+    window.addEventListener("resize", updateScale);
+
+    return () => {
+      container.removeEventListener("scroll", updateScale);
+      window.removeEventListener("resize", updateScale);
+    };
+  }, []);
+
   return (
-    <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold text-[#14213D] mb-4">
+    <section
+      ref={sectionRef}
+      id="features"
+      className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white"
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-14 lg:mb-16">
+          <h2 className="landing-features-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-primary mb-3 tracking-tight">
             How It Works
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base text-slate-600 max-w-xl mx-auto">
             Three simple steps to find your people and build meaningful
             connections
           </p>
@@ -325,29 +472,33 @@ function Features() {
           {/* Scroll buttons */}
           <button
             onClick={() => scroll("left")}
-            className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 bg-[#FCA311] text-white p-3 rounded-full hover:bg-[#E89310] transition-all shadow-lg hidden lg:flex items-center justify-center"
+            type="button"
+            aria-label="Scroll left"
+            className="absolute -left-10 top-1/2 -translate-y-1/2 z-10 bg-white text-primary p-3 rounded-full hover:bg-secondary hover:text-primary border border-slate-200 shadow-soft hidden lg:flex items-center justify-center transition-colors"
           >
-            <ChevronLeftIcon className="w-6 h-6" />
+            <ChevronLeftIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => scroll("right")}
-            className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 bg-[#FCA311] text-white p-3 rounded-full hover:bg-[#E89310] transition-all shadow-lg hidden lg:flex items-center justify-center"
+            type="button"
+            aria-label="Scroll right"
+            className="absolute -right-10 top-1/2 -translate-y-1/2 z-10 bg-white text-primary p-3 rounded-full hover:bg-secondary hover:text-primary border border-slate-200 shadow-soft hidden lg:flex items-center justify-center transition-colors"
           >
-            <ChevronRightIcon className="w-6 h-6" />
+            <ChevronRightIcon className="w-5 h-5" />
           </button>
 
           {/* Scrollable container */}
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory"
+            className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin"
             style={{ scrollBehavior: "smooth" }}
           >
             {featuresList.map((feature) => (
-              <div key={feature.id} className="flex-shrink-0 w-96 snap-center">
-                <div className="bg-gradient-to-br from-white to-[#F5F5F5] rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group h-full flex flex-col">
+              <div key={feature.id} className="flex-shrink-0 w-[min(100%,22rem)] snap-center px-0.5">
+                <div className="landing-feature-card bg-white rounded-2xl border border-slate-200/80 shadow-soft hover:shadow-soft-lg hover:border-slate-200 transition-all duration-300 overflow-hidden group h-full flex flex-col">
                   {/* Image */}
-                  <div className="relative h-48 overflow-hidden bg-[#D9D9D9]">
-                    <div className="w-full h-full flex items-center justify-center text-6xl">
+                  <div className="relative h-44 overflow-hidden bg-slate-100">
+                    <div className="w-full h-full flex items-center justify-center text-5xl opacity-90">
                       {feature.id === 1 && "📝"}
                       {feature.id === 2 && "🤖"}
                       {feature.id === 3 && "💬"}
@@ -356,15 +507,15 @@ function Features() {
                   </div>
 
                   {/* Content */}
-                  <div className="p-8 flex flex-col flex-grow">
-                    <h3 className="text-2xl font-bold text-[#14213D] mb-3">
+                  <div className="p-6 lg:p-7 flex flex-col flex-grow">
+                    <h3 className="text-xl font-bold text-primary mb-2 tracking-tight">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed flex-grow">
+                    <p className="text-slate-600 leading-relaxed flex-grow text-sm">
                       {feature.description}
                     </p>
-                    <div className="mt-6 flex items-center text-[#FCA311] font-semibold hover:gap-2 transition-all">
-                      Learn more <span className="ml-2">→</span>
+                    <div className="mt-5 flex items-center text-secondary font-semibold text-sm group-hover:gap-2 transition-all">
+                      Learn more <span className="ml-1">→</span>
                     </div>
                   </div>
                 </div>
@@ -374,35 +525,83 @@ function Features() {
         </div>
 
         {/* Mobile scroll indicator */}
-        <div className="text-center mt-8 text-gray-500 text-sm lg:hidden">
+        <p className="text-center mt-6 text-slate-400 text-sm lg:hidden">
           ← Swipe to explore →
-        </div>
+        </p>
       </div>
     </section>
   );
-}
+});
 
 // Story Component
-function Story() {
+const Story = forwardRef(function Story(_, forwardedRef) {
+  const sectionRef = useRef(null);
+  useImperativeHandle(forwardedRef, () => sectionRef.current);
+
+  useGSAP(
+    () => {
+      if (!sectionRef.current) return;
+      const paragraphs = gsap.utils.toArray(
+        ".landing-story-paragraph"
+      );
+      paragraphs.forEach((paragraph, index) => {
+        gsap.from(paragraph, {
+          scrollTrigger: {
+            trigger: paragraph,
+            start: "top 85%",
+            toggleActions: "play none none reverse",
+          },
+          y: 40,
+          opacity: 0,
+          duration: 0.6,
+          delay: index * 0.05,
+          ease: "power3.out",
+        });
+      });
+
+      const stats = gsap.utils.toArray("[data-stat-count]");
+      stats.forEach((stat) => {
+        const value = parseInt(stat.dataset.statCount || "0", 10);
+        const suffix = stat.dataset.suffix || "";
+        const counter = { val: 0 };
+        gsap.to(counter, {
+          val: value,
+          scrollTrigger: {
+            trigger: stat,
+            start: "top 90%",
+            once: true,
+          },
+          duration: 1.4,
+          ease: "power1.out",
+          onUpdate: () => {
+            stat.textContent = `${Math.round(counter.val)}${suffix}`;
+          },
+        });
+      });
+    },
+    { scope: sectionRef }
+  );
+
   return (
     <section
+      ref={sectionRef}
       id="about"
-      className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[#F5F5F5]"
+      className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50/50"
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="space-y-12">
+      <div className="max-w-3xl mx-auto">
+        <div className="space-y-14">
           {/* Header */}
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl sm:text-5xl font-bold text-[#14213D]">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary tracking-tight">
               Our Story
             </h2>
-            <div className="h-1 w-20 bg-[#FCA311] mx-auto rounded-full" />
+            <div className="h-0.5 w-14 bg-secondary mx-auto rounded-full" />
           </div>
 
           {/* Story content */}
-          <div className="space-y-6 text-lg text-[#14213D] leading-relaxed">
-            <p>
-              <span className="font-semibold">The Problem:</span> As first-year
+          <div className="space-y-6 text-base text-slate-600 leading-relaxed">
+            <p className="landing-story-paragraph">
+              <span className="font-semibold text-slate-800">The Problem:</span> As first-year
               college students, we faced a harsh reality—the campus felt
               enormous, and despite being surrounded by thousands of students,
               finding people who truly understood us seemed impossible. The
@@ -411,8 +610,8 @@ function Story() {
               outsiders trying to fit into an overwhelming machine.
             </p>
 
-            <p>
-              <span className="font-semibold">The Struggle:</span> When project
+            <p className="landing-story-paragraph">
+              <span className="font-semibold text-slate-800">The Struggle:</span> When project
               time came around, it was even worse. We either had to work with
               classmates we barely knew or desperately hoped for compatible
               teammates. Many of us found ourselves in groups with incompatible
@@ -420,8 +619,8 @@ function Story() {
               leading to mediocre results and wasted potential.
             </p>
 
-            <p>
-              <span className="font-semibold">The Realization:</span> We
+            <p className="landing-story-paragraph">
+              <span className="font-semibold text-slate-800">The Realization:</span> We
               believed there had to be a better way. What if there was a
               platform that truly understood us? One that didn't just throw
               random people together, but intelligently matched us with students
@@ -429,15 +628,15 @@ function Story() {
               CampusSync was born.
             </p>
 
-            <p>
-              <span className="font-semibold">Our Mission:</span> We're building
+            <p className="landing-story-paragraph">
+              <span className="font-semibold text-slate-800">Our Mission:</span> We're building
               a community where every student can find their people, build
               lasting friendships, and collaborate on projects that matter. We
               believe that when you're surrounded by the right people, belonging
               stops being a struggle and becomes your reality.
             </p>
 
-            <p>
+            <p className="landing-story-paragraph">
               Today, CampusSync is more than an app—it's a movement to make
               campus life feel less isolating and more inclusive. Because
               everyone deserves to find their tribe.
@@ -448,19 +647,25 @@ function Story() {
           <div className="grid grid-cols-3 gap-6 mt-16 pt-16 border-t-2 border-[#D9D9D9]">
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                1000+
+                <span data-stat-count="1000" data-suffix="+">
+                  0+
+                </span>
               </div>
               <p className="text-gray-600 mt-2">Students Connected</p>
             </div>
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                500+
+                <span data-stat-count="500" data-suffix="+">
+                  0+
+                </span>
               </div>
               <p className="text-gray-600 mt-2">Teams Formed</p>
             </div>
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                50+
+                <span data-stat-count="50" data-suffix="+">
+                  0+
+                </span>
               </div>
               <p className="text-gray-600 mt-2">Universities</p>
             </div>
@@ -469,7 +674,7 @@ function Story() {
       </div>
     </section>
   );
-}
+});
 
 // Team Component
 const teamMembers = [
@@ -505,9 +710,46 @@ const teamMembers = [
   },
 ];
 
-function Team() {
+const Team = forwardRef(function Team(_, forwardedRef) {
+  const sectionRef = useRef(null);
+  useImperativeHandle(forwardedRef, () => sectionRef.current);
+
+  useGSAP(
+    () => {
+      if (!sectionRef.current) return;
+      gsap.from(".landing-team-card", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.12,
+        ease: "power3.out",
+      });
+      gsap.from(".landing-team-highlight", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 75%",
+          once: true,
+        },
+        scale: 0.9,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power2.out",
+        stagger: 0.1,
+      });
+    },
+    { scope: sectionRef }
+  );
+
   return (
-    <section id="team" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+    <section
+      ref={sectionRef}
+      id="team"
+      className="py-24 px-4 sm:px-6 lg:px-8 bg-white"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-bold text-[#14213D] mb-4">
@@ -522,8 +764,8 @@ function Team() {
         <div className="flex flex-col items-center gap-16">
           <div className="flex justify-center gap-16 flex-wrap max-w-2xl">
             {teamMembers.slice(0, 2).map((member) => (
-              <div key={member.id} className="group text-center">
-                <div className="relative mb-6 overflow-hidden rounded-full shadow-lg w-40 h-40 mx-auto bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center">
+              <div key={member.id} className="landing-team-card group text-center">
+                <div className="landing-team-highlight relative mb-6 overflow-hidden rounded-full shadow-lg w-40 h-40 mx-auto bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center">
                   <span className="text-6xl">👤</span>
                   <div className="absolute inset-0 bg-gradient-to-t from-[#14213D] to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-300 flex items-end justify-center pb-6">
                     <span className="text-white font-semibold">
@@ -543,8 +785,8 @@ function Team() {
 
           <div className="flex justify-center gap-16 flex-wrap max-w-3xl">
             {teamMembers.slice(2).map((member) => (
-              <div key={member.id} className="group text-center">
-                <div className="relative mb-6 overflow-hidden rounded-full shadow-lg w-40 h-40 mx-auto bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center">
+              <div key={member.id} className="landing-team-card group text-center">
+                <div className="landing-team-highlight relative mb-6 overflow-hidden rounded-full shadow-lg w-40 h-40 mx-auto bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center">
                   <span className="text-6xl">👤</span>
                   <div className="absolute inset-0 bg-gradient-to-t from-[#14213D] to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-300 flex items-end justify-center pb-6">
                     <span className="text-white font-semibold">
@@ -565,17 +807,23 @@ function Team() {
       </div>
     </section>
   );
-}
+});
 
 // Main Landing Page Component
 function Landing() {
+  const navRef = useRef(null);
+  const heroRef = useRef(null);
+  const featuresRef = useRef(null);
+  const storyRef = useRef(null);
+  const teamRef = useRef(null);
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
-      <Hero />
-      <Features />
-      <Story />
-      <Team />
+      <Navbar ref={navRef} />
+      <Hero ref={heroRef} />
+      <Features ref={featuresRef} />
+      <Story ref={storyRef} />
+      <Team ref={teamRef} />
       <Footer />
     </div>
   );
