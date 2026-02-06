@@ -1,8 +1,10 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { setUser } from "../store/authSlice";
+import { login } from "../api/authApi";
+import { toast } from "sonner";
 import gsap from "gsap";
 
 function LoginPage() {
@@ -10,7 +12,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from ?? "/home";
-  
+  const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef(null);
   const formRef = useRef(null);
 
@@ -28,15 +30,30 @@ function LoginPage() {
     return () => ctx.revert();
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
-    const email = form.querySelector('input[type="email"]')?.value ?? "";
-    const name = email.split("@")[0] || "User";
-    dispatch(setUser({ email, name }));
-    requestAnimationFrame(() => {
-      navigate(from, { replace: true });
-    });
+    const email = form.querySelector('input[type="email"]')?.value?.trim() ?? "";
+    const password = form.querySelector('input[name="password"]')?.value ?? "";
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await login({ email, password });
+      const user = data.user ?? data;
+      const name = user.name ?? email.split("@")[0] ?? "User";
+      dispatch(setUser({ ...user, name, email }));
+      requestAnimationFrame(() => {
+        navigate(from, { replace: true });
+      });
+    } catch (err) {
+      const msg = err.response?.data?.message ?? err.response?.data?.detail ?? err.message ?? "Sign in failed";
+      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -145,6 +162,7 @@ function LoginPage() {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-[#86868b] group-focus-within:text-[#FCA311] transition-colors pointer-events-none" />
                   <input
                     id="password"
+                    name="password"
                     type="password"
                     placeholder="••••••••"
                     required
@@ -157,10 +175,17 @@ function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="form-button w-full h-12 rounded-xl bg-[#1d1d1f] text-white font-medium text-[15px] transition-all hover:bg-[#1d1d1f]/90 active:scale-[0.99] flex items-center justify-center gap-2 mt-6 shadow-sm hover:shadow-md"
+                disabled={isLoading}
+                className="form-button w-full h-12 rounded-xl bg-[#1d1d1f] text-white font-medium text-[15px] transition-all hover:bg-[#1d1d1f]/90 active:scale-[0.99] flex items-center justify-center gap-2 mt-6 shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Sign in
-                <ArrowRight className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </form>
 

@@ -15,3 +15,16 @@ export async function register({ email, name, password }) {
   });
   return data;
 }
+
+/**
+ * Log in a user
+ * @param {{ email: string, password: string }} payload
+ * @returns {Promise<{ id?: number, email: string, role?: string, access_token?: string, token_type?: string }>}
+ */
+export async function login({ email, password }) {
+  const { data } = await axios.post(`${API_BASE}/login`, {
+    email,
+    password,
+  });
+  return data;
+}
