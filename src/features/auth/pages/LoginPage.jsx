@@ -23,8 +23,7 @@ function LoginPage() {
         .from(".brand-text", { y: 20, opacity: 0, duration: 0.5 }, "-=0.2")
         .from(".form-card", { y: 30, opacity: 0, duration: 0.6 }, "-=0.4")
         .from(".form-title", { y: 15, opacity: 0, duration: 0.4 }, "-=0.3")
-        .from(".form-field", { y: 15, opacity: 0, stagger: 0.1, duration: 0.4 }, "-=0.2")
-        .from(".form-button", { y: 10, opacity: 0, duration: 0.3 }, "-=0.1");
+        .from(".form-field", { y: 15, opacity: 0, stagger: 0.1, duration: 0.4 }, "-=0.2");
     }, containerRef);
     return () => ctx.revert();
   }, []);
