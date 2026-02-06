@@ -115,14 +115,7 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
         stagger: 0.08,
         delay: 0.2,
       });
-      gsap.from(".landing-nav-auth", {
-        opacity: 0,
-        y: -12,
-        duration: 0.5,
-        ease: "power2.out",
-        delay: 0.35,
-        stagger: 0.1,
-      });
+      /* Auth links (Sign in / Sign up) are not animated so they stay visible immediately */
     },
     { scope: navRef }
   );
@@ -174,36 +167,35 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
             ))}
           </div>
 
-          {/* Desktop Auth */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Auth: always visible – no animation so they are never hidden */}
+          <div className="flex items-center gap-2 shrink-0">
             <Link
               to="/login"
-              className="landing-nav-auth text-[14px] font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100/80 transition-colors duration-200"
+              className="text-[14px] font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100/80 transition-colors duration-200"
             >
               Sign in
             </Link>
             <Link
               to="/signup"
-              className="landing-nav-auth text-[14px] font-semibold text-slate-900 bg-secondary hover:bg-amber-500 px-4 py-2 rounded-xl transition-all duration-200 shadow-[0_2px_6px_rgba(251,191,36,0.22)] hover:shadow-[0_3px_10px_rgba(251,191,36,0.28)] hover:-translate-y-0.5"
+              className="text-[14px] font-semibold text-slate-900 bg-secondary hover:bg-amber-500 px-4 py-2 rounded-xl transition-all duration-200 shadow-[0_2px_6px_rgba(251,191,36,0.22)] hover:shadow-[0_3px_10px_rgba(251,191,36,0.28)] hover:-translate-y-0.5 shrink-0"
             >
-              Register
+              Sign up
             </Link>
+            {/* Mobile Menu Toggle: show only when we need extra nav links */}
+            <button
+              type="button"
+              aria-expanded={isMobileOpen}
+              aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+              className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
+              onClick={() => setIsMobileOpen(!isMobileOpen)}
+            >
+              {isMobileOpen ? (
+                <XIcon className="w-5 h-5" />
+              ) : (
+                <MenuIcon className="w-5 h-5" />
+              )}
+            </button>
           </div>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            type="button"
-            aria-expanded={isMobileOpen}
-            aria-label={isMobileOpen ? "Close menu" : "Open menu"}
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-          >
-            {isMobileOpen ? (
-              <XIcon className="w-5 h-5" />
-            ) : (
-              <MenuIcon className="w-5 h-5" />
-            )}
-          </button>
         </div>
 
         {/* Mobile Navigation */}
@@ -224,17 +216,17 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
             <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
               <Link
                 to="/login"
-                className="landing-nav-auth flex-1 text-center text-[15px] font-medium text-slate-700 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                className="flex-1 text-center text-[15px] font-medium text-slate-700 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
                 onClick={() => setIsMobileOpen(false)}
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="landing-nav-auth flex-1 text-center text-[15px] font-semibold text-slate-900 py-3 rounded-xl bg-secondary hover:bg-amber-500 shadow-[0_2px_8px_rgba(251,191,36,0.25)] transition-all"
+                className="flex-1 text-center text-[15px] font-semibold text-slate-900 py-3 rounded-xl bg-secondary hover:bg-amber-500 shadow-[0_2px_8px_rgba(251,191,36,0.25)] transition-all"
                 onClick={() => setIsMobileOpen(false)}
               >
-                Register
+                Sign up
               </Link>
             </div>
           </div>
@@ -313,9 +305,15 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Link
+                to="/signup"
+                className="landing-hero-cta bg-secondary text-primary px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-amber-400 transition-all shadow-accent hover:shadow-lg hover:shadow-secondary/30 text-center"
+              >
+                Get started
+              </Link>
               <a
                 href="#features"
-                className="landing-hero-cta bg-secondary text-primary px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-amber-400 transition-all shadow-accent hover:shadow-lg hover:shadow-secondary/30 text-center"
+                className="landing-hero-cta border-2 border-white/30 text-white px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-white/10 hover:border-white/50 transition-all text-center"
               >
                 Explore
               </a>
@@ -337,7 +335,7 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
 const featuresList = [
   {
     id: 1,
-    title: "Smart Onboarding",
+    title: "Personalized Assessment",
     description:
       "Tell us about yourself! Answer personalized questions about your interests, academic major, hobbies, and values. We use this to find your perfect match.",
     image: "/onboarding-form-questionnaire.jpg",

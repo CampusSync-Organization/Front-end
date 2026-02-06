@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 
 export default function SingleSelectStep({
   options,
@@ -18,33 +19,25 @@ export default function SingleSelectStep({
           return (
             <motion.li
               key={opt}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04, duration: 0.25 }}
+              transition={{ delay: index * 0.04, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             >
               <button
                 type="button"
                 onClick={() => onChange(opt)}
-                className={`w-full rounded-xl border-2 px-5 py-4 text-left text-base font-medium transition-colors ${
+                className={`w-full rounded-xl border-2 px-5 py-4 text-left text-[15px] font-medium transition-all duration-200 flex items-center justify-between gap-3 ${
                   isSelected
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/50"
+                    ? "border-[#14213D] bg-[#14213D]/5 text-[#1d1d1f] shadow-sm"
+                    : "border-[#e5e5ea] bg-white text-[#1d1d1f] hover:border-[#14213D]/40 hover:bg-[#f5f5f7]"
                 }`}
               >
-                <span className="flex items-center justify-between">
-                  {opt}
-                  {isSelected && (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </span>
-                  )}
-                </span>
+                <span className="flex-1">{opt}</span>
+                {isSelected && (
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#14213D] text-white">
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                  </span>
+                )}
               </button>
             </motion.li>
           );
@@ -55,17 +48,22 @@ export default function SingleSelectStep({
         <button
           type="button"
           onClick={onBack}
-          className="rounded-xl border border-border bg-card px-6 py-3.5 font-medium text-foreground transition-colors hover:bg-muted"
+          className="rounded-xl border border-[#e5e5ea] bg-white px-6 py-3.5 text-[15px] font-medium text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7] hover:border-[#d2d2d7]"
         >
-          ← Back
+          Back
         </button>
         <button
           type="button"
           onClick={onNext}
           disabled={!canGoNext}
-          className="flex-1 rounded-xl bg-primary px-6 py-3.5 font-medium text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 rounded-xl bg-[#14213D] px-6 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-[#14213D]/95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#14213D] flex items-center justify-center gap-2"
         >
           {stepIndex === totalSteps - 1 ? "Complete" : "Next"}
+          {stepIndex < totalSteps - 1 && (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          )}
         </button>
       </div>
     </div>

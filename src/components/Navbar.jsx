@@ -1,19 +1,32 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Bell, Menu, X, User, Settings, LogOut } from "lucide-react";
+import { clearUser } from "../features/auth/store/authSlice";
 
-const MOCK_USER = { name: "Alex Johnson", role: "admin" };
 const NOTIFICATION_COUNT = 3;
 
 export default function Navbar() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const authUser = useSelector((state) => state.auth?.user);
+  const user = authUser ? { name: authUser.name ?? "User", role: authUser.role ?? "student" } : null;
+
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const notifRef = useRef(null);
   const userRef = useRef(null);
-  const location = useLocation();
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const close = (e) => {
@@ -38,47 +51,58 @@ export default function Navbar() {
       .join("")
       .toUpperCase();
 
-  const linkClass = (to) =>
-    `text-sm font-medium transition-colors ${
-      location.pathname === to
-        ? "text-secondary"
-        : "text-white/80 hover:text-white"
+  const linkClass = (to) => {
+    const active = location.pathname === to;
+    return `text-[14px] font-medium transition-colors duration-200 px-3 py-2 rounded-lg ${
+      active
+        ? "text-primary bg-primary/10"
+        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
     }`;
+  };
+
+  const navBarClass = `fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-out ${
+    isScrolled
+      ? "bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+      : "bg-white/70 backdrop-blur-lg border-b border-slate-200/40"
+  }`;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-primary shadow-md">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <nav className={navBarClass}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-12 md:h-14">
+          {/* Logo – same as landing */}
           <Link
             to="/"
-            className="flex items-center gap-2 text-white hover:opacity-90 transition-opacity"
+            className="flex items-center gap-3 text-slate-800 hover:opacity-90 transition-opacity group"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
-              <span className="text-base font-bold text-primary">CS</span>
+            <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_2px_6px_rgba(20,33,61,0.12)] group-hover:shadow-[0_3px_10px_rgba(20,33,61,0.18)] transition-shadow duration-200">
+              <span className="text-white font-bold text-xs tracking-tighter">CS</span>
             </div>
-            <span className="hidden text-lg font-bold text-white sm:inline">
+            <span className="hidden sm:inline text-[15px] font-semibold text-slate-800 tracking-tight">
               CampusSync
             </span>
           </Link>
 
-          <div className="hidden md:flex md:items-center md:gap-1">
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-1">
             {appLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`px-4 py-2 rounded-lg transition-colors ${linkClass(link.to)}`}
+                className={linkClass(link.to)}
               >
                 {link.label}
               </Link>
             ))}
           </div>
 
-          <div className="hidden md:flex md:items-center md:gap-2">
+          {/* Right: notifications + user */}
+          <div className="hidden md:flex items-center gap-1">
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
                 onClick={() => setNotifOpen((o) => !o)}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors duration-200"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
@@ -89,22 +113,22 @@ export default function Navbar() {
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 mt-1 w-72 rounded-lg border border-border bg-white py-2 shadow-lg">
-                  <div className="px-3 py-2 text-sm font-semibold text-foreground border-b border-border">
+                <div className="absolute right-0 mt-1 w-72 rounded-xl border border-slate-200 bg-white py-2 shadow-[0_10px_40px_-10px_rgba(15,23,42,0.15)]">
+                  <div className="px-3 py-2 text-sm font-semibold text-slate-800 border-b border-slate-100">
                     Notifications
                   </div>
                   <div className="max-h-64 overflow-y-auto">
-                    <button type="button" className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted">
+                    <button type="button" className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                       <p>New event: AI Workshop 2025</p>
-                      <p className="text-xs text-muted-foreground">2 hours ago</p>
+                      <p className="text-xs text-slate-500 mt-0.5">2 hours ago</p>
                     </button>
-                    <button type="button" className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted">
+                    <button type="button" className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                       <p>You joined Data Science Club</p>
-                      <p className="text-xs text-muted-foreground">5 hours ago</p>
+                      <p className="text-xs text-slate-500 mt-0.5">5 hours ago</p>
                     </button>
-                    <button type="button" className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted">
+                    <button type="button" className="w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                       <p>Reminder: Hackathon starts tomorrow</p>
-                      <p className="text-xs text-muted-foreground">1 day ago</p>
+                      <p className="text-xs text-slate-500 mt-0.5">1 day ago</p>
                     </button>
                   </div>
                 </div>
@@ -115,25 +139,25 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors duration-200"
                 aria-label="User menu"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-sm font-medium text-primary">
-                  {getInitials(MOCK_USER.name)}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white text-sm font-semibold shadow-[0_2px_6px_rgba(20,33,61,0.2)]">
+                  {user ? getInitials(user.name) : "?"}
                 </span>
-                <span className="text-sm max-w-[100px] truncate hidden lg:block">
-                  {MOCK_USER.name.split(" ")[0]}
+                <span className="text-[14px] font-medium text-slate-700 max-w-[100px] truncate hidden lg:block">
+                  {user ? user.name.split(" ")[0] : ""}
                 </span>
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-1 w-56 rounded-lg border border-border bg-white py-2 shadow-lg">
-                  <div className="border-b border-border px-3 py-2">
-                    <p className="text-sm font-medium text-foreground">{MOCK_USER.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{MOCK_USER.role}</p>
+                <div className="absolute right-0 mt-1 w-56 rounded-xl border border-slate-200 bg-white py-2 shadow-[0_10px_40px_-10px_rgba(15,23,42,0.15)]">
+                  <div className="border-b border-slate-100 px-3 py-2.5">
+                    <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
+                    <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
                   </div>
                   <Link
                     to="/Profile-Page"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >
                     <User className="h-4 w-4" />
@@ -141,28 +165,33 @@ export default function Navbar() {
                   </Link>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                   >
                     <Settings className="h-4 w-4" />
                     Settings
                   </button>
-                  <div className="my-1 h-px bg-border" />
-                  <Link
-                    to="/login"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
-                    onClick={() => setUserMenuOpen(false)}
+                  <div className="my-1 h-px bg-slate-100" />
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    onClick={() => {
+                      dispatch(clearUser());
+                      setUserMenuOpen(false);
+                      navigate("/", { replace: true });
+                    }}
                   >
                     <LogOut className="h-4 w-4" />
                     Logout
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Mobile menu button */}
           <button
             type="button"
-            className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg text-white/80 hover:bg-white/10"
+            className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -170,45 +199,45 @@ export default function Navbar() {
           </button>
         </div>
 
+        {/* Mobile menu – same style as landing */}
         {isMobileOpen && (
-          <div className="border-t border-white/10 pb-4 pt-2 md:hidden">
-            <div className="flex flex-col gap-1">
+          <div className="md:hidden border-t border-slate-200/60 bg-white/95 backdrop-blur-sm -mx-4 px-4 pt-3 pb-5 rounded-b-2xl shadow-lg">
+            <div className="flex flex-col gap-0.5 pt-1">
               {appLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`rounded-lg px-4 py-3 ${linkClass(link.to)}`}
+                  className={`block text-[15px] font-medium py-3 px-3 rounded-xl transition-colors ${
+                    location.pathname === link.to
+                      ? "text-primary bg-primary/10"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                  }`}
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-medium text-primary">
-                {getInitials(MOCK_USER.name)}
+            <div className="flex items-center gap-3 pt-4 mt-2 border-t border-slate-100 py-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white text-sm font-semibold shadow-[0_2px_6px_rgba(20,33,61,0.2)]">
+                {user ? getInitials(user.name) : "?"}
               </span>
               <div>
-                <p className="text-sm font-medium text-white">{MOCK_USER.name}</p>
-                <p className="text-xs text-white/60 capitalize">{MOCK_USER.role}</p>
+                <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
+                <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
               </div>
             </div>
-            <div className="mt-2 flex gap-2">
-              <Link
-                to="/login"
-                className="flex-1 rounded-lg border border-white/30 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10"
-                onClick={() => setMobileOpen(false)}
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/signup"
-                className="flex-1 rounded-lg bg-secondary py-2.5 text-center text-sm font-medium text-primary hover:bg-secondary/90"
-                onClick={() => setMobileOpen(false)}
-              >
-                Register
-              </Link>
-            </div>
+            <button
+              type="button"
+              className="w-full text-[15px] font-medium text-red-600 py-3 rounded-xl border border-red-200 hover:bg-red-50 transition-colors"
+              onClick={() => {
+                dispatch(clearUser());
+                setMobileOpen(false);
+                navigate("/", { replace: true });
+              }}
+            >
+              Logout
+            </button>
           </div>
         )}
       </div>

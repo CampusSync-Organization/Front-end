@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import AppLayout from "../../components/AppLayout";
+import AuthGuard from "../../components/AuthGuard";
 import Landing from "../../features/pages/Landing";
 import LoginPage from "../../features/auth/pages/LoginPage";
 import SignUpPage from "../../features/auth/pages/SignUpPage";
@@ -16,13 +17,19 @@ export const router = createBrowserRouter([
   { path: "/signup", element: <SignUpPage /> },
   { path: "/assessment", element: <AssessmentPage /> },
   {
-    element: <AppLayout />,
+    element: <AuthGuard />,
     children: [
-      { path: "/home", element: <HomePage /> },
-      { path: "/events-communities", element: <EventsAndCommunitiesLayoutPage /> },
-      { path: "/Profile-Page", element: <ProfilePage /> },
-      { path: "/User-profile", element: <UserProfilePage /> },
-      { path: "/Chat-Main-Page", element: <ChatMainPage /> },
+      {
+        path: "/",
+        element: <AppLayout />,
+        children: [
+          { path: "home", element: <HomePage /> },
+          { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
+          { path: "Profile-Page", element: <ProfilePage /> },
+          { path: "User-profile", element: <UserProfilePage /> },
+          { path: "Chat-Main-Page", element: <ChatMainPage /> },
+        ],
+      },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },
