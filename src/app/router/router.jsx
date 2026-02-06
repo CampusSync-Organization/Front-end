@@ -8,7 +8,7 @@ import AssessmentPage from "../../features/assessment/pages/AssessmentPage.jsx";
 import HomePage from "../../features/home/pages/HomePage.jsx";
 import ProfilePage from "../../features/profile/pages/ProfilePage.jsx";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
-import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
+//import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
 import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pages/EventsAndCommunitiesLayoutPage.jsx";
 
 export const router = createBrowserRouter([
