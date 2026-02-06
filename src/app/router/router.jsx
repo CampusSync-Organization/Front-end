@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
           { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
           { path: "Profile-Page", element: <ProfilePage /> },
           { path: "User-profile", element: <UserProfilePage /> },
-          { path: "Chat-Main-Page", element: <ChatMainPage /> },
+          // { path: "Chat-Main-Page", element: <ChatMainPage /> },
         ],
       },
     ],
