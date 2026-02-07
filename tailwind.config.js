@@ -9,6 +9,9 @@ export default {
       colors: {
         primary: "#14213D",
         secondary: "#FCA311",
+        navy: "#14213D",
+        gold: "#FCA311",
+        "muted-gray": "#9ca3af",
         "neutral-light": "#E5E5E5",
         background: "#f5f5f5",
         foreground: "#14213d",

@@ -246,7 +246,7 @@ function Hero() {
 const features = [
   {
     id: 1,
-    title: "Smart Onboarding",
+    title: "Personalized Assessment",
     description: "Answer personalized questions about your interests, major, and values. We find your perfect match.",
     icon: "✨",
     size: "large",
