@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, ArrowRight, Check, Loader2, Eye, EyeOff } from "lucide-react";
 import { setUser } from "../store/authSlice";
 import { register } from "../api/authApi";
+import { getErrorMessage } from "../utils/getErrorMessage";
 import { toast } from "sonner";
 import gsap from "gsap";
 
@@ -52,12 +53,7 @@ function SignUpPage() {
         navigate("/assessment", { replace: true });
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.message ??
-        err.response?.data?.detail ??
-        err.message ??
-        "Registration failed";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      toast.error(getErrorMessage(err, "Registration failed"));
     } finally {
       setIsLoading(false);
     }

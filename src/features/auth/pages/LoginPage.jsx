@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { setUser } from "../store/authSlice";
 import { login } from "../api/authApi";
+import { getErrorMessage } from "../utils/getErrorMessage";
 import { toast } from "sonner";
 import gsap from "gsap";
 
@@ -50,8 +51,7 @@ function LoginPage() {
         navigate(from, { replace: true });
       });
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.detail ?? err.message ?? "Sign in failed";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      toast.error(getErrorMessage(err, "Sign in failed"));
     } finally {
       setIsLoading(false);
     }
