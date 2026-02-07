@@ -9,28 +9,30 @@ import HomePage from "../../features/home/pages/HomePage.jsx";
 import ProfilePage from "../../features/profile/pages/ProfilePage.jsx";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
+import RecommendationPage from "../../features/recommendation/pages/RecommendationPage.jsx";
 import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pages/EventsAndCommunitiesLayoutPage.jsx";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Landing /> },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <SignUpPage /> },
-  { path: "/assessment", element: <AssessmentPage /> },
-  {
-    element: <AuthGuard />,
-    children: [
-      {
-        path: "/",
-        element: <AppLayout />,
+    { path: "/", element: <Landing /> },
+    { path: "/login", element: <LoginPage /> },
+    { path: "/signup", element: <SignUpPage /> },
+    { path: "/assessment", element: <AssessmentPage /> },
+    {
+        element: <AuthGuard />,
         children: [
-          { path: "home", element: <HomePage /> },
-          { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
-          { path: "Profile-Page", element: <ProfilePage /> },
-          { path: "User-profile", element: <UserProfilePage /> },
-          { path: "Chat-Main-Page", element: <ChatMainPage /> },
+            {
+                path: "/",
+                element: <AppLayout />,
+                children: [
+                    { path: "home", element: <HomePage /> },
+                    { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
+                    { path: "Profile-Page", element: <ProfilePage /> },
+                    { path: "User-profile", element: <UserProfilePage /> },
+                    { path: "Recommendation-Page", element: <RecommendationPage /> },
+                    { path: "Chat-Main-Page", element: <ChatMainPage /> },
+                ],
+            },
         ],
-      },
-    ],
-  },
-  { path: "*", element: <Navigate to="/" replace /> },
+    },
+    { path: "*", element: <Navigate to="/" replace /> },
 ]);
