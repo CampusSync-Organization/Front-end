@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Bell, Menu, X, User, Settings, LogOut } from "lucide-react";
+import { label } from "framer-motion/client";
 import { clearUser } from "../features/auth/store/authSlice";
 
 const NOTIFICATION_COUNT = 3;
@@ -20,7 +21,7 @@ export default function Navbar() {
   const notifRef = useRef(null);
   const userRef = useRef(null);
 
-  useEffect(() => setMobileOpen(false), [location.pathname]);
+    useEffect(() => setMobileOpen(false), [location.pathname]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -37,19 +38,20 @@ export default function Navbar() {
     return () => document.removeEventListener("click", close);
   }, []);
 
-  const appLinks = [
-    { label: "Home", to: "/home" },
-    { label: "Events & Communities", to: "/events-communities" },
-    { label: "Profile", to: "/Profile-Page" },
-    { label: "Chat", to: "/Chat-Main-Page" },
-  ];
 
-  const getInitials = (name) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
+    const appLinks = [
+        { label: "Home", to: "/home" },
+        { label: "Recommendation", to: "/Recommendation-Page" },
+        { label: "Events & Communities", to: "/events-communities" },
+        { label: "Chat", to: "/Chat-Main-Page" },
+    ];
+
+    const getInitials = (name) =>
+        name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase();
 
   const linkClass = (to) => {
     const active = location.pathname === to;
@@ -243,4 +245,5 @@ export default function Navbar() {
       </div>
     </nav>
   );
+
 }
