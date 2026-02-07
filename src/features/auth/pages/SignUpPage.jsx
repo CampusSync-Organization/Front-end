@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowRight, Check, Loader2 } from "lucide-react";
+import { User, Mail, Lock, ArrowRight, Check, Loader2, Eye, EyeOff } from "lucide-react";
 import { setUser } from "../store/authSlice";
 import { register } from "../api/authApi";
+import { getErrorMessage } from "../utils/getErrorMessage";
 import { toast } from "sonner";
 import gsap from "gsap";
 
@@ -12,6 +13,7 @@ function SignUpPage() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -51,12 +53,7 @@ function SignUpPage() {
         navigate("/assessment", { replace: true });
       });
     } catch (err) {
-      const msg =
-        err.response?.data?.message ??
-        err.response?.data?.detail ??
-        err.message ??
-        "Registration failed";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      toast.error(getErrorMessage(err, "Registration failed"));
     } finally {
       setIsLoading(false);
     }
@@ -214,13 +211,21 @@ function SignUpPage() {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Min 8 characters"
                     required
                     minLength={8}
                     autoComplete="new-password"
-                    className="w-full h-11 pl-10 pr-4 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-2 focus:ring-[#FCA311]/20 focus:border-[#FCA311]"
+                    className="w-full h-11 pl-10 pr-11 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-2 focus:ring-[#FCA311]/20 focus:border-[#FCA311]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#86868b] hover:text-[#1d1d1f] hover:bg-slate-100 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
