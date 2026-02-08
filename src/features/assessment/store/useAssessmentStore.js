@@ -40,7 +40,8 @@ const computeScores = (responses) => {
         reverseScored: Boolean(question.reverseScored),
       });
       if (normalised != null) {
-        const bucket = question.category === "Academic DNA" ? "academic" : "personality";
+        const bucket =
+          question.category === "Academic DNA" ? "academic" : "personality";
         aggregates[bucket].total += normalised;
         aggregates[bucket].count += 1;
       }
@@ -53,8 +54,14 @@ const computeScores = (responses) => {
   };
 
   return {
-    academicMomentum: toPercent(aggregates.academic.total, aggregates.academic.count),
-    personalitySync: toPercent(aggregates.personality.total, aggregates.personality.count),
+    academicMomentum: toPercent(
+      aggregates.academic.total,
+      aggregates.academic.count,
+    ),
+    personalitySync: toPercent(
+      aggregates.personality.total,
+      aggregates.personality.count,
+    ),
   };
 };
 
@@ -98,5 +105,5 @@ export const useAssessmentStore = create(
         analytics: computeScores(responses),
       };
     },
-  }))
+  })),
 );

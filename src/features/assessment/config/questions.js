@@ -4,14 +4,26 @@ export const ACADEMIC_QUESTIONS = [
     category: "Academic DNA",
     type: "singleSelect",
     question: "Which year of study are you currently in?",
-    options: ["First Year", "Second Year", "Third Year", "Fourth Year", "Graduate"],
+    options: [
+      "First Year",
+      "Second Year",
+      "Third Year",
+      "Fourth Year",
+      "Graduate",
+    ],
   },
   {
     key: "gpa",
     category: "Academic DNA",
     type: "singleSelect",
     question: "How would you describe your current GPA band?",
-    options: ["3.7 - 4.0", "3.3 - 3.69", "3.0 - 3.29", "Below 3.0", "Prefer not to say"],
+    options: [
+      "3.7 - 4.0",
+      "3.3 - 3.69",
+      "3.0 - 3.29",
+      "Below 3.0",
+      "Prefer not to say",
+    ],
   },
   {
     key: "study_rhythm",
@@ -43,7 +55,8 @@ export const ACADEMIC_QUESTIONS = [
       4: "Mix of both",
       7: "Deep research",
     },
-    question: "I get energised by exploring complex research problems over hands-on builds.",
+    question:
+      "I get energised by exploring complex research problems over hands-on builds.",
   },
   {
     key: "deadline_habits",
@@ -178,7 +191,8 @@ export const PERSONALITY_QUESTIONS = [
       4: "Curious",
       7: "Visionary",
     },
-    question: "I get excited exploring wild ideas that others might call unrealistic.",
+    question:
+      "I get excited exploring wild ideas that others might call unrealistic.",
   },
   {
     key: "opn_2",
@@ -218,7 +232,8 @@ export const PERSONALITY_QUESTIONS = [
       4: "Need short breaks",
       7: "Need long resets",
     },
-    question: "It takes me a long time to bounce back after high-pressure pushes.",
+    question:
+      "It takes me a long time to bounce back after high-pressure pushes.",
     reverseScored: true,
   },
   {
