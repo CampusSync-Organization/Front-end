@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Bell, Menu, X, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Bell, Menu, X, User, Settings, LogOut } from "lucide-react";
+import { label } from "framer-motion/client";
 import { clearUser } from "../features/auth/store/authSlice";
 
 const NOTIFICATION_COUNT = 3;
@@ -20,10 +21,7 @@ export default function Navbar() {
   const notifRef = useRef(null);
   const userRef = useRef(null);
 
-  useEffect(() => {
-    const id = setTimeout(() => setMobileOpen(false), 0);
-    return () => clearTimeout(id);
-  }, [location.pathname]);
+    useEffect(() => setMobileOpen(false), [location.pathname]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
@@ -40,20 +38,29 @@ export default function Navbar() {
     return () => document.removeEventListener("click", close);
   }, []);
 
-  const appLinks = [
-    { label: "Home", to: "/home" },
-    { label: "Recommendation", to: "/Recommendation-Page" },
-    { label: "Events & Communities", to: "/events-communities" },
-    { label: "Chat", to: "/Chat-Main-Page" },
-  ];
 
-  const getInitials = (name) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    const appLinks = [
+        { label: "Home", to: "/home" },
+        { label: "Recommendation", to: "/Recommendation-Page" },
+        { label: "Events & Communities", to: "/events-communities" },
+        { label: "Chat", to: "/Chat-Main-Page" },
+    ];
+
+    const getInitials = (name) =>
+        name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase();
+
+  const linkClass = (to) => {
+    const active = location.pathname === to;
+    return `text-[14px] font-medium transition-colors duration-200 px-3 py-2 rounded-lg ${
+      active
+        ? "text-primary bg-primary/10"
+        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+    }`;
+  };
 
   const navBarClass = `fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-out ${
     isScrolled
@@ -252,4 +259,5 @@ export default function Navbar() {
       </div>
     </nav>
   );
+
 }
