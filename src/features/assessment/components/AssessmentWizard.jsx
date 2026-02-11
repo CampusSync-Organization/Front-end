@@ -5,7 +5,31 @@ import { useAssessmentStore } from "../store/useAssessmentStore";
 import { ALL_QUESTIONS } from "../config/questions";
 import SingleSelectStep from "./SingleSelectStep";
 import LikertStep from "./LikertStep";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
+import QuestionCard from "./midnight/QuestionCard";
+import GPAWheel from "./midnight/GPAWheel";
+import HazardSlider from "./midnight/HazardSlider";
+import BatterySelector from "./midnight/BatterySelector";
+import EmojiOptionCard from "./midnight/EmojiOptionCard";
+
+const CARD_TO_LIKERT_7 = [1, 2, 4, 6, 7];
+function likert7ToCard(value) {
+  if (value == null) return null;
+  if (value <= 1) return 1;
+  if (value <= 3) return 2;
+  if (value <= 5) return 3;
+  if (value <= 6) return 4;
+  return 5;
+}
+function cardToLikert7(card) {
+  return CARD_TO_LIKERT_7[Math.min(4, Math.max(0, card - 1))];
+}
+
+function getChapterTitle(category) {
+  if (category === "Academic DNA") return "The Operator";
+  if (category === "Personality Pulse") return "The Persona";
+  return category;
+}
 
 export default function AssessmentWizard() {
   const navigate = useNavigate();
@@ -32,7 +56,7 @@ export default function AssessmentWizard() {
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
       const payload = getFinalPayload();
-      console.log("Deep Sync Assessment – Final payload:", payload);
+      console.log("CampusSync Assessment – Final payload:", payload);
       nextStep();
       return;
     }
@@ -54,43 +78,58 @@ export default function AssessmentWizard() {
     navigate("/home");
   };
 
+  const handleClose = () => {
+    if (currentStep === 0) navigate(-1);
+    else prevStep();
+  };
+
+  const isAcademic = currentQuestion?.category === "Academic DNA";
+  const handleSelectAcademic = (key, value) => {
+    setAnswer(key, value);
+    setTimeout(handleNext, 400);
+  };
+
   if (isComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#fbfbfd] to-[#f0f0f4] flex flex-col items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className="rounded-3xl border border-[#e5e5ea] bg-white p-10 shadow-[0_10px_40px_-12px_rgba(20,33,61,0.08)] text-center">
+          <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-10 text-center shadow-[0_0_40px_-12px_rgba(0,0,0,0.3)]">
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
-              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#14213D]"
+              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-400/20 border border-amber-400/40 shadow-[0_0_24px_rgba(251,191,36,0.25)]"
             >
-              <Check className="h-10 w-10 text-white stroke-[2.5]" />
+              <Check className="h-10 w-10 text-amber-400 stroke-[2.5]" />
             </motion.div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
               You're all set
             </h2>
-            <p className="mt-3 text-[15px] text-[#86868b] leading-relaxed max-w-sm mx-auto">
-              Your personalized experience is ready. We've tailored things based on your responses.
+            <p className="mt-3 text-[15px] text-slate-400 leading-relaxed max-w-sm mx-auto">
+              Your personalized experience is ready. We've tailored things based
+              on your responses.
             </p>
             <motion.button
               type="button"
               onClick={handleComplete}
-              className="mt-8 w-full rounded-xl bg-[#14213D] text-white font-semibold text-[15px] h-12 flex items-center justify-center gap-2 shadow-lg shadow-[#14213D]/15 hover:bg-[#14213D]/95 transition-all active:scale-[0.99]"
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.99 }}
+              className="mt-8 w-full rounded-full bg-amber-400 text-slate-900 font-semibold text-[15px] h-12 flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(251,191,36,0.35)] hover:bg-amber-300 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Let's go
               <ArrowRight className="h-4 w-4" />
             </motion.button>
           </div>
           <p className="mt-6 text-center">
-            <Link to="/" className="text-[13px] text-[#86868b] hover:text-[#1d1d1f] transition-colors">
+            <Link
+              to="/"
+              className="text-[13px] text-slate-500 hover:text-slate-400 transition-colors"
+            >
               Back to home
             </Link>
           </p>
@@ -99,95 +138,278 @@ export default function AssessmentWizard() {
     );
   }
 
+  const isGPA = currentQuestion?.key === "gpa";
+  const isStudyRhythm = currentQuestion?.key === "study_rhythm";
+  const isCourseLoad = currentQuestion?.key === "course_load";
+  const isPersonalityLikert =
+    currentQuestion?.type === "likert" &&
+    currentQuestion?.category === "Personality Pulse";
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fbfbfd] to-[#f0f0f4] flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#e5e5ea] bg-white/80 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-[#1d1d1f] hover:opacity-80 transition-opacity"
-            >
-              <div className="w-8 h-8 rounded-lg bg-[#14213D] flex items-center justify-center">
-                <span className="text-[#FCA311] font-bold text-xs">CS</span>
-              </div>
-              <span className="font-semibold text-[15px]">CampusSync</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <span className="text-[13px] text-[#86868b]">
-                {currentStep + 1} of {totalSteps}
-              </span>
-              <div className="h-1.5 w-24 sm:w-32 rounded-full bg-[#e5e5ea] overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-[#14213D]"
-                  initial={false}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col">
+      {/* Gold progress bar at top */}
+      <div className="h-1 w-full bg-white/5 overflow-hidden">
+        <motion.div
+          className="h-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        />
+      </div>
+
+      {/* Header: step indicator (left), close (right) */}
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4">
+        <span className="text-sm font-medium text-slate-400">
+          {currentStep + 1} of {totalSteps}
+        </span>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </header>
 
+      {/* Chapter title */}
+      {currentQuestion?.category && (
+        <div className="px-4 sm:px-6 pb-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+            {getChapterTitle(currentQuestion.category)}
+          </span>
+        </div>
+      )}
+
       {/* Content */}
-      <main className="flex-1 mx-auto w-full max-w-2xl px-4 sm:px-6 py-8 sm:py-12">
-        <AnimatePresence mode="wait" custom={direction}>
+      <main className="flex-1 mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 pb-12">
+        <AnimatePresence mode="wait">
           {currentQuestion && (
             <motion.div
               key={currentStep}
-              custom={direction}
-              initial={{ opacity: 0, x: direction > 0 ? 20 : -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -20 : 20 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{
+                opacity: 0,
+                x: direction > 0 ? 100 : -100,
+                scale: direction > 0 ? 0.95 : 1,
+              }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -100, rotate: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 35 }}
               className="space-y-8"
             >
-              {/* Question card */}
-              <div className="rounded-2xl border border-[#e5e5ea] bg-white p-6 sm:p-8 shadow-[0_4px_24px_-4px_rgba(20,33,61,0.06)]">
-                {currentQuestion.category && (
-                  <span className="inline-block text-[11px] font-semibold uppercase tracking-widest text-[#FCA311] mb-3">
-                    {currentQuestion.category}
-                  </span>
+              {isGPA && (
+                <QuestionCard
+                  question={currentQuestion}
+                  funQuestion="How would you describe your current GPA band?"
+                  direction={direction}
+                >
+                  <GPAWheel
+                    options={currentQuestion.options}
+                    value={currentValue}
+                    onChange={(v) =>
+                      isAcademic
+                        ? handleSelectAcademic(currentQuestion.key, v)
+                        : setAnswer(currentQuestion.key, v)
+                    }
+                  />
+                  <NavButtons
+                    onBack={handleBack}
+                    onNext={handleNext}
+                    canGoNext={currentValue != null}
+                    stepIndex={currentStep}
+                    totalSteps={totalSteps}
+                    autoAdvance={isAcademic}
+                  />
+                </QuestionCard>
+              )}
+
+              {isStudyRhythm && (
+                <QuestionCard
+                  question={currentQuestion}
+                  funQuestion="What study rhythm feels most natural for you?"
+                  direction={direction}
+                >
+                  <HazardSlider
+                    options={currentQuestion.options}
+                    value={currentValue}
+                    onChange={(v) =>
+                      isAcademic
+                        ? handleSelectAcademic(currentQuestion.key, v)
+                        : setAnswer(currentQuestion.key, v)
+                    }
+                  />
+                  <NavButtons
+                    onBack={handleBack}
+                    onNext={handleNext}
+                    canGoNext={currentValue != null}
+                    stepIndex={currentStep}
+                    totalSteps={totalSteps}
+                    autoAdvance={isAcademic}
+                  />
+                </QuestionCard>
+              )}
+
+              {isCourseLoad && (
+                <QuestionCard
+                  question={currentQuestion}
+                  funQuestion="How intense is your current course load?"
+                  direction={direction}
+                >
+                  <BatterySelector
+                    options={currentQuestion.options}
+                    value={currentValue}
+                    onChange={(v) =>
+                      isAcademic
+                        ? handleSelectAcademic(currentQuestion.key, v)
+                        : setAnswer(currentQuestion.key, v)
+                    }
+                  />
+                  <NavButtons
+                    onBack={handleBack}
+                    onNext={handleNext}
+                    canGoNext={currentValue != null}
+                    stepIndex={currentStep}
+                    totalSteps={totalSteps}
+                    autoAdvance={isAcademic}
+                  />
+                </QuestionCard>
+              )}
+
+              {isPersonalityLikert && (
+                <QuestionCard
+                  question={currentQuestion}
+                  direction={direction}
+                >
+                  <EmojiOptionCard
+                    value={likert7ToCard(currentValue)}
+                    onChange={(card) =>
+                      setAnswer(currentQuestion.key, cardToLikert7(card))
+                    }
+                    labels={[
+                      currentQuestion.labels[1],
+                      currentQuestion.labels[2] ?? currentQuestion.labels[1],
+                      currentQuestion.labels[4],
+                      currentQuestion.labels[6] ?? currentQuestion.labels[4],
+                      currentQuestion.labels[7],
+                    ]}
+                  />
+                  <NavButtons
+                    onBack={handleBack}
+                    onNext={handleNext}
+                    canGoNext={currentValue != null}
+                    stepIndex={currentStep}
+                    totalSteps={totalSteps}
+                  />
+                </QuestionCard>
+              )}
+
+              {!isGPA &&
+                !isStudyRhythm &&
+                !isCourseLoad &&
+                !isPersonalityLikert &&
+                currentQuestion.type === "singleSelect" && (
+                  <QuestionCard
+                    question={currentQuestion}
+                    direction={direction}
+                  >
+                    <SingleSelectStep
+                      options={currentQuestion.options}
+                      value={currentValue}
+                      onChange={(v) =>
+                        isAcademic
+                          ? handleSelectAcademic(currentQuestion.key, v)
+                          : setAnswer(currentQuestion.key, v)
+                      }
+                      onNext={handleNext}
+                      onBack={handleBack}
+                      canGoNext={currentValue != null}
+                      stepIndex={currentStep}
+                      totalSteps={totalSteps}
+                      variant="midnight"
+                      autoAdvance={isAcademic}
+                    />
+                  </QuestionCard>
                 )}
-                <h2 className="text-xl sm:text-2xl font-semibold text-[#1d1d1f] leading-snug tracking-tight">
-                  {currentQuestion.question}
-                </h2>
-              </div>
 
-              {/* Step content */}
-              {currentQuestion.type === "singleSelect" && (
-                <SingleSelectStep
-                  options={currentQuestion.options}
-                  value={currentValue}
-                  onChange={(v) => setAnswer(currentQuestion.key, v)}
-                  onNext={handleNext}
-                  onBack={handleBack}
-                  canGoNext={currentValue != null}
-                  stepIndex={currentStep}
-                  totalSteps={totalSteps}
-                />
-              )}
-
-              {currentQuestion.type === "likert" && (
-                <LikertStep
-                  min={currentQuestion.min}
-                  max={currentQuestion.max}
-                  labels={currentQuestion.labels}
-                  value={currentValue}
-                  onChange={(v) => setAnswer(currentQuestion.key, v)}
-                  onNext={handleNext}
-                  onBack={handleBack}
-                  canGoNext={currentValue != null}
-                  stepIndex={currentStep}
-                  totalSteps={totalSteps}
-                />
-              )}
+              {!isGPA &&
+                !isStudyRhythm &&
+                !isCourseLoad &&
+                !isPersonalityLikert &&
+                currentQuestion.type === "likert" && (
+                  <QuestionCard
+                    question={currentQuestion}
+                    direction={direction}
+                  >
+                    <LikertStep
+                      min={currentQuestion.min}
+                      max={currentQuestion.max}
+                      labels={currentQuestion.labels}
+                      value={currentValue}
+                      onChange={(v) =>
+                        isAcademic
+                          ? handleSelectAcademic(currentQuestion.key, v)
+                          : setAnswer(currentQuestion.key, v)
+                      }
+                      onNext={handleNext}
+                      onBack={handleBack}
+                      canGoNext={currentValue != null}
+                      stepIndex={currentStep}
+                      totalSteps={totalSteps}
+                      variant="midnight"
+                      autoAdvance={isAcademic}
+                    />
+                  </QuestionCard>
+                )}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+function NavButtons({
+  onBack,
+  onNext,
+  canGoNext,
+  stepIndex,
+  totalSteps,
+  autoAdvance = false,
+}) {
+  return (
+    <div className="flex gap-3 pt-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-[15px] font-medium text-slate-300 transition-colors hover:bg-white/10 hover:border-white/30"
+      >
+        Back
+      </button>
+      {!autoAdvance && (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canGoNext}
+          className="flex-1 rounded-full bg-amber-400 px-6 py-3.5 text-[15px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
+        >
+          {stepIndex === totalSteps - 1 ? "Complete" : "Next"}
+          {stepIndex < totalSteps - 1 && (
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   );
 }
