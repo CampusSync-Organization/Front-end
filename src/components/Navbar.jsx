@@ -73,9 +73,11 @@ export default function Navbar() {
             to="/"
             className="flex items-center gap-2.5 text-slate-900 hover:text-slate-700 transition-colors shrink-0"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#14213D] flex items-center justify-center shadow-[0_2px_8px_rgba(20,33,61,0.15)]">
-              <span className="text-[#FCA311] font-bold text-sm tracking-tight">CS</span>
-            </div>
+            <img
+              src="/campussync-icon.png"
+              alt="CampusSync"
+              className="h-9 w-auto object-contain"
+            />
             <span className="hidden sm:inline text-[16px] font-semibold text-slate-900 tracking-tight">
               CampusSync
             </span>

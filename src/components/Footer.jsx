@@ -60,9 +60,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#FCA311] rounded-lg flex items-center justify-center">
-                <span className="text-[#14213D] font-bold">CS</span>
-              </div>
+              <img
+                src="/campussync-icon.png"
+                alt="CampusSync"
+                className="h-10 w-auto object-contain"
+              />
               <span className="text-xl font-bold">CampusSync</span>
             </div>
             <p className="text-gray-300">

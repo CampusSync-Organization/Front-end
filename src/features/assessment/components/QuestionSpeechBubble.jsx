@@ -11,11 +11,15 @@ export default function QuestionSpeechBubble({
   totalSteps,
   isActive,
   onRevealComplete,
+  className = "",
 }) {
   const bubbleRef = useRef(null);
   const cursorRef = useRef(null);
   const contentRef = useRef(null);
-  const words = useMemo(() => (question ? question.split(" ") : []), [question]);
+  const words = useMemo(
+    () => (question ? question.split(" ") : []),
+    [question],
+  );
 
   useGSAP(
     () => {
@@ -23,8 +27,7 @@ export default function QuestionSpeechBubble({
       const bubbleEl = bubbleRef.current;
       const wordEls = bubbleEl.querySelectorAll("[data-word]");
 
-      // Initial state
-      gsap.set(wordEls, { opacity: 0, y: 25, rotateX: 45, transformOrigin: "0% 50% -50" });
+      gsap.set(wordEls, { opacity: 0, y: 8 });
       if (cursorRef.current) {
         gsap.set(cursorRef.current, { opacity: 0, scaleY: 0 });
       }
@@ -67,62 +70,29 @@ export default function QuestionSpeechBubble({
         },
       });
 
-      // Bubble entrance with elastic effect
       tl.fromTo(
         bubbleEl,
-        {
-          opacity: 0,
-          y: 30,
-          scale: 0.9,
-          rotateX: 10,
-        },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          rotateX: 0,
-          duration: 0.6,
-          ease: "elastic.out(1, 0.75)",
-        }
+        { opacity: 0, x: -12 },
+        { opacity: 1, x: 0, duration: 0.25, ease: "power2.out" },
       );
 
-      // Word-by-word reveal with 3D spring effect
       tl.to(
         wordEls,
         {
           opacity: 1,
           y: 0,
           rotateX: 0,
-          duration: 0.4,
-          stagger: {
-            each: 0.06,
-            ease: "power2.out",
-          },
+          duration: 0.18,
+          stagger: { each: 0.022, ease: "power2.out" },
         },
-        "-=0.3"
+        "-=0.1",
       );
-
-      // Gradient sweep across text
-      if (contentRef.current) {
-        tl.fromTo(
-          contentRef.current,
-          {
-            backgroundPosition: "-100% 0",
-          },
-          {
-            backgroundPosition: "200% 0",
-            duration: 1.2,
-            ease: "power2.inOut",
-          },
-          "-=0.6"
-        );
-      }
 
       return () => {
         cursorBlink?.kill();
       };
     },
-    { dependencies: [question, isActive], scope: bubbleRef }
+    { dependencies: [question, isActive], scope: bubbleRef },
   );
 
   if (!question) return null;
@@ -130,71 +100,22 @@ export default function QuestionSpeechBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      className="relative mx-auto max-w-2xl"
+      className={`relative max-w-2xl ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       style={{ perspective: 1000 }}
     >
-      {/* Ambient glow behind bubble */}
-      <div className="absolute inset-0 -z-10 blur-3xl">
-        <div className="absolute inset-0 rounded-full bg-[#FCA311]/10 scale-150" />
-      </div>
+      {/* Speech bubble - clean, tail points at avatar */}
+      <div className="relative rounded-xl rounded-tl-sm border border-white/10 bg-white/5 px-5 py-4 sm:px-6 sm:py-5">
+        <div className="absolute -left-2 top-8 w-4 h-4 rotate-45 border-l border-b border-white/10 bg-white/5" />
 
-      <div className="relative rounded-3xl rounded-tl-lg border border-white/15 bg-gradient-to-br from-white/[0.08] to-white/[0.03] px-6 py-5 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:px-8 sm:py-6">
-        {/* Glassmorphism overlay */}
-        <div className="absolute inset-0 rounded-3xl rounded-tl-lg bg-gradient-to-br from-white/5 via-transparent to-[#FCA311]/5 pointer-events-none" />
-
-        {/* Speech bubble pointer */}
-        <div className="absolute -left-2 top-8 h-4 w-4 rotate-45 border-l border-b border-white/15 bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-2xl" />
-
-        {/* Step indicator */}
-        <motion.div
-          className="flex items-center gap-2 mb-4"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex gap-1">
-            {Array.from({ length: totalSteps }).map((_, i) => (
-              <motion.div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i <= stepIndex
-                    ? "w-4 bg-[#FCA311]"
-                    : "w-1.5 bg-white/20"
-                }`}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1 + i * 0.03 }}
-              />
-            ))}
-          </div>
-          <span className="text-xs font-semibold uppercase tracking-widest text-[#FCA311]">
-            {stepIndex + 1}/{totalSteps}
-          </span>
-        </motion.div>
-
-        {/* Question text with gradient sweep effect */}
+        {/* Question text */}
         <p
           ref={contentRef}
-          className="relative min-h-[1.5em] text-xl font-semibold leading-relaxed text-white sm:text-2xl"
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg, white 0%, #FCA311 50%, white 100%)",
-            backgroundSize: "200% 100%",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-          }}
+          className="relative min-h-[1.5em] text-base font-medium leading-relaxed text-white sm:text-lg"
         >
           {words.map((word, idx) => (
-            <span
-              key={`${word}-${idx}`}
-              data-word
-              className="inline-block"
-              style={{
-                transformStyle: "preserve-3d",
-              }}
-            >
+            <span key={`${word}-${idx}`} data-word className="inline-block">
               {word}
               {idx !== words.length - 1 ? "\u00A0" : ""}
             </span>

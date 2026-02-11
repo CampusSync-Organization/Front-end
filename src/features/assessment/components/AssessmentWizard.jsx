@@ -5,35 +5,20 @@ import { useAssessmentStore } from "../store/useAssessmentStore";
 import { ALL_QUESTIONS } from "../config/questions";
 import SingleSelectStep from "./SingleSelectStep";
 import LikertStep from "./LikertStep";
+import AssessmentAvatar from "./AssessmentAvatar";
+import QuestionSpeechBubble from "./QuestionSpeechBubble";
 import { ArrowRight, Check, X } from "lucide-react";
-import QuestionCard from "./midnight/QuestionCard";
-import GPAWheel from "./midnight/GPAWheel";
-import HazardSlider from "./midnight/HazardSlider";
-import BatterySelector from "./midnight/BatterySelector";
-import EmojiOptionCard from "./midnight/EmojiOptionCard";
-
-const CARD_TO_LIKERT_7 = [1, 2, 4, 6, 7];
-function likert7ToCard(value) {
-  if (value == null) return null;
-  if (value <= 1) return 1;
-  if (value <= 3) return 2;
-  if (value <= 5) return 3;
-  if (value <= 6) return 4;
-  return 5;
-}
-function cardToLikert7(card) {
-  return CARD_TO_LIKERT_7[Math.min(4, Math.max(0, card - 1))];
-}
 
 function getChapterTitle(category) {
-  if (category === "Academic DNA") return "The Operator";
-  if (category === "Personality Pulse") return "The Persona";
+  if (category === "Academic") return "Academic";
+  if (category === "Personality") return "Personality";
   return category;
 }
 
 export default function AssessmentWizard() {
   const navigate = useNavigate();
   const [direction, setDirection] = useState(1);
+  const [bubbleRevealed, setBubbleRevealed] = useState(false);
 
   const {
     currentStep,
@@ -53,6 +38,12 @@ export default function AssessmentWizard() {
     ? getAnswerForKey(currentQuestion.key)
     : null;
 
+  const questionText =
+    currentQuestion?.question || currentQuestion?.statement || "";
+  const isAcademic = currentQuestion?.category === "Academic";
+  const isAcademicSingleSelect =
+    isAcademic && currentQuestion?.type === "singleSelect";
+
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
       const payload = getFinalPayload();
@@ -61,16 +52,27 @@ export default function AssessmentWizard() {
       return;
     }
     setDirection(1);
+    setBubbleRevealed(false);
     nextStep();
   };
 
   const handleBack = () => {
     setDirection(-1);
+    setBubbleRevealed(false);
     if (currentStep === 0) {
       navigate(-1);
       return;
     }
     prevStep();
+  };
+
+  const handleSelect = (value) => {
+    setAnswer(currentQuestion.key, value);
+  };
+
+  const handleSelectWithAdvance = (value) => {
+    setAnswer(currentQuestion.key, value);
+    setTimeout(handleNext, 350);
   };
 
   const handleComplete = () => {
@@ -83,15 +85,11 @@ export default function AssessmentWizard() {
     else prevStep();
   };
 
-  const isAcademic = currentQuestion?.category === "Academic DNA";
-  const handleSelectAcademic = (key, value) => {
-    setAnswer(key, value);
-    setTimeout(handleNext, 400);
-  };
+  const onRevealComplete = () => setBubbleRevealed(true);
 
   if (isComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 flex flex-col items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,17 +136,10 @@ export default function AssessmentWizard() {
     );
   }
 
-  const isGPA = currentQuestion?.key === "gpa";
-  const isStudyRhythm = currentQuestion?.key === "study_rhythm";
-  const isCourseLoad = currentQuestion?.key === "course_load";
-  const isPersonalityLikert =
-    currentQuestion?.type === "likert" &&
-    currentQuestion?.category === "Personality Pulse";
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col">
-      {/* Gold progress bar at top */}
-      <div className="h-1 w-full bg-white/5 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 flex flex-col">
+      {/* Progress bar */}
+      <div className="h-1 w-full bg-white/5 overflow-hidden shrink-0">
         <motion.div
           className="h-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
           initial={false}
@@ -157,10 +148,10 @@ export default function AssessmentWizard() {
         />
       </div>
 
-      {/* Header: step indicator (left), close (right) */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4">
-        <span className="text-sm font-medium text-slate-400">
-          {currentStep + 1} of {totalSteps}
+      {/* Header - compact, progress + close */}
+      <header className="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0">
+        <span className="text-xs font-medium text-slate-500 tabular-nums">
+          {currentStep + 1} / {totalSteps}
         </span>
         <button
           type="button"
@@ -172,244 +163,84 @@ export default function AssessmentWizard() {
         </button>
       </header>
 
-      {/* Chapter title */}
-      {currentQuestion?.category && (
-        <div className="px-4 sm:px-6 pb-2">
-          <span className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            {getChapterTitle(currentQuestion.category)}
-          </span>
-        </div>
-      )}
-
-      {/* Content */}
-      <main className="flex-1 mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 pb-12">
+      {/* Main content - centered, uses full page */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 overflow-auto">
         <AnimatePresence mode="wait">
           {currentQuestion && (
             <motion.div
               key={currentStep}
-              initial={{
-                opacity: 0,
-                x: direction > 0 ? 100 : -100,
-                scale: direction > 0 ? 0.95 : 1,
-              }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -100, rotate: -2 }}
-              transition={{ type: "spring", stiffness: 300, damping: 35 }}
-              className="space-y-8"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-2xl flex flex-col items-center gap-8"
             >
-              {isGPA && (
-                <QuestionCard
-                  question={currentQuestion}
-                  funQuestion="How would you describe your current GPA band?"
-                  direction={direction}
-                >
-                  <GPAWheel
+              {currentQuestion?.category && (
+                <span className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
+                  {getChapterTitle(currentQuestion.category)}
+                </span>
+              )}
+
+              {/* Nova + Question */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full">
+                <AssessmentAvatar
+                  className="shrink-0"
+                />
+                <QuestionSpeechBubble
+                  question={questionText}
+                  stepIndex={currentStep}
+                  totalSteps={totalSteps}
+                  isActive={true}
+                  onRevealComplete={onRevealComplete}
+                  className="flex-1 min-w-0 w-full"
+                />
+              </div>
+
+              {/* Options */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+                className="w-full max-w-lg"
+              >
+                {currentQuestion.type === "singleSelect" ? (
+                  <SingleSelectStep
                     options={currentQuestion.options}
                     value={currentValue}
-                    onChange={(v) =>
-                      isAcademic
-                        ? handleSelectAcademic(currentQuestion.key, v)
-                        : setAnswer(currentQuestion.key, v)
+                    onChange={
+                      isAcademicSingleSelect
+                        ? handleSelectWithAdvance
+                        : handleSelect
                     }
-                  />
-                  <NavButtons
-                    onBack={handleBack}
                     onNext={handleNext}
+                    onBack={handleBack}
                     canGoNext={currentValue != null}
                     stepIndex={currentStep}
                     totalSteps={totalSteps}
-                    autoAdvance={isAcademic}
+                    variant="midnight"
+                    autoAdvance={isAcademicSingleSelect}
                   />
-                </QuestionCard>
-              )}
-
-              {isStudyRhythm && (
-                <QuestionCard
-                  question={currentQuestion}
-                  funQuestion="What study rhythm feels most natural for you?"
-                  direction={direction}
-                >
-                  <HazardSlider
-                    options={currentQuestion.options}
+                ) : (
+                  <LikertStep
+                    min={currentQuestion.min}
+                    max={currentQuestion.max}
+                    labels={currentQuestion.labels}
                     value={currentValue}
-                    onChange={(v) =>
-                      isAcademic
-                        ? handleSelectAcademic(currentQuestion.key, v)
-                        : setAnswer(currentQuestion.key, v)
-                    }
-                  />
-                  <NavButtons
-                    onBack={handleBack}
+                    onChange={handleSelect}
                     onNext={handleNext}
+                    onBack={handleBack}
                     canGoNext={currentValue != null}
                     stepIndex={currentStep}
                     totalSteps={totalSteps}
-                    autoAdvance={isAcademic}
+                    variant="midnight"
+                    autoAdvance={false}
                   />
-                </QuestionCard>
-              )}
-
-              {isCourseLoad && (
-                <QuestionCard
-                  question={currentQuestion}
-                  funQuestion="How intense is your current course load?"
-                  direction={direction}
-                >
-                  <BatterySelector
-                    options={currentQuestion.options}
-                    value={currentValue}
-                    onChange={(v) =>
-                      isAcademic
-                        ? handleSelectAcademic(currentQuestion.key, v)
-                        : setAnswer(currentQuestion.key, v)
-                    }
-                  />
-                  <NavButtons
-                    onBack={handleBack}
-                    onNext={handleNext}
-                    canGoNext={currentValue != null}
-                    stepIndex={currentStep}
-                    totalSteps={totalSteps}
-                    autoAdvance={isAcademic}
-                  />
-                </QuestionCard>
-              )}
-
-              {isPersonalityLikert && (
-                <QuestionCard
-                  question={currentQuestion}
-                  direction={direction}
-                >
-                  <EmojiOptionCard
-                    value={likert7ToCard(currentValue)}
-                    onChange={(card) =>
-                      setAnswer(currentQuestion.key, cardToLikert7(card))
-                    }
-                    labels={[
-                      currentQuestion.labels[1],
-                      currentQuestion.labels[2] ?? currentQuestion.labels[1],
-                      currentQuestion.labels[4],
-                      currentQuestion.labels[6] ?? currentQuestion.labels[4],
-                      currentQuestion.labels[7],
-                    ]}
-                  />
-                  <NavButtons
-                    onBack={handleBack}
-                    onNext={handleNext}
-                    canGoNext={currentValue != null}
-                    stepIndex={currentStep}
-                    totalSteps={totalSteps}
-                  />
-                </QuestionCard>
-              )}
-
-              {!isGPA &&
-                !isStudyRhythm &&
-                !isCourseLoad &&
-                !isPersonalityLikert &&
-                currentQuestion.type === "singleSelect" && (
-                  <QuestionCard
-                    question={currentQuestion}
-                    direction={direction}
-                  >
-                    <SingleSelectStep
-                      options={currentQuestion.options}
-                      value={currentValue}
-                      onChange={(v) =>
-                        isAcademic
-                          ? handleSelectAcademic(currentQuestion.key, v)
-                          : setAnswer(currentQuestion.key, v)
-                      }
-                      onNext={handleNext}
-                      onBack={handleBack}
-                      canGoNext={currentValue != null}
-                      stepIndex={currentStep}
-                      totalSteps={totalSteps}
-                      variant="midnight"
-                      autoAdvance={isAcademic}
-                    />
-                  </QuestionCard>
                 )}
-
-              {!isGPA &&
-                !isStudyRhythm &&
-                !isCourseLoad &&
-                !isPersonalityLikert &&
-                currentQuestion.type === "likert" && (
-                  <QuestionCard
-                    question={currentQuestion}
-                    direction={direction}
-                  >
-                    <LikertStep
-                      min={currentQuestion.min}
-                      max={currentQuestion.max}
-                      labels={currentQuestion.labels}
-                      value={currentValue}
-                      onChange={(v) =>
-                        isAcademic
-                          ? handleSelectAcademic(currentQuestion.key, v)
-                          : setAnswer(currentQuestion.key, v)
-                      }
-                      onNext={handleNext}
-                      onBack={handleBack}
-                      canGoNext={currentValue != null}
-                      stepIndex={currentStep}
-                      totalSteps={totalSteps}
-                      variant="midnight"
-                      autoAdvance={isAcademic}
-                    />
-                  </QuestionCard>
-                )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-    </div>
-  );
-}
-
-function NavButtons({
-  onBack,
-  onNext,
-  canGoNext,
-  stepIndex,
-  totalSteps,
-  autoAdvance = false,
-}) {
-  return (
-    <div className="flex gap-3 pt-6">
-      <button
-        type="button"
-        onClick={onBack}
-        className="rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-[15px] font-medium text-slate-300 transition-colors hover:bg-white/10 hover:border-white/30"
-      >
-        Back
-      </button>
-      {!autoAdvance && (
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canGoNext}
-          className="flex-1 rounded-full bg-amber-400 px-6 py-3.5 text-[15px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
-        >
-          {stepIndex === totalSteps - 1 ? "Complete" : "Next"}
-          {stepIndex < totalSteps - 1 && (
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          )}
-        </button>
-      )}
     </div>
   );
 }

@@ -100,7 +100,11 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
   return (
     <nav
       ref={navRef}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/255 transition-all duration-300 ease-out"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out ${
+        isLight
+          ? "bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-sm"
+          : "bg-transparent"
+      }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-16">
@@ -109,18 +113,14 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
             className="landing-nav-link flex items-center gap-2.5"
             aria-label="CampusSync home"
           >
-            <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm tracking-tight transition-colors duration-150 ${
-                isLight
-                  ? "bg-slate-900 text-amber-400"
-                  : "bg-white/15 text-amber-400 border border-white/20"
-              }`}
-            >
-              CS
-            </div>
+            <img
+              src="/campussync-icon.png"
+              alt="CampusSync"
+              className="h-9 w-auto object-contain"
+            />
             <span
-              className={`hidden sm:inline text-[15px] font-semibold tracking-tight transition-colors duration-200 ${
-                isLight ? "text-slate-900" : "text-white"
+              className={`hidden sm:inline text-lg font-semibold tracking-tight transition-colors duration-200 ${
+                isLight ? "text-amber-500" : "text-amber-400"
               }`}
             >
               CampusSync
@@ -138,8 +138,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
                 onMouseEnter={() => setHoveredLink(link.label)}
                 className={`relative landing-nav-link text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
                   isLight
-                    ? "text-slate-600 hover:text-slate-900"
-                    : "text-white/80 hover:text-white"
+                    ? "text-slate-900 hover:text-slate-900"
+                    : "text-white hover:text-white"
                 }`}
               >
                 <span className="relative z-10">{link.label}</span>
@@ -162,8 +162,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
               to="/login"
               className={`hidden sm:inline-block text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-white/80 hover:text-white"
+                  ? "text-slate-900 hover:text-slate-900"
+                  : "text-white hover:text-white"
               }`}
             >
               Sign in
@@ -180,8 +180,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
               aria-label={isMobileOpen ? "Close menu" : "Open menu"}
               className={`md:hidden p-2.5 rounded-xl transition-colors duration-150 ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-white/80 hover:text-white"
+                  ? "text-slate-900 hover:text-slate-900"
+                  : "text-white hover:text-white"
               }`}
               onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
@@ -210,7 +210,7 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
                   className={`landing-nav-link block text-[15px] font-medium py-3.5 px-4 rounded-xl transition-colors duration-150 ${
                     isLight
                       ? "text-slate-700 hover:text-slate-900"
-                      : "text-white/90 hover:text-white"
+                      : "text-white hover:text-white"
                   }`}
                   onClick={() => setIsMobileOpen(false)}
                 >
@@ -526,32 +526,32 @@ const Story = forwardRef(function Story(_, forwardedRef) {
 const teamMembers = [
   {
     id: 1,
-    name: "Alex Johnson",
-    role: "Team Lead & Co-Founder",
+    name: "Raghad Mohamed",
+    //role: "Team Lead & Co-Founder",
     image: "/professional-portrait.png",
   },
   {
     id: 2,
-    name: "Maria Chen",
-    role: "AI Engineer",
+    name: "Youssef Nabil",
+    //role: "AI Engineer",
     image: "/professional-portrait.png",
   },
   {
     id: 3,
-    name: "Jordan Smith",
-    role: "Product Manager",
+    name: "Hadeer Abdelhady",
+    // role: "Product Manager",
     image: "/professional-portrait.png",
   },
   {
     id: 4,
-    name: "Priya Patel",
-    role: "Backend Lead",
+    name: "Abdelrahman Amr",
+    //  role: "Backend Lead",
     image: "/professional-portrait.png",
   },
   {
     id: 5,
-    name: "Marcus Williams",
-    role: "Community Lead",
+    name: "Youssef Mohamed ",
+    //role: "Community Lead",
     image: "/professional-portrait.png",
   },
 ];

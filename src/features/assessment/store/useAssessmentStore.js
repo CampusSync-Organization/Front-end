@@ -41,7 +41,7 @@ const computeScores = (responses) => {
       });
       if (normalised != null) {
         const bucket =
-          question.category === "Academic DNA" ? "academic" : "personality";
+          question.category === "Academic" ? "academic" : "personality";
         aggregates[bucket].total += normalised;
         aggregates[bucket].count += 1;
       }
