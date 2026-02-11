@@ -13,6 +13,7 @@ import HowItWorksSection from "./HowItWorksSection";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { motion } from "framer-motion";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 // Simple icon components using inline SVGs
@@ -54,6 +55,7 @@ const XIcon = ({ className }) => (
 const Navbar = forwardRef(function Navbar(_, forwardedRef) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [hoveredLink, setHoveredLink] = useState(null);
   const navRef = useRef(null);
 
   useImperativeHandle(forwardedRef, () => navRef.current);
@@ -84,7 +86,7 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
         delay: 0.2,
       });
     },
-    { scope: navRef }
+    { scope: navRef },
   );
 
   const isLight = isScrolled;
@@ -98,7 +100,7 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
   return (
     <nav
       ref={navRef}
-      className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-md transition-all duration-300 ease-out"
+      className="fixed top-0 left-0 right-0 z-50 bg-white/255 transition-all duration-300 ease-out"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-16">
@@ -125,18 +127,29 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1" onMouseLeave={() => setHoveredLink(null)}>
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className={`landing-nav-link text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
+                onMouseEnter={() => setHoveredLink(link.label)}
+                className={`relative landing-nav-link text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
                   isLight
                     ? "text-slate-600 hover:text-slate-900"
                     : "text-white/80 hover:text-white"
                 }`}
               >
-                {link.label}
+                <span className="relative z-10">{link.label}</span>
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: hoveredLink === link.label ? 1 : 0 }}
+                  className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0 origin-center"
+                  transition={{
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 20,
+                  }}
+                />
               </a>
             ))}
           </div>
@@ -163,11 +176,17 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
               aria-expanded={isMobileOpen}
               aria-label={isMobileOpen ? "Close menu" : "Open menu"}
               className={`md:hidden p-2.5 rounded-xl transition-colors duration-150 ${
-                isLight ? "text-slate-600 hover:text-slate-900" : "text-white/80 hover:text-white"
+                isLight
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-white/80 hover:text-white"
               }`}
               onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
-              {isMobileOpen ? <XIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+              {isMobileOpen ? (
+                <XIcon className="w-5 h-5" />
+              ) : (
+                <MenuIcon className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
@@ -308,7 +327,10 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
                 className="landing-hero-cta group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 px-6 py-4 rounded-full text-[15px] font-semibold tracking-tight hover:from-amber-300 hover:to-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:ring-offset-2 focus:ring-offset-slate-950 transition-all duration-300 shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_4px_24px_-4px_rgba(251,191,36,0.35)] hover:shadow-[0_0_0_1px_rgba(251,191,36,0.3),0_8px_32px_-4px_rgba(251,191,36,0.4)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_0_0_1px_rgba(251,191,36,0.2)]"
               >
                 Get started
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={2.25} />
+                <ArrowRight
+                  className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+                  strokeWidth={2.25}
+                />
               </Link>
               <span
                 className="hidden sm:inline w-px h-6 bg-white/20 rounded-full"

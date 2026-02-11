@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Bell, Menu, X, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { clearUser } from "../features/auth/store/authSlice";
 
@@ -17,11 +18,13 @@ export default function Navbar() {
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState(location.pathname);
   const notifRef = useRef(null);
   const userRef = useRef(null);
 
   useEffect(() => {
     const id = setTimeout(() => setMobileOpen(false), 0);
+    setHoveredPath(location.pathname);
     return () => clearTimeout(id);
   }, [location.pathname]);
 
@@ -79,20 +82,30 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-0.5">
+          <div className="hidden md:flex items-center gap-1" onMouseLeave={() => setHoveredPath(location.pathname)}>
             {appLinks.map((link) => {
-              const active = location.pathname === link.to;
+              const isActive = location.pathname === link.to;
               return (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`text-[14px] font-medium px-4 py-2 rounded-xl transition-colors duration-200 ${
-                    active
-                      ? "text-[#14213D] bg-slate-100"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  onMouseEnter={() => setHoveredPath(link.to)}
+                  className={`relative px-4 py-2 rounded-xl text-[14px] font-medium transition-colors duration-200 ${
+                    isActive ? "text-[#14213D]" : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  {link.label}
+                  <span className="relative z-10">{link.label}</span>
+                  {hoveredPath === link.to && (
+                    <motion.div
+                      layoutId="navbar-pill"
+                      className="absolute inset-0 bg-slate-100 rounded-xl z-0"
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                  )}
                 </Link>
               );
             })}
