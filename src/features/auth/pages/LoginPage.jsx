@@ -58,9 +58,9 @@ function LoginPage() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen flex bg-[#fbfbfd]">
+    <div ref={containerRef} className="h-screen min-h-0 flex bg-[#fbfbfd] overflow-hidden">
       {/* Left: Premium branding panel */}
-      <div className="brand-panel hidden lg:flex lg:w-1/2 bg-[#1d1d1f] relative overflow-hidden">
+      <div className="brand-panel hidden lg:flex lg:w-1/2 bg-[#1d1d1f] relative overflow-hidden shrink-0">
         {/* Gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#1d1d1f] via-[#2d2d2f] to-[#1d1d1f]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_20%_20%,rgba(252,163,17,0.08),transparent_50%)]" />
@@ -74,7 +74,7 @@ function LoginPage() {
           }}
         />
 
-        <div className="relative z-10 flex flex-col justify-between w-full px-16 py-12">
+        <div className="relative z-10 flex flex-col justify-between w-full px-12 xl:px-16 py-8 xl:py-10">
           {/* Logo */}
           <Link to="/" className="brand-logo inline-flex items-center gap-3 text-white/90 hover:text-white transition-colors">
             <img src="/campussync-icon.png" alt="CampusSync" className="h-10 w-auto object-contain" />
@@ -83,13 +83,13 @@ function LoginPage() {
 
           {/* Main content */}
           <div className="brand-text">
-            <h2 className="text-[clamp(32px,4vw,44px)] font-semibold text-white tracking-[-0.02em] leading-tight max-w-md">
+            <h2 className="text-[clamp(28px,3.5vw,40px)] font-semibold text-white tracking-[-0.02em] leading-tight max-w-md">
               Welcome back to your
               <span className="block bg-gradient-to-r from-[#FCA311] to-[#FFD700] bg-clip-text text-transparent">
                 community
               </span>
             </h2>
-            <p className="mt-6 text-white/50 text-lg max-w-sm leading-relaxed">
+            <p className="mt-4 text-white/50 text-base max-w-sm leading-relaxed">
               Sign in to reconnect with your peers, discover events, and continue building meaningful connections.
             </p>
           </div>
@@ -102,10 +102,10 @@ function LoginPage() {
       </div>
 
       {/* Right: Form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 sm:px-12 py-12">
+      <div className="flex-1 flex flex-col justify-center items-center px-6 sm:px-12 py-6 sm:py-8 min-h-0 overflow-y-auto">
         <div ref={formRef} className="w-full max-w-[400px]">
           {/* Mobile Logo */}
-          <Link to="/" className="lg:hidden inline-flex items-center gap-2.5 mb-10">
+          <Link to="/" className="lg:hidden inline-flex items-center gap-2.5 mb-6">
             <img src="/campussync-icon.png" alt="CampusSync" className="h-9 w-auto object-contain" />
             <span className="text-[17px] font-semibold text-[#1d1d1f]">CampusSync</span>
           </Link>
@@ -113,17 +113,17 @@ function LoginPage() {
           {/* Form Card */}
           <div className="form-card">
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="form-title text-[28px] font-semibold text-[#1d1d1f] tracking-tight">
+            <div className="mb-6">
+              <h1 className="form-title text-2xl sm:text-[28px] font-semibold text-[#1d1d1f] tracking-tight">
                 Sign in
               </h1>
-              <p className="mt-2 text-[#86868b] text-[15px]">
+              <p className="mt-1.5 text-[#86868b] text-[15px]">
                 Enter your email and password to continue
               </p>
             </div>
 
             {/* Form */}
-            <form id="login-form" onSubmit={handleSubmit} className="space-y-5">
+            <form id="login-form" onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div className="form-field space-y-2">
                 <label htmlFor="email" className="block text-[13px] font-medium text-[#1d1d1f]">
@@ -137,7 +137,7 @@ function LoginPage() {
                     placeholder="you@university.edu"
                     required
                     autoComplete="email"
-                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-4 focus:ring-[#FCA311]/10 focus:border-[#FCA311]"
+                    className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-4 focus:ring-[#FCA311]/10 focus:border-[#FCA311]"
                   />
                 </div>
               </div>
@@ -164,7 +164,7 @@ function LoginPage() {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
-                    className="w-full h-12 pl-11 pr-12 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-4 focus:ring-[#FCA311]/10 focus:border-[#FCA311]"
+                    className="w-full h-11 pl-11 pr-12 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder:text-[#86868b]/60 text-[15px] transition-all focus:outline-none focus:ring-4 focus:ring-[#FCA311]/10 focus:border-[#FCA311]"
                   />
                   <button
                     type="button"
@@ -181,7 +181,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="form-button w-full h-12 rounded-xl bg-[#1d1d1f] text-white font-medium text-[15px] transition-all hover:bg-[#1d1d1f]/90 active:scale-[0.99] flex items-center justify-center gap-2 mt-6 shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                className="form-button w-full h-11 rounded-xl bg-[#1d1d1f] text-white font-medium text-[15px] transition-all hover:bg-[#1d1d1f]/90 active:scale-[0.99] flex items-center justify-center gap-2 mt-4 shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -195,7 +195,7 @@ function LoginPage() {
             </form>
 
             {/* Divider */}
-            <div className="flex items-center gap-4 my-8">
+            <div className="flex items-center gap-4 my-5">
               <div className="flex-1 h-px bg-[#d2d2d7]" />
               <span className="text-[12px] text-[#86868b] uppercase tracking-wide">or</span>
               <div className="flex-1 h-px bg-[#d2d2d7]" />
@@ -204,7 +204,7 @@ function LoginPage() {
             {/* Social Login */}
             <button
               type="button"
-              className="w-full h-12 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] font-medium text-[15px] transition-all hover:bg-[#f5f5f7] flex items-center justify-center gap-3"
+              className="w-full h-11 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] font-medium text-[15px] transition-all hover:bg-[#f5f5f7] flex items-center justify-center gap-3"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -216,7 +216,7 @@ function LoginPage() {
             </button>
 
             {/* Sign up link */}
-            <p className="mt-8 text-center text-[14px] text-[#86868b]">
+            <p className="mt-5 text-center text-[14px] text-[#86868b]">
               Don't have an account?{" "}
               <Link
                 to="/signup"
@@ -228,7 +228,7 @@ function LoginPage() {
           </div>
 
           {/* Terms */}
-          <p className="mt-8 text-center text-[12px] text-[#86868b]">
+          <p className="mt-5 text-center text-[12px] text-[#86868b]">
             By continuing, you agree to our <a href="#" className="underline hover:text-[#1d1d1f]">Terms</a> and <a href="#" className="underline hover:text-[#1d1d1f]">Privacy Policy</a>
           </p>
         </div>
