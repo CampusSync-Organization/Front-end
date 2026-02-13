@@ -1,103 +1,53 @@
 import React, { useState } from "react";
+import { Megaphone, Plus } from "lucide-react";
+import AnnouncementCard from "../../announcement/components/AnnouncementCard";
 
-const AnnouncementCard = ({ announcement }) => (
-  <div className="w-full p-6 bg-white rounded-xl border border-neutral-200 hover:shadow-md transition-shadow">
-    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-      <div>
-        <h3 className="text-slate-900 text-xl font-semibold font-['Inter'] mb-1">
-          {announcement.title}
-        </h3>
-        <p className="text-slate-500 text-sm font-medium">
-          {announcement.category}
-        </p>
-      </div>
-      <span
-        className={`px-4 py-1 text-sm font-medium text-white rounded-full self-start ${
-          announcement.status === "Done" ? "bg-neutral-400" : "bg-blue-500"
-        } ${announcement.status !== "Done" ? "bg-amber-500" : ""}`}
-      >
-        {announcement.status}
-      </span>
-    </div>
-
-    <div className="grid grid-cols-3 gap-8 mb-4">
-      <div>
-        <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">
-          Start Date
-        </div>
-        <div className="text-slate-700 text-sm font-semibold">
-          {announcement.startDate}
-        </div>
-      </div>
-      <div>
-        <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">
-          Deadline
-        </div>
-        <div className="text-slate-700 text-sm font-semibold">
-          {announcement.endDate}
-        </div>
-      </div>
-      <div>
-        <div className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">
-          Members Needed
-        </div>
-        <div className="text-slate-700 text-sm font-semibold">
-          {announcement.members}
-        </div>
-      </div>
-    </div>
-
-    <p className="text-slate-600 text-sm leading-relaxed">
-      {announcement.description}
-    </p>
-  </div>
-);
-
+// Re-implementing the CreateForm for the "field" UX
 const CreateAnnouncementForm = ({ onCancel }) => {
   return (
-    <div className="w-full p-6 bg-white rounded-xl border border-amber-400 shadow-sm mb-6">
+    <div className="w-full p-6 bg-card-light rounded-xl border border-secondary shadow-sm mb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <input
           type="text"
           placeholder="Course Name"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary"
         />
         <input
           type="text"
           placeholder="Project Name"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <input
           type="date"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary"
         />
         <input
           type="date"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary"
         />
         <input
           type="number"
           placeholder="Members Needed"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary"
         />
       </div>
       <div className="mb-6">
         <textarea
           placeholder="Notes"
           rows="3"
-          className="w-full p-3 bg-white rounded-lg border border-neutral-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 resize-none"
+          className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary resize-none"
         ></textarea>
       </div>
       <div className="flex justify-end gap-3">
         <button
           onClick={onCancel}
-          className="px-6 py-2 text-slate-600 font-medium hover:text-slate-800 hover:underline"
+          className="px-6 py-2 text-slate-600 font-medium hover:text-primary hover:underline"
         >
           Cancel
         </button>
-        <button className="px-8 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-300 transition-colors">
+        <button className="px-8 py-2 bg-secondary text-primary font-bold rounded-lg hover:bg-secondary/90 transition-colors">
           Post
         </button>
       </div>
@@ -105,40 +55,67 @@ const CreateAnnouncementForm = ({ onCancel }) => {
   );
 };
 
-export const ProfileAnnouncements = ({ announcements }) => {
+export const ProfileAnnouncements = ({
+  user,
+  announcements,
+  isOwnProfile = true,
+}) => {
   const [isCreating, setIsCreating] = useState(false);
 
+  // Transform profile announcements to match AnnouncementCard expectations
+  const posts = announcements.map((ann) => ({
+    id: ann.id,
+    author: user ? `${user.firstName} ${user.lastName}` : "Me",
+    avatar: user ? `${user.firstName[0]}${user.lastName[0]}` : "ME",
+    timeAgo: "Posted recently", // Mock
+    content: ann.description,
+    category: "Project Announcement", // Force category to match style
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    liked: false,
+    projectDetails: {
+      courseName: ann.category, // Using category as course name substitute
+      projectName: ann.title,
+      deadline: ann.endDate,
+      peopleNeeded: ann.members,
+      peopleCurrent: 1, // Mock
+      additionalNotes: "Contact for details",
+    },
+  }));
+
   return (
-    <div className="w-full bg-white rounded-2xl shadow-md p-8">
+    <section className="bg-card-light p-6 sm:p-8 rounded-xl shadow-sm border border-border-light">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-slate-900 text-xl font-bold font-['Inter']">
-          Announcements
+        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+          <Megaphone className="text-secondary" size={24} /> Announcements
         </h2>
       </div>
 
-      {!isCreating ? (
-        <button
-          onClick={() => setIsCreating(true)}
-          className="w-full p-4 mb-8 bg-white rounded-xl border border-neutral-200 text-left text-slate-500 text-base hover:bg-gray-50 transition-colors"
-        >
-          Create new announcement...
-        </button>
-      ) : (
-        <CreateAnnouncementForm onCancel={() => setIsCreating(false)} />
-      )}
+      {isOwnProfile &&
+        (!isCreating ? (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="w-full p-4 mb-8 bg-slate-50 rounded-xl border border-border-light text-left text-slate-500 text-base hover:bg-slate-100 hover:border-secondary transition-all"
+          >
+            Create new announcement...
+          </button>
+        ) : (
+          <CreateAnnouncementForm onCancel={() => setIsCreating(false)} />
+        ))}
 
-      <div className="space-y-6">
-        {announcements.map((announcement) => (
-          <AnnouncementCard key={announcement.id} announcement={announcement} />
+      <div className="space-y-4">
+        {posts.map((post) => (
+          <AnnouncementCard key={post.id} post={post} isOwner={isOwnProfile} />
         ))}
       </div>
 
       <div className="mt-8 flex justify-center">
-        <button className="inline-flex items-center gap-2 text-slate-800 font-medium hover:text-slate-600 transition-colors">
+        <button className="inline-flex items-center gap-2 text-primary font-bold hover:text-secondary transition-colors px-6 py-2 bg-slate-50 rounded-full hover:bg-slate-100">
           Show all announcements
           <span className="text-lg">→</span>
         </button>
       </div>
-    </div>
+    </section>
   );
 };

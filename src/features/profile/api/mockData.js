@@ -3,7 +3,8 @@ export const MOCK_USER = {
   firstName: "Alexa",
   lastName: "Rawles",
   email: "alexarawles@gmail.com",
-  avatar: "https://placehold.co/94x94",
+  avatar:
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
   college: "Cairo University",
   faculty: "Computer Science",
   gpa: 3.0,
@@ -11,6 +12,22 @@ export const MOCK_USER = {
   bio: "I’m a computer science student passionate about building impactful software that combines creativity and problem-solving. I love exploring new technologies — especially AI, app development, and cloud systems — and I’m always looking for opportunities to grow through real-world projects and collaborations.",
   tags: ["Reader", "Coder", "Morning Person"],
   goals: "To gain more experience in machine learning",
+  reviews: [
+    {
+      id: 1,
+      author: "Dr. Smith",
+      avatar: "https://placehold.co/40x40",
+      text: "Excellent work on the final project. Very detailed and well-structured.",
+      rating: 5,
+    },
+    {
+      id: 2,
+      author: "Jane Doe",
+      avatar: "https://placehold.co/40x40",
+      text: "Great team player, always helpful and communicative.",
+      rating: 5,
+    },
+  ],
 };
 
 export const MOCK_ANNOUNCEMENTS = [
@@ -40,7 +57,8 @@ export const MOCK_OTHER_USER = {
   id: "2",
   firstName: "Alexa",
   lastName: "Rawles", // Keeping same name as per user snippet provided, or should I vary? The snippet uses "Alexa Rawles".
-  avatar: "https://placehold.co/94x94",
+  avatar:
+    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
   college: "Cairo University",
   faculty: "Computer Science",
   gpa: 3.0,

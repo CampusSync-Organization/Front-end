@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { User } from "lucide-react";
 
 const UNI_OPTIONS = [
   "Cairo University",
@@ -22,19 +23,17 @@ const InfoField = ({
   type = "text",
   options = [],
 }) => (
-  <div className="w-full">
-    <div className="text-slate-500 text-sm font-semibold mb-2">{label}</div>
-    <div
-      className={`w-full p-4 bg-white rounded-xl border ${
-        isEditing ? "border-amber-400" : "border-neutral-200"
-      } shadow-sm transition-colors`}
-    >
-      {isEditing ? (
-        type === "select" ? (
+  <div className="space-y-1.5">
+    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+      {label}
+    </label>
+    {isEditing ? (
+      type === "select" ? (
+        <div className="relative">
           <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-transparent focus:outline-none text-slate-900 text-base font-medium font-['Inter'] cursor-pointer"
+            className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none transition-all cursor-pointer"
           >
             <option value="" disabled>
               Select {label}
@@ -45,35 +44,36 @@ const InfoField = ({
               </option>
             ))}
           </select>
-        ) : (
-          <input
-            type={type}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-transparent focus:outline-none text-slate-900 text-base font-medium font-['Inter']"
-            placeholder={`Enter ${label}`}
-            step={type === "number" ? "0.01" : undefined}
-            min={type === "number" ? "0" : undefined}
-            max={type === "number" ? "4" : undefined}
-          />
-        )
-      ) : (
-        <div className="text-slate-900 text-base font-medium font-['Inter'] line-clamp-1">
-          {value || <span className="text-slate-400 italic">Not set</span>}
         </div>
-      )}
-    </div>
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+          placeholder={`Enter ${label}`}
+          step={type === "number" ? "0.01" : undefined}
+          min={type === "number" ? "0" : undefined}
+          max={type === "number" ? "4" : undefined}
+        />
+      )
+    ) : (
+      <div
+        className={`w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800 ${type === "number" ? "font-mono" : ""}`}
+      >
+        {value || <span className="text-slate-400 italic">Not set</span>}
+      </div>
+    )}
   </div>
 );
 
-export const ProfileInfo = ({ user }) => {
+export const ProfileInfo = ({ user, isOwnProfile = true }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [info, setInfo] = useState(user);
   const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
     setInfo((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user types
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -88,7 +88,6 @@ export const ProfileInfo = ({ user }) => {
     const requiredFields = [
       "firstName",
       "lastName",
-      "email",
       "faculty",
       "college",
       "gender",
@@ -112,8 +111,7 @@ export const ProfileInfo = ({ user }) => {
   const handleSave = () => {
     if (validate()) {
       setIsEditing(false);
-    } else {
-      alert("Please fix the errors before saving.");
+      // In a real app, dispatch update here
     }
   };
 
@@ -124,22 +122,22 @@ export const ProfileInfo = ({ user }) => {
   };
 
   return (
-    <div className="w-full bg-white rounded-2xl shadow-md p-8 relative">
+    <section className="bg-card-light p-6 sm:p-8 rounded-xl shadow-sm border border-border-light">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-slate-900 text-xl font-bold font-['Inter']">
-          Personal Information
+        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+          <User className="text-secondary" size={24} /> Personal Information
         </h2>
-        {!isEditing && (
+        {!isEditing && isOwnProfile && (
           <button
             onClick={() => setIsEditing(true)}
-            className="px-5 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
+            className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            Edit
+            Edit Info
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <InfoField
             label="First Name"
@@ -148,7 +146,7 @@ export const ProfileInfo = ({ user }) => {
             onChange={(val) => handleChange("firstName", val)}
           />
           {errors.firstName && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.firstName}</p>
+            <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
           )}
         </div>
 
@@ -160,7 +158,7 @@ export const ProfileInfo = ({ user }) => {
             onChange={(val) => handleChange("lastName", val)}
           />
           {errors.lastName && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.lastName}</p>
+            <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
           )}
         </div>
 
@@ -168,14 +166,11 @@ export const ProfileInfo = ({ user }) => {
           <InfoField
             label="Faculty"
             value={info.faculty}
-            isEditing={false}
+            isEditing={false} // Usually not editable or requires dropdown
             type="select"
             options={FACULTY_OPTIONS}
             onChange={(val) => handleChange("faculty", val)}
           />
-          {errors.faculty && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.faculty}</p>
-          )}
         </div>
 
         <div>
@@ -187,9 +182,6 @@ export const ProfileInfo = ({ user }) => {
             options={UNI_OPTIONS}
             onChange={(val) => handleChange("college", val)}
           />
-          {errors.college && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.college}</p>
-          )}
         </div>
 
         <div>
@@ -201,32 +193,39 @@ export const ProfileInfo = ({ user }) => {
             options={GENDER_OPTIONS}
             onChange={(val) => handleChange("gender", val)}
           />
-          {errors.gender && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.gender}</p>
-          )}
         </div>
 
         <div>
           <InfoField
-            label="GPA"
+            label="Current GPA"
             value={info.gpa}
             isEditing={isEditing}
             type="number"
             onChange={(val) => handleChange("gpa", val)}
           />
           {errors.gpa && (
-            <p className="text-red-500 text-xs mt-1 ml-1">{errors.gpa}</p>
+            <p className="text-red-500 text-xs mt-1">{errors.gpa}</p>
           )}
         </div>
 
-        {/* Full width item */}
-        <div className="md:col-span-2">
-          <InfoField
-            label="Goals"
-            value={info.goals}
-            isEditing={isEditing}
-            onChange={(val) => handleChange("goals", val)}
-          />
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+            Academic Goals
+          </label>
+          {isEditing ? (
+            <textarea
+              value={info.goals}
+              onChange={(e) => handleChange("goals", e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+              rows="3"
+            />
+          ) : (
+            <div className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800">
+              {info.goals || (
+                <span className="text-slate-400 italic">No goals set</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,18 +233,18 @@ export const ProfileInfo = ({ user }) => {
         <div className="flex justify-end gap-3 mt-8">
           <button
             onClick={handleCancel}
-            className="px-6 py-2 text-slate-600 font-medium hover:text-slate-800 hover:underline"
+            className="px-6 py-2 text-slate-600 font-medium hover:text-primary hover:underline"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-8 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-400 transition-colors"
+            className="px-8 py-2 bg-secondary text-primary font-bold rounded-lg hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20"
           >
             Save Changes
           </button>
         </div>
       )}
-    </div>
+    </section>
   );
 };
