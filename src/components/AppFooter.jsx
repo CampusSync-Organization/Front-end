@@ -6,7 +6,10 @@ export default function AppFooter() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <h4 className="font-bold mb-4">CampusSync</h4>
+            <div className="flex items-center gap-2 mb-4">
+              <img src="/campussync-icon.png" alt="CampusSync" className="h-8 w-auto object-contain" />
+              <h4 className="font-bold">CampusSync</h4>
+            </div>
             <p className="text-white/80 text-sm">
               Where Learning Meets Belonging
             </p>

@@ -49,9 +49,7 @@ export function ModernHeader({
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center shadow-md">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
+              <img src="/campussync-icon.png" alt="CampusSync" className="h-10 w-auto object-contain" />
               <span className="text-xl text-white hidden sm:block">CampusSync</span>
             </div>
 

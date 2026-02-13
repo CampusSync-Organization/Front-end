@@ -100,7 +100,11 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
   return (
     <nav
       ref={navRef}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/255 transition-all duration-300 ease-out"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out ${
+        isLight
+          ? "bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-sm"
+          : "bg-transparent"
+      }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-16">
@@ -109,25 +113,24 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
             className="landing-nav-link flex items-center gap-2.5"
             aria-label="CampusSync home"
           >
-            <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm tracking-tight transition-colors duration-150 ${
-                isLight
-                  ? "bg-slate-900 text-amber-400"
-                  : "bg-white/15 text-amber-400 border border-white/20"
-              }`}
-            >
-              CS
-            </div>
+            <img
+              src="/campussync-icon.png"
+              alt="CampusSync"
+              className="h-9 w-auto object-contain"
+            />
             <span
-              className={`hidden sm:inline text-[15px] font-semibold tracking-tight transition-colors duration-200 ${
-                isLight ? "text-slate-900" : "text-white"
+              className={`hidden sm:inline text-lg font-semibold tracking-tight transition-colors duration-200 ${
+                isLight ? "text-amber-500" : "text-amber-400"
               }`}
             >
               CampusSync
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1" onMouseLeave={() => setHoveredLink(null)}>
+          <div
+            className="hidden md:flex items-center gap-1"
+            onMouseLeave={() => setHoveredLink(null)}
+          >
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -135,8 +138,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
                 onMouseEnter={() => setHoveredLink(link.label)}
                 className={`relative landing-nav-link text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
                   isLight
-                    ? "text-slate-600 hover:text-slate-900"
-                    : "text-white/80 hover:text-white"
+                    ? "text-slate-900 hover:text-slate-900"
+                    : "text-white hover:text-white"
                 }`}
               >
                 <span className="relative z-10">{link.label}</span>
@@ -159,8 +162,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
               to="/login"
               className={`hidden sm:inline-block text-[15px] font-medium px-4 py-2.5 rounded-full transition-colors duration-150 ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-white/80 hover:text-white"
+                  ? "text-slate-900 hover:text-slate-900"
+                  : "text-white hover:text-white"
               }`}
             >
               Sign in
@@ -177,8 +180,8 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
               aria-label={isMobileOpen ? "Close menu" : "Open menu"}
               className={`md:hidden p-2.5 rounded-xl transition-colors duration-150 ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-white/80 hover:text-white"
+                  ? "text-slate-900 hover:text-slate-900"
+                  : "text-white hover:text-white"
               }`}
               onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
@@ -207,7 +210,7 @@ const Navbar = forwardRef(function Navbar(_, forwardedRef) {
                   className={`landing-nav-link block text-[15px] font-medium py-3.5 px-4 rounded-xl transition-colors duration-150 ${
                     isLight
                       ? "text-slate-700 hover:text-slate-900"
-                      : "text-white/90 hover:text-white"
+                      : "text-white hover:text-white"
                   }`}
                   onClick={() => setIsMobileOpen(false)}
                 >
@@ -359,45 +362,50 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
 });
 
 // Story Component
+const storyChapters = [
+  {
+    label: "The Problem",
+    text: "As first-year college students, we faced a harsh reality—the campus felt enormous, and despite being surrounded by thousands of students, finding people who truly understood us seemed impossible. The traditional ways of meeting people weren't cutting it. We felt isolated.",
+  },
+  {
+    label: "The Struggle",
+    text: "When project time came around, it was even worse. We either worked with classmates we barely knew or desperately hoped for compatible teammates. Many of us found ourselves in groups with incompatible styles, misaligned goals, and poor communication—leading to wasted potential.",
+  },
+  {
+    label: "The Realization",
+    text: "We believed there had to be a better way. What if there was a platform that truly understood us? One that intelligently matched us with students who shared our values, interests, and goals? That's when CampusSync was born.",
+  },
+  {
+    label: "Our Mission",
+    text: "We're building a community where every student can find their people, build lasting friendships, and collaborate on projects that matter. When you're surrounded by the right people, belonging stops being a struggle and becomes your reality.",
+  },
+];
+
+const stats = [
+  { value: 1000, suffix: "+", label: "Students Connected" },
+  { value: 500, suffix: "+", label: "Teams Formed" },
+  { value: 50, suffix: "+", label: "Universities" },
+];
+
 const Story = forwardRef(function Story(_, forwardedRef) {
   const sectionRef = useRef(null);
   useImperativeHandle(forwardedRef, () => sectionRef.current);
 
   useGSAP(
     () => {
-      if (!sectionRef.current) return;
-      const paragraphs = gsap.utils.toArray(".landing-story-paragraph");
-      paragraphs.forEach((paragraph, index) => {
-        gsap.from(paragraph, {
-          scrollTrigger: {
-            trigger: paragraph,
-            start: "top 85%",
-            toggleActions: "play none none reverse",
-          },
-          y: 40,
-          opacity: 0,
-          duration: 0.6,
-          delay: index * 0.05,
-          ease: "power3.out",
-        });
-      });
-
-      const stats = gsap.utils.toArray("[data-stat-count]");
-      stats.forEach((stat) => {
-        const value = parseInt(stat.dataset.statCount || "0", 10);
-        const suffix = stat.dataset.suffix || "";
+      const statsEl = sectionRef.current?.querySelectorAll("[data-stat-count]");
+      if (!statsEl?.length) return;
+      statsEl.forEach((el) => {
+        const value = parseInt(el.dataset.statCount || "0", 10);
+        const suffix = el.dataset.suffix || "";
         const counter = { val: 0 };
         gsap.to(counter, {
           val: value,
-          scrollTrigger: {
-            trigger: stat,
-            start: "top 90%",
-            once: true,
-          },
+          scrollTrigger: { trigger: el, start: "top 90%", once: true },
           duration: 1.4,
           ease: "power1.out",
           onUpdate: () => {
-            stat.textContent = `${Math.round(counter.val)}${suffix}`;
+            el.textContent = `${Math.round(counter.val)}${suffix}`;
           },
         });
       });
@@ -409,97 +417,106 @@ const Story = forwardRef(function Story(_, forwardedRef) {
     <section
       ref={sectionRef}
       id="about"
-      className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50/50"
+      className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden"
     >
-      <div className="max-w-3xl mx-auto">
-        <div className="space-y-14">
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary tracking-tight">
-              Our Story
-            </h2>
-            <div className="h-0.5 w-14 bg-secondary mx-auto rounded-full" />
-          </div>
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/80 to-white" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
-          {/* Story content */}
-          <div className="space-y-6 text-base text-slate-600 leading-relaxed">
-            <p className="landing-story-paragraph">
-              <span className="font-semibold text-slate-800">The Problem:</span>{" "}
-              As first-year college students, we faced a harsh reality—the
-              campus felt enormous, and despite being surrounded by thousands of
-              students, finding people who truly understood us seemed
-              impossible. The traditional ways of meeting people (random
-              roommates, club fairs, social events) weren't cutting it. We felt
-              isolated, like outsiders trying to fit into an overwhelming
-              machine.
-            </p>
+      <div className="relative max-w-4xl mx-auto">
+        {/* Header */}
+        <motion.div
+          className="mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <p className="text-amber-500 text-sm font-medium tracking-widest uppercase mb-3">
+            Our Story
+          </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+            From isolation to belonging
+          </h2>
+          <p className="text-slate-500 text-lg mt-4 max-w-2xl">
+            We've been there. Here's why we built CampusSync.
+          </p>
+        </motion.div>
 
-            <p className="landing-story-paragraph">
-              <span className="font-semibold text-slate-800">
-                The Struggle:
-              </span>{" "}
-              When project time came around, it was even worse. We either had to
-              work with classmates we barely knew or desperately hoped for
-              compatible teammates. Many of us found ourselves in groups with
-              incompatible working styles, misaligned goals, and poor
-              communication—all leading to mediocre results and wasted
-              potential.
-            </p>
+        {/* Pull quote */}
+        <motion.blockquote
+          className="relative my-16 lg:my-24 pl-6 border-l-4 border-amber-400"
+          initial={{ opacity: 0, x: -16 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <p className="text-xl sm:text-2xl font-medium text-slate-800 leading-relaxed italic">
+            "Everyone deserves to find their tribe."
+          </p>
+          <p className="text-slate-500 text-sm mt-3">— What we believe</p>
+        </motion.blockquote>
 
-            <p className="landing-story-paragraph">
-              <span className="font-semibold text-slate-800">
-                The Realization:
-              </span>{" "}
-              We believed there had to be a better way. What if there was a
-              platform that truly understood us? One that didn't just throw
-              random people together, but intelligently matched us with students
-              who shared our values, interests, and goals? That's when
-              CampusSync was born.
-            </p>
-
-            <p className="landing-story-paragraph">
-              <span className="font-semibold text-slate-800">Our Mission:</span>{" "}
-              We're building a community where every student can find their
-              people, build lasting friendships, and collaborate on projects
-              that matter. We believe that when you're surrounded by the right
-              people, belonging stops being a struggle and becomes your reality.
-            </p>
-
-            <p className="landing-story-paragraph">
-              Today, CampusSync is more than an app—it's a movement to make
-              campus life feel less isolating and more inclusive. Because
-              everyone deserves to find their tribe.
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-6 mt-16 pt-16 border-t-2 border-[#D9D9D9]">
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                <span data-stat-count="1000" data-suffix="+">
-                  0+
-                </span>
-              </div>
-              <p className="text-gray-600 mt-2">Students Connected</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                <span data-stat-count="500" data-suffix="+">
-                  0+
-                </span>
-              </div>
-              <p className="text-gray-600 mt-2">Teams Formed</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-[#FCA311]">
-                <span data-stat-count="50" data-suffix="+">
-                  0+
-                </span>
-              </div>
-              <p className="text-gray-600 mt-2">Universities</p>
-            </div>
-          </div>
+        {/* Chapters */}
+        <div className="space-y-12 lg:space-y-16">
+          {storyChapters.map((chapter, i) => (
+            <motion.div
+              key={chapter.label}
+              className="group"
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{
+                duration: 0.5,
+                delay: i * 0.08,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <span className="text-amber-500 text-xs font-semibold tracking-widest uppercase">
+                {String(i + 1).padStart(2, "0")} — {chapter.label}
+              </span>
+              <p className="text-slate-600 text-base sm:text-lg leading-relaxed mt-2">
+                {chapter.text}
+              </p>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Closing line */}
+        <motion.p
+          className="text-slate-700 text-lg font-medium mt-16 lg:mt-20"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.5 }}
+        >
+          Today, CampusSync is more than an app—it's a movement to make campus
+          life feel less isolating and more inclusive.
+        </motion.p>
+
+        {/* Stats */}
+        <motion.div
+          className="grid grid-cols-3 gap-6 lg:gap-8 mt-20 pt-16 border-t border-slate-200"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center">
+              <span
+                className="block text-3xl sm:text-4xl font-bold text-amber-500 tabular-nums"
+                data-stat-count={stat.value}
+                data-suffix={stat.suffix}
+              >
+                0{stat.suffix}
+              </span>
+              <p className="text-slate-500 text-sm font-medium mt-2">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );
@@ -509,32 +526,32 @@ const Story = forwardRef(function Story(_, forwardedRef) {
 const teamMembers = [
   {
     id: 1,
-    name: "Alex Johnson",
-    role: "Team Lead & Co-Founder",
+    name: "Raghad Mohamed",
+    //role: "Team Lead & Co-Founder",
     image: "/professional-portrait.png",
   },
   {
     id: 2,
-    name: "Maria Chen",
-    role: "AI Engineer",
+    name: "Youssef Nabil",
+    //role: "AI Engineer",
     image: "/professional-portrait.png",
   },
   {
     id: 3,
-    name: "Jordan Smith",
-    role: "Product Manager",
+    name: "Hadeer Abdelhady",
+    // role: "Product Manager",
     image: "/professional-portrait.png",
   },
   {
     id: 4,
-    name: "Priya Patel",
-    role: "Backend Lead",
+    name: "Abdelrahman Amr",
+    //  role: "Backend Lead",
     image: "/professional-portrait.png",
   },
   {
     id: 5,
-    name: "Marcus Williams",
-    role: "Community Lead",
+    name: "Youssef Mohamed ",
+    //role: "Community Lead",
     image: "/professional-portrait.png",
   },
 ];

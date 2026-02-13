@@ -87,9 +87,7 @@ function SignUpPage() {
             to="/"
             className="brand-logo inline-flex items-center gap-3 text-white/90 hover:text-white transition-colors"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center shadow-lg shadow-[#FCA311]/20">
-              <span className="text-[#1d1d1f] font-semibold text-sm">CS</span>
-            </div>
+            <img src="/campussync-icon.png" alt="CampusSync" className="h-10 w-auto object-contain" />
             <span className="text-lg font-medium tracking-tight">
               CampusSync
             </span>
@@ -132,9 +130,7 @@ function SignUpPage() {
             to="/"
             className="lg:hidden inline-flex items-center gap-2.5 mb-5"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FCA311] to-[#E89310] flex items-center justify-center">
-              <span className="text-[#1d1d1f] font-semibold text-xs">CS</span>
-            </div>
+            <img src="/campussync-icon.png" alt="CampusSync" className="h-9 w-auto object-contain" />
             <span className="text-[17px] font-semibold text-[#1d1d1f]">
               CampusSync
             </span>

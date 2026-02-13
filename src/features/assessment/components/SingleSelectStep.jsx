@@ -16,8 +16,8 @@ export default function SingleSelectStep({
   const isMidnight = variant === "midnight";
 
   return (
-    <div className="space-y-6">
-      <ul className="grid gap-3">
+    <div className="space-y-4">
+      <ul className="grid gap-2">
         {options.map((opt, index) => {
           const isSelected = value === opt;
           return (
@@ -34,7 +34,7 @@ export default function SingleSelectStep({
               <motion.button
                 type="button"
                 onClick={() => onChange(opt)}
-                className={`w-full rounded-2xl border-2 px-5 py-4 text-left text-[15px] font-medium transition-all duration-200 flex items-center justify-between gap-3 ${
+                className={`w-full rounded-xl border-2 px-4 py-3 text-left text-[14px] font-medium transition-all duration-200 flex items-center justify-between gap-2 ${
                   isMidnight
                     ? isSelected
                       ? "border-amber-400 bg-amber-500/20 text-white shadow-[0_0_20px_rgba(251,191,36,0.2)]"
@@ -49,11 +49,13 @@ export default function SingleSelectStep({
                 <span className="flex-1">{opt}</span>
                 {isSelected && (
                   <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      isMidnight ? "bg-amber-400 text-slate-900" : "bg-[#14213D] text-white"
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                      isMidnight
+                        ? "bg-amber-400 text-slate-900"
+                        : "bg-[#14213D] text-white"
                     }`}
                   >
-                    <Check className="h-4 w-4 stroke-[2.5]" />
+                    <Check className="h-3 w-3 stroke-[2.5]" />
                   </span>
                 )}
               </motion.button>
@@ -62,14 +64,14 @@ export default function SingleSelectStep({
         })}
       </ul>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex gap-2 pt-1">
         <button
           type="button"
           onClick={onBack}
           className={
             isMidnight
-              ? "rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-[15px] font-medium text-slate-300 transition-colors hover:bg-white/10 hover:border-white/30"
-              : "rounded-xl border border-[#e5e5ea] bg-white px-6 py-3.5 text-[15px] font-medium text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7] hover:border-[#d2d2d7]"
+              ? "rounded-full border border-white/20 bg-white/5 px-5 py-2.5 text-[14px] font-medium text-slate-300 transition-colors hover:bg-white/10 hover:border-white/30"
+              : "rounded-xl border border-[#e5e5ea] bg-white px-5 py-2.5 text-[14px] font-medium text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7] hover:border-[#d2d2d7]"
           }
         >
           Back
@@ -81,8 +83,8 @@ export default function SingleSelectStep({
             disabled={!canGoNext}
             className={
               isMidnight
-                ? "flex-1 rounded-full bg-amber-400 px-6 py-3.5 text-[15px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
-                : "flex-1 rounded-xl bg-[#14213D] px-6 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-[#14213D]/95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#14213D] flex items-center justify-center gap-2"
+                ? "flex-1 rounded-full bg-amber-400 px-5 py-2.5 text-[14px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
+                : "flex-1 rounded-xl bg-[#14213D] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-[#14213D]/95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#14213D] flex items-center justify-center gap-2"
             }
           >
             {stepIndex === totalSteps - 1 ? "Complete" : "Next"}
