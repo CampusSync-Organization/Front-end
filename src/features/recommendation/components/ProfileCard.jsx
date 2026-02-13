@@ -55,7 +55,7 @@ const ProfileCard = ({ profile, variants }) => {
                 {tags.map((tag, i) => (
                     <span
                         key={i}
-                        className="px-3 py-1.5 bg-neutral-50 text-neutral-600 text-xs font-medium rounded-lg border border-neutral-100/50"
+                        className="px-3 py-1.5 bg-secondary/20 text-secondary text-xs font-bold rounded-lg border border-neutral-100/50"
                     >
                         {tag}
                     </span>

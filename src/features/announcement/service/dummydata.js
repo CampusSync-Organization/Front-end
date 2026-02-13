@@ -1,0 +1,63 @@
+export const posts = [
+  {
+    id: 3,
+    author: "Campus Clubs",
+    avatar: "CC",
+    timeAgo: "6 hours ago",
+    category: "Project Announcement",
+    content:
+      "Looking for teammates for our Data Structures group project. Join us and contribute to an exciting project!",
+    likes: 156,
+    comments: 34,
+    shares: 22,
+    liked: false,
+    projectDetails: {
+      courseName: "CS 201 - Data Structures",
+      projectName: "Advanced Tree Implementation",
+      deadline: "Dec 15, 2025",
+      additionalNotes: "Experience with C++ preferred. Girls welcome!",
+      peopleNeeded: 5,
+      peopleCurrent: 4,
+    },
+  },
+  {
+    id: 1,
+    author: "Alex Chen",
+    avatar: "AC",
+    timeAgo: "2 hours ago",
+    category: "Event Announcement",
+    content:
+      "Tech Innovators Workshop starts tomorrow! Join us for an exclusive hands-on session on AI and machine learning. Limited spots available!",
+    likes: 124,
+    comments: 23,
+    shares: 12,
+    liked: false,
+  },
+  {
+    id: 2,
+    author: "Mariam Hassan",
+    avatar: "MH",
+    timeAgo: "4 hours ago",
+    category: "Connection Update",
+    content:
+      "Just joined Tech Innovators Workshop - super excited to learn from industry experts!",
+    likes: 89,
+    comments: 15,
+    shares: 8,
+    liked: false,
+  },
+  {
+    id: 4,
+    author: "Emma Rodriguez",
+    avatar: "ER",
+    timeAgo: "8 hours ago",
+    category: "Community Post",
+    content:
+      "Just launched a study group for Algorithms! We meet every Tuesday at 7 PM in the library. Everyone is welcome",
+    likes: 203,
+    comments: 45,
+    shares: 31,
+    liked: false,
+    liked: false,
+  },
+];
