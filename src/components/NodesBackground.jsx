@@ -63,16 +63,6 @@ function NodesBackground({ className = "", maxNodes = 28, connectRadius = 140 })
       initNodes();
     }
 
-    function gradient() {
-      const g = ctx.createLinearGradient(0, 0, width, height);
-      g.addColorStop(0, NAVY);
-      g.addColorStop(0.35, NAVY_SOFT);
-      g.addColorStop(0.6, "#334155");
-      g.addColorStop(0.8, "#92400e");
-      g.addColorStop(1, GOLD_WARM);
-      return g;
-    }
-
     let lastTime = 0;
     const revealSpeed = reducedMotion ? 0.001 : 0.004;
 
@@ -80,8 +70,8 @@ function NodesBackground({ className = "", maxNodes = 28, connectRadius = 140 })
       const dt = Math.min((t - lastTime) / 1000, 0.1);
       lastTime = t;
 
-      ctx.fillStyle = gradient();
-      ctx.fillRect(0, 0, width, height);
+      // Ensure canvas is completely transparent so CSS handles the background gradient
+      ctx.clearRect(0, 0, width, height);
 
       const nodes = nodesRef.current;
       const time = t * 0.001;
@@ -113,21 +103,21 @@ function NodesBackground({ className = "", maxNodes = 28, connectRadius = 140 })
         const b = nodes[j];
         const progress = totalConnections > 0 ? (c + 1) / totalConnections : 1;
         const alpha = 0.12 + 0.18 * progress;
-        ctx.strokeStyle = `rgba(251, 191, 36, ${alpha})`;
+        ctx.strokeStyle = `rgba(71, 85, 105, ${alpha * 1.6})`; // Slate-600 lines for crisp Apple-style contrast
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
       }
 
-      ctx.fillStyle = "rgba(251, 191, 36, 0.5)";
+      ctx.fillStyle = "rgba(51, 65, 85, 0.5)"; // Slate-700 nodes
       nodes.forEach((node) => {
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; // Slate-900 highlight nodes
       nodes.slice(0, 5).forEach((node) => {
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius * 0.7, 0, Math.PI * 2);

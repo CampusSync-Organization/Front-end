@@ -34,7 +34,7 @@ const HowItWorksSection = forwardRef(function HowItWorksSection(_, forwardedRef)
     <section
       ref={sectionRef}
       id="features"
-      className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-slate-950"
+      className="py-24 lg:py-32 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-100"
     >
       <div className="max-w-3xl mx-auto">
         <motion.div
@@ -44,10 +44,10 @@ const HowItWorksSection = forwardRef(function HowItWorksSection(_, forwardedRef)
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-amber-400/80 text-sm font-medium tracking-widest uppercase mb-3">
-            How it works
+          <p className="text-amber-600 text-sm font-bold tracking-widest uppercase mb-3">
+            How It Works
           </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Four simple steps to find your tribe
           </h2>
         </motion.div>
@@ -55,7 +55,7 @@ const HowItWorksSection = forwardRef(function HowItWorksSection(_, forwardedRef)
         <div className="relative">
           {/* Vertical line */}
           <div
-            className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-amber-400/40 via-slate-700 to-transparent hidden sm:block"
+            className="absolute left-[19px] top-0 bottom-0 w-px bg-gradient-to-b from-amber-400/80 via-slate-300 to-transparent hidden sm:block"
             aria-hidden
           />
 
@@ -65,7 +65,7 @@ const HowItWorksSection = forwardRef(function HowItWorksSection(_, forwardedRef)
               return (
                 <motion.li
                   key={i}
-                  className="relative flex gap-8 sm:gap-12 py-12 sm:py-16 border-b border-slate-800/50 last:border-0"
+                  className="relative flex gap-8 sm:gap-12 py-12 sm:py-16 border-b border-slate-200 last:border-0"
                   initial={{ opacity: 0, x: -16 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.3 }}
@@ -75,17 +75,17 @@ const HowItWorksSection = forwardRef(function HowItWorksSection(_, forwardedRef)
                     ease: [0.22, 1, 0.36, 1],
                   }}
                 >
-                  <div className="relative z-10 flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-900 border border-slate-700/80 text-amber-400">
-                    <Icon className="w-5 h-5" strokeWidth={1.5} />
+                  <div className="relative z-10 flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-white border-2 border-amber-400 text-amber-500 shadow-sm">
+                    <Icon className="w-5 h-5" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1 pt-0.5">
-                    <span className="text-slate-500 text-sm font-medium tabular-nums">
+                    <span className="text-amber-500 font-bold text-sm tabular-nums">
                       0{i + 1}
                     </span>
-                    <h3 className="text-xl font-semibold text-white mt-1 tracking-tight">
+                    <h3 className="text-2xl font-bold text-slate-900 mt-1 tracking-tight">
                       {step.title}
                     </h3>
-                    <p className="text-slate-400 mt-2 text-[15px] leading-relaxed max-w-xl">
+                    <p className="text-slate-600 mt-2 text-lg font-medium leading-relaxed max-w-xl">
                       {step.line}
                     </p>
                   </div>
