@@ -120,11 +120,9 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
       {/* Left-Aligned Floating Typography Structure */}
       <div className="landing-hero-card relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 mt-12 sm:mt-16 flex flex-col items-start text-left">
 
-        <h1 className="landing-hero-heading text-[56px] sm:text-[72px] lg:text-[88px] xl:text-[96px] font-black text-[#0f172a] leading-[1.02] tracking-tighter mb-10 max-w-[800px]">
+        <h1 className="landing-hero-heading text-[56px] sm:text-[72px] lg:text-[88px] xl:text-[96px] font-black leading-[1.02] tracking-tighter mb-10 max-w-[800px] text-transparent bg-clip-text bg-gradient-to-r from-[#FCA311] via-amber-400 to-[#e89310]">
           Where Learning <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCA311] via-amber-400 to-[#e89310]">
-            Meets Belonging
-          </span>
+          Meets Belonging
         </h1>
 
         <div className="landing-hero-paragraph flex flex-col xl:flex-row xl:items-start gap-8 max-w-[900px] mb-14">
