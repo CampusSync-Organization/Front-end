@@ -132,10 +132,10 @@ export default function AssessmentSplitScreen() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-white font-sans text-slate-900 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-white font-sans text-slate-900 overflow-hidden">
       
-      {/* Mobile Image Context Component (Up to 30vh) */}
-      <div className="block lg:hidden w-full h-[25vh] min-h-[200px] relative shrink-0 overflow-hidden">
+      {/* Mobile Image Context Component (Slimmer to prevent scroll) */}
+      <div className="block lg:hidden w-full h-[15%] min-h-[120px] relative shrink-0 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.img
             key={bgImage}
@@ -149,8 +149,8 @@ export default function AssessmentSplitScreen() {
         </AnimatePresence>
         <div className="absolute inset-0 bg-slate-900/30 mix-blend-multiply" />
         <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
-        <div className="absolute top-6 left-6 text-white drop-shadow-md">
-          <h1 className="text-3xl font-black mb-1 tracking-tighter leading-none">CampusSync</h1>
+        <div className="absolute top-4 left-6 text-white drop-shadow-md">
+          <h1 className="text-2xl font-black mb-1 tracking-tighter leading-none">CampusSync</h1>
         </div>
       </div>
 
@@ -182,10 +182,10 @@ export default function AssessmentSplitScreen() {
       </div>
 
       {/* RIGHT: High Structure Form Split */}
-      <div className="w-full lg:w-1/2 relative flex flex-col flex-1 lg:overflow-y-auto lg:min-h-screen">
+      <div className="w-full lg:w-1/2 relative flex flex-col flex-1 h-[85%] lg:h-full overflow-hidden">
         
         {/* Top Progress Track */}
-        <div className="sticky top-0 left-0 w-full h-1.5 md:h-2 bg-slate-100 z-50 shrink-0">
+        <div className="absolute top-0 left-0 w-full h-1.5 md:h-2 bg-slate-100 z-50 shrink-0">
           <motion.div 
             className="h-full bg-slate-900"
             initial={{ width: 0 }}
@@ -195,17 +195,17 @@ export default function AssessmentSplitScreen() {
         </div>
 
         {/* Header Console */}
-        <header className="w-full flex items-center justify-between px-6 md:px-16 pt-6 pb-2 md:py-8 z-20 shrink-0">
+        <header className="w-full flex items-center justify-between px-6 lg:px-16 pt-5 pb-1 lg:py-8 z-20 shrink-0 mt-1">
           <button 
             onClick={handleBack}
-            className={`flex items-center gap-2 p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all font-bold text-[13px] tracking-widest uppercase ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+            className={`flex items-center gap-2 p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all font-bold text-[12px] tracking-widest uppercase ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
         </header>
 
         {/* Static Flexible Wrapper for perfect vertical alignment */}
-        <main className="flex-1 w-full max-w-[700px] mx-auto flex flex-col justify-center px-6 md:px-16 py-6 overflow-x-hidden md:overflow-x-visible">
+        <main className="flex-1 w-full max-w-[700px] mx-auto flex flex-col justify-center px-6 lg:px-16 pb-4 overflow-hidden">
           <AnimatePresence mode="wait" custom={direction}>
             {currentQuestion && (
               <motion.div
@@ -219,18 +219,18 @@ export default function AssessmentSplitScreen() {
                 className="w-full flex flex-col"
               >
                 {/* Number & Typography */}
-                <div className="mb-8 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
-                  <div className="flex items-center gap-4 shrink-0 mt-1">
-                    <span className="text-slate-900 font-bold text-xl md:text-2xl flex items-center gap-2">
-                      {currentStep + 1} <ArrowRight className="w-5 h-5 text-slate-300" />
+                <div className="mb-4 lg:mb-8 flex flex-col lg:flex-row lg:items-start gap-2 lg:gap-6">
+                  <div className="flex items-center gap-3 shrink-0 mt-1">
+                    <span className="text-slate-900 font-bold text-lg lg:text-2xl flex items-center gap-2">
+                       {currentStep + 1} <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 text-slate-300" />
                     </span>
                   </div>
                   <div>
-                    <h2 className="text-[32px] md:text-[40px] font-bold tracking-tight leading-[1.25] text-slate-900">
+                    <h2 className="text-[22px] sm:text-[26px] lg:text-[40px] font-bold tracking-tight leading-[1.25] text-slate-900">
                       {currentQuestion.question || currentQuestion.statement}
                     </h2>
-                    <p className="text-slate-400 font-semibold tracking-widest uppercase text-[11px] mt-6">
-                      {currentQuestion.category} Evaluation
+                    <p className="text-slate-400 font-semibold tracking-widest uppercase text-[10px] sm:text-[11px] mt-2 lg:mt-6">
+                      {currentQuestion.category}
                     </p>
                   </div>
                 </div>
