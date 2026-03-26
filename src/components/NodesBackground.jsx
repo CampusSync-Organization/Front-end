@@ -94,7 +94,7 @@ function NodesBackground({ className = "", maxNodes = 28, connectRadius = 140 })
       const totalConnections = connections.length;
       const toShow = Math.floor(lineRevealRef.current * totalConnections);
 
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.lineCap = "round";
 
       for (let c = 0; c < toShow; c++) {
@@ -102,25 +102,25 @@ function NodesBackground({ className = "", maxNodes = 28, connectRadius = 140 })
         const a = nodes[i];
         const b = nodes[j];
         const progress = totalConnections > 0 ? (c + 1) / totalConnections : 1;
-        const alpha = 0.12 + 0.18 * progress;
-        ctx.strokeStyle = `rgba(71, 85, 105, ${alpha * 1.6})`; // Slate-600 lines for crisp Apple-style contrast
+        const alpha = 0.15 + 0.2 * progress;
+        ctx.strokeStyle = `rgba(15, 23, 42, ${alpha * 2.0})`; // Navy lines for high contrast and structural feel
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
       }
 
-      ctx.fillStyle = "rgba(51, 65, 85, 0.5)"; // Slate-700 nodes
+      ctx.fillStyle = "rgba(252, 163, 17, 0.85)"; // Visually strong nodes
       nodes.forEach((node) => {
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, node.radius * 1.2, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; // Slate-900 highlight nodes
-      nodes.slice(0, 5).forEach((node) => {
+      ctx.fillStyle = "rgba(252, 163, 17, 1)"; // Fully solid highlight nodes
+      nodes.slice(0, 8).forEach((node) => {
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * 0.7, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, node.radius * 1.5, 0, Math.PI * 2);
         ctx.fill();
       });
 

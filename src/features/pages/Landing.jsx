@@ -109,78 +109,47 @@ const Hero = forwardRef(function Hero(_, forwardedRef) {
   }, { scope: sectionRef });
 
   return (
-    <section ref={sectionRef} id="home" className="relative w-full min-h-screen bg-[#fafafa] flex flex-col xl:flex-row overflow-hidden pt-16 sm:pt-20">
-      <div className="w-full xl:w-[45%] h-full min-h-[60vh] flex flex-col justify-center px-6 sm:px-12 lg:px-20 xl:px-28 z-10 pt-16 xl:pt-0 pb-12 xl:pb-0">
-        
-        <h1 className="landing-hero-heading text-[52px] sm:text-[76px] lg:text-[84px] xl:text-[96px] font-black text-[#0f172a] leading-[1.05] tracking-tight mb-8 max-w-[800px]">
+    <section ref={sectionRef} id="home" className="relative w-full min-h-screen bg-white flex items-center overflow-hidden pt-24 pb-20">
+      
+      {/* Massive Unobstructed Node Flow Layer */}
+      <NodesBackground className="absolute inset-0 w-full h-full opacity-90 z-0" maxNodes={24} connectRadius={220} />
+
+      {/* Subtle fade grid behind text to ensure legibility without a harsh card */}
+      <div className="absolute top-0 left-0 bottom-0 w-full xl:w-[60%] bg-gradient-to-r from-white via-white/95 to-transparent z-10 pointer-events-none" />
+
+      {/* Left-Aligned Floating Typography Structure */}
+      <div className="landing-hero-card relative z-20 w-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 mt-12 sm:mt-16 flex flex-col items-start text-left">
+
+        <h1 className="landing-hero-heading text-[56px] sm:text-[72px] lg:text-[88px] xl:text-[96px] font-black text-[#0f172a] leading-[1.02] tracking-tighter mb-10 max-w-[800px]">
           Where Learning <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCA311] via-amber-400 to-[#e89310]">
             Meets Belonging
           </span>
         </h1>
 
-        <div className="landing-hero-paragraph max-w-xl mb-12">
-          <p className="text-lg sm:text-[20px] text-slate-400 font-bold italic border-l-4 border-amber-400 pl-4 mb-5">
-            "I don't belong, and meeting people who are like me is just too hard!"
-          </p>
-          <p className="text-base sm:text-lg text-slate-500 font-medium leading-[1.6]">
-            <strong className="text-slate-700">We get it.</strong> Campus life can feel isolating. Finding your people shouldn't feel like an impossible mission. CampusSync connects you with students who share your interests, values, and academic goals—making it easy to build genuine friendships and form meaningful project teams.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 landing-hero-cta">
-          <Link to="/signup" className="group relative inline-flex items-center justify-center bg-slate-900 text-white px-10 py-5 rounded-2xl text-[17px] font-bold tracking-wide transition-all shadow-[0_12px_24px_-8px_rgba(0,0,0,0.5)] hover:shadow-xl hover:-translate-y-1 hover:bg-slate-800 w-full sm:w-auto">
-            Join the Network
-            <ArrowRight className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
-          </Link>
-        </div>
-      </div>
-
-      <div className="w-full xl:w-[55%] h-full min-h-[500px] xl:absolute xl:right-0 xl:top-0 xl:bottom-0 flex items-center justify-center p-4 sm:p-8 xl:p-12 mb-12 xl:mb-0">
-        
-        <div className="relative w-full max-w-[1000px] h-[500px] sm:h-[600px] xl:h-[85%] max-h-[900px] rounded-[32px] sm:rounded-[48px] bg-[#0B1120] border-[6px] sm:border-[8px] border-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.2)] ring-1 ring-slate-200 overflow-hidden flex flex-col items-center justify-end transform transition-transform duration-700 hover:scale-[1.01] xl:translate-x-8">
+        <div className="landing-hero-paragraph flex flex-col xl:flex-row xl:items-start gap-8 max-w-[900px] mb-14">
           
-          <div className="absolute top-6 sm:top-10 left-6 sm:left-10 z-20 flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-             <div className="flex h-2 w-2 relative">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-             </div>
-             <span className="text-white/60 text-[10px] sm:text-[11px] font-black tracking-widest uppercase">Campus Engine</span>
+          {/* Quote styled as a premium architectural side-note */}
+          <div className="xl:w-1/3 shrink-0 pt-1">
+            <p className="text-[17px] sm:text-[19px] text-[#FCA311] font-bold italic leading-relaxed border-l-4 border-[#FCA311] pl-5 opacity-90">
+              "I don't belong, and meeting people who are like me is just too hard!"
+            </p>
           </div>
 
-          <div className="absolute top-0 inset-x-0 h-[60%] bg-gradient-to-b from-amber-500/20 via-orange-500/5 to-transparent pointer-events-none z-10" />
-
-          <NodesBackground className="absolute inset-0 opacity-100 z-0" maxNodes={24} connectRadius={220} />
-                  {/* High-Fidelity Floating Social Sync Match Graphic */}
-          <div className="relative z-20 w-full px-6 sm:px-12 mb-10 sm:mb-16 flex items-center justify-center gap-4 sm:gap-8">
-             
-             {/* User 1 Simulated Profile Component */}
-             <div className="w-28 sm:w-36 flex flex-col items-center bg-[#0f172a]/80 backdrop-blur-xl rounded-3xl border border-white/10 p-5 shadow-[0_20px_40px_rgba(0,0,0,0.6)]">
-                <img src="https://i.pinimg.com/originals/f9/b4/52/f9b4527d55189fe46c2f0ad331832e80.webp" alt="Sarah" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-[3px] border-amber-400/80 mb-3 object-cover object-top shadow-[0_0_15px_rgba(251,191,36,0.2)]" />
-                <span className="text-white font-bold text-sm sm:text-[15px]">Sarah</span>
-                <span className="text-slate-400 text-[11px] sm:text-xs font-semibold mt-1">AI Major</span>
-             </div>
-
-             {/* Dynamic Central Connection Hub */}
-             <div className="relative flex items-center justify-center w-16 sm:w-28 shrink-0">
-                {/* Horizontal data beam */}
-                <div className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-amber-500/0 via-amber-400 to-amber-500/0 opacity-70" />
-                
-                {/* Synchronization Badge */}
-                <div className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex flex-col items-center justify-center border-4 border-[#0B1120] shadow-[0_0_30px_rgba(251,191,36,0.6)]">
-                  <span className="text-white text-[10px] uppercase font-black tracking-widest leading-none mt-1 sm:mt-1.5 opacity-90">Match</span>
-                  <span className="text-white text-sm sm:text-[17px] font-black leading-tight">98%</span>
-                </div>
-             </div>
-
-             {/* User 2 Simulated Profile Component */}
-             <div className="w-28 sm:w-36 flex flex-col items-center bg-[#0f172a]/80 backdrop-blur-xl rounded-3xl border border-white/10 p-5 shadow-[0_20px_40px_rgba(0,0,0,0.6)]">
-                <img src="https://i.pinimg.com/originals/57/c5/cd/57c5cda9b910b6de32d5e16e67259c98.png" alt="Omar" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-[3px] border-amber-400/80 mb-3 object-cover object-center shadow-[0_0_15px_rgba(251,191,36,0.2)]" />
-                <span className="text-white font-bold text-sm sm:text-[15px]">Omar</span>
-                <span className="text-slate-400 text-[11px] sm:text-xs font-semibold mt-1">CS Major</span>
-             </div>
-
+          <div className="xl:w-2/3">
+            <p className="text-[17px] sm:text-[20px] text-slate-600 font-medium leading-[1.6]">
+              <strong className="text-slate-800">We get it.</strong> Campus life can feel isolating. Finding your people shouldn't feel like an impossible mission.<br/><br/>
+              CampusSync connecting you with students who explicitly share your unique interests, values, and academic goals—making it effortless to build genuine friendships and form meaningful project teams.
+            </p>
           </div>
+
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 landing-hero-cta">
+          <Link to="/signup" className="group relative inline-flex items-center justify-center bg-[#0f172a] text-white px-12 py-5 rounded-full text-[17px] font-bold tracking-wide transition-all shadow-[0_12px_24px_-8px_rgba(15,23,42,0.5)] hover:shadow-xl hover:-translate-y-1 hover:bg-slate-800 w-full sm:w-auto">
+            Join the Network
+            <ArrowRight className="h-5 w-5 ml-3 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
+          </Link>
         </div>
       </div>
     </section>
