@@ -183,9 +183,7 @@ export default function AssessmentWizard() {
 
               {/* Nova + Question */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 w-full">
-                <AssessmentAvatar
-                  className="shrink-0"
-                />
+                <AssessmentAvatar className="shrink-0" />
                 <QuestionSpeechBubble
                   question={questionText}
                   stepIndex={currentStep}

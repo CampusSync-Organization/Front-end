@@ -11,6 +11,9 @@ import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
 import RecommendationPage from "../../features/recommendation/pages/RecommendationPage.jsx";
 import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pages/EventsAndCommunitiesLayoutPage.jsx";
+import EventDetailsPage from "../../features/events-communities/pages/EventDetailsPage.jsx";
+import MyEventsPage from "../../features/events-communities/pages/MyEventsPage.jsx";
+import MyCommunitiesPage from "../../features/events-communities/pages/MyCommunitiesPage.jsx";
 
 export const router = createBrowserRouter([
     { path: "/", element: <Landing /> },
@@ -26,6 +29,9 @@ export const router = createBrowserRouter([
                 children: [
                     { path: "home", element: <HomePage /> },
                     { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
+                    { path: "events/:eventId", element: <EventDetailsPage /> },
+                    { path: "my-events", element: <MyEventsPage /> },
+                    { path: "my-communities", element: <MyCommunitiesPage /> },
                     { path: "Profile-Page", element: <ProfilePage /> },
                     { path: "User-profile", element: <UserProfilePage /> },
                     { path: "Recommendation-Page", element: <RecommendationPage /> },

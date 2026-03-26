@@ -120,7 +120,7 @@ export default function LikertStep({
             disabled={!canGoNext}
             className={
               isMidnight
-                ? "flex-1 rounded-full bg-amber-400 px-5 py-2.5 text-[14px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
+                ? "flex-1 rounded-full bg-amber-400 px-4 py-2 text-[13px] font-semibold text-slate-900 transition-all hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]"
                 : "flex-1 rounded-xl bg-[#14213D] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-[#14213D]/95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#14213D] flex items-center justify-center gap-2"
             }
           >

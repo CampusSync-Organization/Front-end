@@ -1,5 +1,5 @@
-import AssessmentWizard from "../components/AssessmentWizard";
+import AssessmentSplitScreen from "../components/AssessmentSplitScreen";
 
 export default function AssessmentPage() {
-  return <AssessmentWizard />;
+  return <AssessmentSplitScreen />;
 }

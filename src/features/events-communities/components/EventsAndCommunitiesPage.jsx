@@ -5,10 +5,11 @@ import {
   Users,
   Grid3x3,
   List,
-  Clock,
-  MapPin,
   ChevronRight,
   TrendingUp,
+  MapPin,
+  Filter,
+  X
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -22,7 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
 import { motion, AnimatePresence } from "framer-motion";
+import { EventCard, EventCardSkeleton } from "./EventCard";
+import { CommunityCard } from "./CommunityCard";
+import { useEventStore } from "../store/useEventStore";
 
 export function EventsAndCommunitiesPage({
   events,
@@ -30,27 +39,54 @@ export function EventsAndCommunitiesPage({
   onJoinEvent,
   onJoinCommunity,
   onCommunityClick,
+  onEventClick,
   currentUserRole,
   initialTab = "events",
+  isLoading = false,
+  currentUserId,
 }) {
   const [activeTab, setActiveTab] = useState(
     initialTab === "communities" ? "communities" : "events"
   );
+  
+  const { currentUser, joinCommunity, leaveCommunity } = useEventStore();
+  
+  // Filters & Sorting
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  
+  // Events specific filters
+  const [sortBy, setSortBy] = useState("upcoming"); // upcoming, popular, newest
 
   useEffect(() => {
     setSearchQuery("");
+    setSelectedCategory("all");
   }, [activeTab]);
 
-  const filteredEvents = events.filter((event) => {
+  let filteredEvents = events.filter((event) => {
     const matchesSearch =
       searchQuery === "" ||
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+      event.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesCategory =
+      selectedCategory === "all" || event.tags?.includes(selectedCategory);
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // Sorting Events
+  filteredEvents.sort((a, b) => {
+    switch (sortBy) {
+      case "popular":
+        return b.currentParticipants - a.currentParticipants;
+      case "newest":
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      case "upcoming":
+      default:
+        return new Date(a.eventDate) - new Date(b.eventDate);
+    }
   });
 
   const filteredCommunities = communities.filter((community) => {
@@ -67,20 +103,19 @@ export function EventsAndCommunitiesPage({
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4 },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
+
+  // Get unique tags for events category filter
+  const eventCategories = [...new Set(events.flatMap(e => e.tags || []))].filter(Boolean);
+
+  // Active filters count
+  const hasActiveFilters = selectedCategory !== "all";
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,54 +166,104 @@ export function EventsAndCommunitiesPage({
                 </TabsList>
               </div>
 
+              {/* Enhanced Search and Filters Toolbar */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl border border-border p-4 mb-8 shadow-sm"
+                className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg pt-4 pb-6 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 border-b border-border/40 flex flex-col lg:flex-row items-start lg:items-center gap-4"
               >
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={`Search ${activeTab}...`}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 h-11 border-0 bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
-                    />
+                {/* Search */}
+                <div className="relative flex-1 w-full h-14 group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   </div>
+                  <Input
+                    placeholder={`Search ${activeTab} by name or description...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-14 pr-12 h-full w-full rounded-2xl border border-border/70 bg-white shadow-sm hover:shadow-md focus-visible:shadow-md focus-visible:ring-1 focus-visible:ring-primary text-base transition-all"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute inset-y-0 right-5 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
 
-                  {activeTab === "communities" && (
+                <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                  
+                  {/* Category */}
+                  <div className="flex-1 min-w-[160px] lg:min-w-[200px] h-14">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-full md:w-44 h-11 border-0 bg-muted/50 rounded-xl">
-                        <SelectValue />
+                      <SelectTrigger className="h-full w-full rounded-2xl border border-border/50 bg-white shadow-sm hover:shadow-md focus:ring-1 focus:ring-primary text-base font-medium px-5 transition-all">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground font-normal hidden sm:inline">Category:</span>
+                          <SelectValue placeholder="All Categories" />
+                        </div>
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="Academic">Academic</SelectItem>
-                        <SelectItem value="Research">Research</SelectItem>
-                        <SelectItem value="Creative">Creative</SelectItem>
-                        <SelectItem value="Business">Business</SelectItem>
+                      <SelectContent className="rounded-2xl border border-border/50 bg-white/95 backdrop-blur-xl shadow-2xl p-2 w-[220px]">
+                        <SelectItem value="all" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">All Categories</SelectItem>
+                        {activeTab === "communities" ? (
+                          <>
+                            <SelectItem value="Academic" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Academic</SelectItem>
+                            <SelectItem value="Research" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Research</SelectItem>
+                            <SelectItem value="Creative" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Creative</SelectItem>
+                            <SelectItem value="Business" className="py-2.5 px-4 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Business</SelectItem>
+                          </>
+                        ) : (
+                          eventCategories.map((cat, index) => (
+                            <SelectItem 
+                              key={cat} 
+                              value={cat} 
+                              className={`py-2.5 px-4 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors ${index !== eventCategories.length - 1 ? 'mb-1' : ''}`}
+                            >
+                              {cat}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {activeTab === "events" && (
+                    <div className="flex-1 min-w-[160px] lg:min-w-[180px] h-14">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="h-full w-full rounded-2xl border border-border/50 bg-white shadow-sm hover:shadow-md focus:ring-1 focus:ring-primary text-base font-medium px-5 transition-all">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground font-normal hidden sm:inline">Sort:</span>
+                            <SelectValue placeholder="Sort By" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border border-border/50 bg-white/95 backdrop-blur-xl shadow-2xl p-2 w-[220px]">
+                          <SelectItem value="upcoming" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Upcoming Next</SelectItem>
+                          <SelectItem value="popular" className="py-2.5 px-4 mb-1 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Most Popular</SelectItem>
+                          <SelectItem value="newest" className="py-2.5 px-4 text-[15px] font-medium rounded-[12px] cursor-pointer focus:bg-primary/5 focus:text-primary transition-colors">Newly Added</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
 
-                  <div className="inline-flex h-11 items-center rounded-xl bg-muted/50 p-1">
+                  {/* View Toggles */}
+                  <div className="hidden md:flex items-center gap-1 h-14 rounded-2xl bg-white shadow-sm border border-border/50 p-1.5 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setViewMode("grid")}
-                      className={`h-9 px-3 rounded-lg ${viewMode === "grid" ? "bg-white shadow-sm" : ""}`}
+                      className={`h-11 w-11 px-0 rounded-[14px] transition-all ${viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-black/5 hover:text-foreground"}`}
                     >
-                      <Grid3x3 className="h-4 w-4" />
+                      <Grid3x3 className="h-5 w-5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setViewMode("list")}
-                      className={`h-9 px-3 rounded-lg ${viewMode === "list" ? "bg-white shadow-sm" : ""}`}
+                      className={`h-11 w-11 px-0 rounded-[14px] transition-all ${viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-black/5 hover:text-foreground"}`}
                     >
-                      <List className="h-4 w-4" />
+                      <List className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
@@ -186,231 +271,108 @@ export function EventsAndCommunitiesPage({
 
               <TabsContent value="events" className="mt-0">
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key="events"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit={{ opacity: 0 }}
-                  >
-                    {filteredEvents.length > 0 ? (
-                      <div
-                        className={
-                          viewMode === "grid"
-                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                            : "space-y-4"
-                        }
-                      >
-                        {filteredEvents.map((event) => {
-                          const isFull = event.maxParticipants
-                            ? event.currentParticipants >= event.maxParticipants
-                            : false;
-                          const capacityPercentage = event.maxParticipants
-                            ? (event.currentParticipants / event.maxParticipants) * 100
-                            : 0;
-
-                          return (
+                  {isLoading ? (
+                    <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+                      {[1,2,3,4,5,6].map(i => <EventCardSkeleton key={i} />)}
+                    </div>
+                  ) : (
+                    <motion.div
+                      key="events"
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit={{ opacity: 0 }}
+                    >
+                      {filteredEvents.length > 0 ? (
+                        <div
+                          className={
+                            viewMode === "grid"
+                              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                              : "space-y-4"
+                          }
+                        >
+                          {filteredEvents.map((event) => (
                             <motion.div key={event.id} variants={itemVariants}>
-                              <Card className="group overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-white rounded-2xl h-full flex flex-col">
-                                <div className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 p-6 border-b border-border/10">
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-2 bg-primary/90 text-white px-3 py-1.5 rounded-lg text-sm">
-                                      <Calendar className="h-3.5 w-3.5" />
-                                      {new Date(event.eventDate).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                      })}
-                                    </div>
-                                    {event.tags && event.tags[0] && (
-                                      <Badge variant="secondary" className="bg-white/90">
-                                        {event.tags[0]}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="p-6 flex-1 flex flex-col">
-                                  <h3 className="text-lg mb-1 line-clamp-1 group-hover:text-primary transition-colors">
-                                    {event.title}
-                                  </h3>
-                                  {event.club && (
-                                    <p className="text-sm text-primary mb-3">{event.club}</p>
-                                  )}
-                                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                    {event.description}
-                                  </p>
-
-                                  <div className="space-y-2 mb-4">
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <Clock className="h-4 w-4 text-primary flex-shrink-0" />
-                                      <span className="text-foreground/80">{event.eventTime}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                                      <span className="text-foreground/80 line-clamp-1">
-                                        {event.location}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {event.maxParticipants && (
-                                    <div className="mb-4 p-3 bg-muted/50 rounded-xl">
-                                      <div className="flex justify-between text-xs mb-2">
-                                        <span className="text-muted-foreground">Capacity</span>
-                                        <span className="text-foreground">
-                                          {event.currentParticipants} / {event.maxParticipants}
-                                        </span>
-                                      </div>
-                                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                                        <motion.div
-                                          initial={{ width: 0 }}
-                                          animate={{ width: `${capacityPercentage}%` }}
-                                          transition={{ duration: 0.8, ease: "easeOut" }}
-                                          className={`h-full ${
-                                            capacityPercentage >= 90 ? "bg-destructive" : "bg-primary"
-                                          }`}
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {currentUserRole === "student" && (
-                                    <Button
-                                      onClick={() => onJoinEvent(event.id)}
-                                      disabled={isFull}
-                                      className="w-full mt-auto bg-primary hover:bg-primary/90 text-white h-11 rounded-xl"
-                                    >
-                                      {isFull ? "Event Full" : "RSVP Now"}
-                                    </Button>
-                                  )}
-                                </div>
-                              </Card>
+                              <EventCard 
+                                event={event} 
+                                currentUserId={currentUserId} 
+                                currentUserRole={currentUserRole} 
+                                onJoinEvent={onJoinEvent} 
+                                onEventClick={onEventClick} 
+                              />
                             </motion.div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed border-border"
-                      >
-                        <Calendar className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-                        <h3 className="text-xl mb-2">No events found</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Try adjusting your search
-                        </p>
-                      </motion.div>
-                    )}
-                  </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed border-border"
+                        >
+                          <Calendar className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
+                          <h3 className="text-xl mb-2">No events found</h3>
+                          <p className="text-muted-foreground text-sm">
+                            Try adjusting your search or filters
+                          </p>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </TabsContent>
 
               <TabsContent value="communities" className="mt-0">
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key="communities"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit={{ opacity: 0 }}
-                  >
-                    {filteredCommunities.length > 0 ? (
-                      <div
-                        className={
-                          viewMode === "grid"
-                            ? "grid grid-cols-1 md:grid-cols-2 gap-6"
-                            : "space-y-4"
-                        }
-                      >
-                        {filteredCommunities.map((community) => (
-                          <motion.div key={community.id} variants={itemVariants}>
-                            <Card
-                              className="group overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer bg-white rounded-2xl"
-                              onClick={() => onCommunityClick?.(community.id)}
-                            >
-                              <div className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 p-6 border-b border-border/10">
-                                <div className="flex items-start justify-between">
-                                  <div className="w-14 h-14 bg-primary/90 rounded-xl flex items-center justify-center">
-                                    <Users className="h-7 w-7 text-white" />
-                                  </div>
-                                  <Badge className="bg-primary/90 text-white">
-                                    {community.category}
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              <div className="p-6">
-                                <h3 className="text-lg mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                                  {community.name}
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                  {community.description}
-                                </p>
-
-                                {community.meetingSchedule && (
-                                  <div className="flex items-center gap-2 mb-4 text-sm">
-                                    <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
-                                    <span className="text-foreground/80">
-                                      {community.meetingSchedule}
-                                    </span>
-                                  </div>
-                                )}
-
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                  {community.tags.slice(0, 3).map((tag, index) => (
-                                    <Badge
-                                      key={index}
-                                      variant="outline"
-                                      className="text-xs bg-muted/50"
-                                    >
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-
-                                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                                      <Users className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                      <p className="text-sm">{community.memberCount}</p>
-                                      <p className="text-xs text-muted-foreground">Members</p>
-                                    </div>
-                                  </div>
-                                  {currentUserRole === "student" && (
-                                    <Button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onJoinCommunity(community.id);
-                                      }}
-                                      size="sm"
-                                      className="bg-primary hover:bg-primary/90 text-white rounded-xl"
-                                    >
-                                      Join
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </Card>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed border-border"
-                      >
-                        <Users className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-                        <h3 className="text-xl mb-2">No communities found</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Try adjusting your search or filters
-                        </p>
-                      </motion.div>
-                    )}
-                  </motion.div>
+                  {isLoading ? (
+                    <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-4"}>
+                      {[1,2,3,4].map(i => <EventCardSkeleton key={i} />)}
+                    </div>
+                  ) : (
+                    <motion.div
+                      key="communities"
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit={{ opacity: 0 }}
+                    >
+                      {filteredCommunities.length > 0 ? (
+                        <div
+                          className={
+                            viewMode === "grid"
+                              ? "grid grid-cols-1 md:grid-cols-2 gap-6"
+                              : "space-y-4"
+                          }
+                        >
+                          {filteredCommunities.map((community) => (
+                            <motion.div key={community.id} variants={itemVariants} className="h-full">
+                              <CommunityCard
+                                community={community}
+                                isJoined={community.members?.includes(currentUser?.id)}
+                                onJoinToggle={async (id, isJoined) => {
+                                  if (isJoined) await leaveCommunity(id);
+                                  else await joinCommunity(id);
+                                }}
+                                onClick={onCommunityClick}
+                                currentUserRole={currentUserRole}
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed border-border"
+                        >
+                          <Users className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
+                          <h3 className="text-xl mb-2">No communities found</h3>
+                          <p className="text-muted-foreground text-sm">
+                            Try adjusting your search or filters
+                          </p>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </TabsContent>
             </Tabs>

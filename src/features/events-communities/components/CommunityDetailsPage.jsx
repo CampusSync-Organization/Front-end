@@ -8,18 +8,63 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { useEventStore } from "../store/useEventStore";
+import { PostCard } from "./PostCard";
+import { PostForm } from "./PostForm";
 
 export function CommunityDetailsPage({
   community,
   communityEvents,
   onBack,
-  onJoinCommunity,
   onJoinEvent,
   currentUserRole,
 }) {
+  const { currentUser, joinCommunity, leaveCommunity } = useEventStore();
+  const isJoined = community.members?.includes(currentUser?.id);
+
+  const handleJoinToggle = async () => {
+    if (isJoined) {
+      await leaveCommunity(community.id);
+    } else {
+      await joinCommunity(community.id);
+    }
+  };
+
+  const [posts, setPosts] = useState([
+    {
+      id: 1,
+      authorName: community.organizerName,
+      content: `Welcome to the ${community.name} community! We are thrilled to have you here. Feel free to introduce yourselves and start discussions below.`,
+      likes: 12,
+      comments: 3,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 2,
+      authorName: "Sarah Johnson",
+      content: "Does anyone want to study together this weekend at the Student Union?",
+      likes: 5,
+      comments: 1,
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+    }
+  ]);
+
+  const handleCreatePost = async (content) => {
+    const newPost = {
+      id: Date.now(),
+      authorName: currentUser?.name || "Anonymous User",
+      content,
+      likes: 0,
+      comments: 0,
+      createdAt: new Date().toISOString(),
+    };
+    setPosts([newPost, ...posts]);
+  };
+
   const members = [
     { id: 1, name: "Sarah Johnson", role: "Admin" },
     { id: 2, name: "Michael Chen", role: "Member" },
@@ -95,14 +140,17 @@ export function CommunityDetailsPage({
               >
                 <Share2 className="h-5 w-5" />
               </Button>
-              {currentUserRole === "student" && (
-                <Button
-                  onClick={() => onJoinCommunity(community.id)}
-                  className="bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-xl shadow-lg"
-                >
-                  Join Community
-                </Button>
-              )}
+              <Button
+                onClick={handleJoinToggle}
+                variant={isJoined ? "outline" : "default"}
+                className={
+                  isJoined
+                    ? "h-12 px-8 rounded-xl border-2 text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                    : "bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-xl shadow-lg transition-colors"
+                }
+              >
+                {isJoined ? "Leave Community" : "Join Community"}
+              </Button>
             </div>
           </div>
         </div>
@@ -112,19 +160,25 @@ export function CommunityDetailsPage({
         <TabsList className="bg-white border-2 border-border rounded-xl p-1">
           <TabsTrigger
             value="overview"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
+            value="posts"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6"
+          >
+            Posts
+          </TabsTrigger>
+          <TabsTrigger
             value="events"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6"
           >
             Events
           </TabsTrigger>
           <TabsTrigger
             value="members"
-            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white"
+            className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6"
           >
             Members
           </TabsTrigger>
@@ -159,6 +213,28 @@ export function CommunityDetailsPage({
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="posts" className="space-y-6">
+          <div className="max-w-3xl mx-auto">
+            {isJoined ? (
+              <PostForm currentUser={currentUser} onSubmit={handleCreatePost} />
+            ) : (
+              <Card className="p-8 border-2 border-dashed border-border shadow-sm text-center rounded-2xl bg-white mb-8">
+                <h3 className="text-xl text-foreground mb-2">Join community to post</h3>
+                <p className="text-muted-foreground mb-4">
+                  You must be a member of this community to participate in discussions.
+                </p>
+                <Button onClick={handleJoinToggle} className="rounded-xl px-8">Join Now</Button>
+              </Card>
+            )}
+
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="events" className="space-y-4">
@@ -200,14 +276,12 @@ export function CommunityDetailsPage({
                       </div>
                     </div>
 
-                    {currentUserRole === "student" && (
-                      <Button
-                        onClick={() => onJoinEvent(event.id)}
-                        className="bg-primary hover:bg-primary/90 text-white px-6 rounded-xl"
-                      >
-                        RSVP Now
-                      </Button>
-                    )}
+                    <Button
+                      onClick={() => onJoinEvent(event.id)}
+                      className="bg-primary hover:bg-primary/90 text-white px-6 rounded-xl font-medium"
+                    >
+                      RSVP Now
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -225,7 +299,7 @@ export function CommunityDetailsPage({
 
         <TabsContent value="members">
           <Card className="p-8 border-2 border-border shadow-sm rounded-2xl bg-white">
-            <h2 className="text-2xl text-foreground mb-6">Members ({members.length})</h2>
+            <h2 className="text-2xl text-foreground mb-6">Members ({community.memberCount})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {members.map((member) => (
                 <div
