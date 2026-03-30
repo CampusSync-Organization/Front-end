@@ -5,14 +5,18 @@ import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import { store } from "./app/store";
 import { router } from "./app/router/router";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.css";
 
+const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <RouterProvider router={router} />
-      <Toaster richColors position="top-right" />
-    </Provider>
+    <GoogleOAuthProvider clientId={clientId}>
+      <Provider store={store}>
+        <RouterProvider router={router} />
+        <Toaster richColors position="top-right" />
+      </Provider>
+    </GoogleOAuthProvider>
   </React.StrictMode>,
 );
 
