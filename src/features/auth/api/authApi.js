@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "https://back-end-production-7229.up.railway.app";
+export const API_BASE = "https://back-end-production-7229.up.railway.app";
 
 /**
  * Register a new user
@@ -25,6 +25,17 @@ export async function login({ email, password }) {
   const { data } = await axios.post(`${API_BASE}/login`, {
     email,
     password,
+  });
+  return data;
+}
+/**
+ * Log in with Google
+ * @param {{ credential: string }} credentialResponse - the response from @react-oauth/google GoogleLogin popup
+ * @returns {Promise<{ id?: number, email: string, role?: string, access_token?: string, token_type?: string }>}
+ */
+export async function googleLogin({ credential }) {
+  const { data } = await axios.post(`${API_BASE}/auth/google`, {
+    id_token: credential,
   });
   return data;
 }
