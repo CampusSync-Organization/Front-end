@@ -3,14 +3,14 @@ import LoginPage from "./LoginPage";
 import SignUpPage from "./SignUpPage";
 
 export default function AuthPage() {
-  const [currentPage, setCurrentPage] = useState("login");
+  const [currentpage, setcurrentpage] = usestate("login");
 
   return (
     <>
-      {currentPage === "login" ? (
-        <LoginPage onNavigateToSignUp={() => setCurrentPage("signup")} />
+      {currentpage === "login" ? (
+        <loginpage onnavigatetosignup={() => setcurrentpage("signup")} />
       ) : (
-        <SignUpPage onNavigateToLogin={() => setCurrentPage("login")} />
+        <signuppage onnavigatetologin={() => setcurrentpage("login")} />
       )}
     </>
   );
