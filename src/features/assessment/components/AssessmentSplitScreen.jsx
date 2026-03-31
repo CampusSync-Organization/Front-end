@@ -6,37 +6,58 @@ import { useAssessmentStore } from "../store/useAssessmentStore";
 import { ALL_QUESTIONS } from "../config/questions";
 import { SplitOptionList } from "./SplitOptionList";
 import { SplitLikertTrack } from "./SplitLikertTrack";
+import { updateAssessment } from "../Api/assessmentApi";
+import { useSelector } from "react-redux";
 
 const QUESTION_IMAGES = {
   // Academic Images
   year: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1600",
   gpa: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1600",
-  study_start: "https://images.unsplash.com/photo-1497032205916-ac775f0649ae?q=80&w=1600",
-  work_approach: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1600",
-  time_pressure: "https://images.unsplash.com/photo-1501139083538-0139583c060f?q=80&w=1600",
-  commitment_priority: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1600",
-  commitment_reliability: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?q=80&w=1600",
-  study_effort: "https://images.unsplash.com/photo-1513258496099-48168024aec0?q=80&w=1600",
-  academic_mindset: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=1600",
-  working_style: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1600",
-  
+  study_start:
+    "https://images.unsplash.com/photo-1497032205916-ac775f0649ae?q=80&w=1600",
+  work_approach:
+    "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1600",
+  time_pressure:
+    "https://images.unsplash.com/photo-1501139083538-0139583c060f?q=80&w=1600",
+  commitment_priority:
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1600",
+  commitment_reliability:
+    "https://images.unsplash.com/photo-1506784365847-bbad939e9335?q=80&w=1600",
+  study_effort:
+    "https://images.unsplash.com/photo-1513258496099-48168024aec0?q=80&w=1600",
+  academic_mindset:
+    "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?q=80&w=1600",
+  working_style:
+    "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1600",
+
   // Personality Images
-  ext_1: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1600",
-  ext_2_rev: "https://images.unsplash.com/photo-1515041219749-89347f83291a?q=80&w=1600",
-  cons_1: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=1600",
-  cons_2_rev: "https://images.unsplash.com/photo-1555421689-d68471e189f2?q=80&w=1600",
-  agr_1: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=1600",
-  agr_2_rev: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1600",
-  neu_1_rev: "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=1600",
-  neu_2: "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=1600",
-  opn_1: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=1600",
-  opn_2_rev: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?q=80&w=1600"
+  ext_1:
+    "https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1600",
+  ext_2_rev:
+    "https://images.unsplash.com/photo-1515041219749-89347f83291a?q=80&w=1600",
+  cons_1:
+    "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=1600",
+  cons_2_rev:
+    "https://images.unsplash.com/photo-1555421689-d68471e189f2?q=80&w=1600",
+  agr_1:
+    "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=1600",
+  agr_2_rev:
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1600",
+  neu_1_rev:
+    "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=1600",
+  neu_2:
+    "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=1600",
+  opn_1:
+    "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=1600",
+  opn_2_rev:
+    "https://images.unsplash.com/photo-1501504905252-473c47e087f8?q=80&w=1600",
 };
 
 export default function AssessmentSplitScreen() {
   const navigate = useNavigate();
   const [direction, setDirection] = useState(1);
   const [isFinishing, setIsFinishing] = useState(false);
+  const token = useSelector((state) => state.auth?.token);
 
   const {
     currentStep,
@@ -46,7 +67,7 @@ export default function AssessmentSplitScreen() {
     getAnswerForKey,
     getFinalPayload,
     reset,
-    totalSteps
+    totalSteps,
   } = useAssessmentStore();
 
   useEffect(() => {
@@ -59,7 +80,9 @@ export default function AssessmentSplitScreen() {
 
   const isComplete = currentStep >= totalSteps;
   const currentQuestion = ALL_QUESTIONS[currentStep];
-  const currentValue = currentQuestion ? getAnswerForKey(currentQuestion.key) : null;
+  const currentValue = currentQuestion
+    ? getAnswerForKey(currentQuestion.key)
+    : null;
 
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
@@ -67,7 +90,7 @@ export default function AssessmentSplitScreen() {
       setTimeout(() => {
         const payload = getFinalPayload();
         console.log("Final payload:", payload);
-        nextStep(); 
+        nextStep();
       }, 600);
       return;
     }
@@ -86,8 +109,10 @@ export default function AssessmentSplitScreen() {
     handleNext();
   };
 
-  const handleCompleteRedirect = () => {
+  const handleCompleteRedirect = async () => {
     reset();
+    console.log("sending token: ", token);
+    await updateAssessment({ token });
     navigate("/home");
   };
 
@@ -95,17 +120,20 @@ export default function AssessmentSplitScreen() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <motion.div
-           initial={{ opacity: 0, scale: 0.95, y: 20 }}
-           animate={{ opacity: 1, scale: 1, y: 0 }}
-           transition={{ duration: 0.5 }}
-           className="bg-white max-w-lg w-full rounded-[2rem] p-12 text-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white max-w-lg w-full rounded-[2rem] p-12 text-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
         >
           <div className="w-24 h-24 bg-slate-900 rounded-full flex flex-col items-center justify-center mx-auto mb-8 shadow-xl shadow-slate-900/20">
             <Check className="h-10 w-10 text-white" strokeWidth={3.5} />
           </div>
-          <h2 className="text-4xl font-black text-slate-800 mb-4 tracking-tight">Setup Complete.</h2>
+          <h2 className="text-4xl font-black text-slate-800 mb-4 tracking-tight">
+            Setup Complete.
+          </h2>
           <p className="text-slate-500 mb-10 text-lg leading-relaxed font-medium">
-            We've mapped your academic and personal preferences securely. Your dashboard is perfectly configured and ready.
+            We've mapped your academic and personal preferences securely. Your
+            dashboard is perfectly configured and ready.
           </p>
           <motion.button
             whileHover={{ scale: 1.02, y: -2 }}
@@ -121,9 +149,10 @@ export default function AssessmentSplitScreen() {
   }
 
   const progress = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
-  const bgImage = currentQuestion && QUESTION_IMAGES[currentQuestion.key] 
-    ? QUESTION_IMAGES[currentQuestion.key] 
-    : "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1600";
+  const bgImage =
+    currentQuestion && QUESTION_IMAGES[currentQuestion.key]
+      ? QUESTION_IMAGES[currentQuestion.key]
+      : "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1600";
 
   const slideVariants = {
     enter: (dir) => ({ y: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -133,7 +162,6 @@ export default function AssessmentSplitScreen() {
 
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-white font-sans text-slate-900 overflow-hidden">
-      
       {/* Mobile Image Context Component (Slimmer to prevent scroll) */}
       <div className="block lg:hidden w-full h-[15%] min-h-[120px] relative shrink-0 overflow-hidden">
         <AnimatePresence mode="wait">
@@ -150,7 +178,9 @@ export default function AssessmentSplitScreen() {
         <div className="absolute inset-0 bg-slate-900/30 mix-blend-multiply" />
         <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
         <div className="absolute top-4 left-6 text-white drop-shadow-md">
-          <h1 className="text-2xl font-black mb-1 tracking-tighter leading-none">CampusSync</h1>
+          <h1 className="text-2xl font-black mb-1 tracking-tighter leading-none">
+            CampusSync
+          </h1>
         </div>
       </div>
 
@@ -169,13 +199,15 @@ export default function AssessmentSplitScreen() {
         </AnimatePresence>
         <div className="absolute inset-0 bg-slate-900/40 mix-blend-multiply" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-        
+
         {/* Typographic Context Overlay */}
         <div className="absolute bottom-16 left-16 right-16 text-white max-w-md">
-          <h1 className="text-[48px] font-black mb-4 tracking-tighter leading-none">CampusSync</h1>
+          <h1 className="text-[48px] font-black mb-4 tracking-tighter leading-none">
+            CampusSync
+          </h1>
           <p className="text-xl font-medium text-white/80 leading-relaxed">
-            {currentQuestion?.category === "Academic" 
-              ? "Tell us about your study cadence to unlock personalized academic roadmaps." 
+            {currentQuestion?.category === "Academic"
+              ? "Tell us about your study cadence to unlock personalized academic roadmaps."
               : "Let us understand your personality metrics to connect you with the right communities."}
           </p>
         </div>
@@ -183,10 +215,9 @@ export default function AssessmentSplitScreen() {
 
       {/* RIGHT: High Structure Form Split */}
       <div className="w-full lg:w-1/2 relative flex flex-col flex-1 h-[85%] lg:h-full overflow-hidden">
-        
         {/* Top Progress Track */}
         <div className="absolute top-0 left-0 w-full h-1.5 md:h-2 bg-slate-100 z-50 shrink-0">
-          <motion.div 
+          <motion.div
             className="h-full bg-slate-900"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -196,9 +227,9 @@ export default function AssessmentSplitScreen() {
 
         {/* Header Console */}
         <header className="w-full flex items-center justify-between px-6 lg:px-16 pt-5 pb-1 lg:py-8 z-20 shrink-0 mt-1">
-          <button 
+          <button
             onClick={handleBack}
-            className={`flex items-center gap-2 p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all font-bold text-[12px] tracking-widest uppercase ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+            className={`flex items-center gap-2 p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all font-bold text-[12px] tracking-widest uppercase ${currentStep === 0 ? "opacity-0 pointer-events-none" : ""}`}
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
@@ -215,14 +246,20 @@ export default function AssessmentSplitScreen() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ type: "spring", stiffness: 400, damping: 35, opacity: { duration: 0.2 } }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 35,
+                  opacity: { duration: 0.2 },
+                }}
                 className="w-full flex flex-col"
               >
                 {/* Number & Typography */}
                 <div className="mb-4 lg:mb-8 flex flex-col lg:flex-row lg:items-start gap-2 lg:gap-6">
                   <div className="flex items-center gap-3 shrink-0 mt-1">
                     <span className="text-slate-900 font-bold text-lg lg:text-2xl flex items-center gap-2">
-                       {currentStep + 1} <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 text-slate-300" />
+                      {currentStep + 1}{" "}
+                      <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 text-slate-300" />
                     </span>
                   </div>
                   <div>
@@ -238,14 +275,14 @@ export default function AssessmentSplitScreen() {
                 {/* Left-Aligned Constrained Block for Form Elements */}
                 <div className="w-full pl-0 md:pl-[68px]">
                   {currentQuestion.type === "singleSelect" && (
-                    <SplitOptionList 
+                    <SplitOptionList
                       options={currentQuestion.options}
                       selectedValue={currentValue}
                       onSelect={handleSelect}
                     />
                   )}
                   {currentQuestion.type === "likert" && (
-                    <SplitLikertTrack 
+                    <SplitLikertTrack
                       min={currentQuestion.min}
                       max={currentQuestion.max}
                       labels={currentQuestion.labels}

@@ -34,8 +34,16 @@ export async function login({ email, password }) {
  * @returns {Promise<{ id?: number, email: string, role?: string, access_token?: string, token_type?: string }>}
  */
 export async function googleLogin({ credential }) {
-  const { data } = await axios.post(`${API_BASE}/auth/google`, {
-    id_token: credential,
-  });
-  return data;
+  try {
+    const response = await axios.post(`${API_BASE}/auth/google`, {
+      id_token: credential,
+    });
+    console.log("Response:", response);
+    return response.data;
+  } catch (error) {
+    console.error("Error details:", error.response?.data);
+    console.error("Request that was sent:", error.config?.data);
+    throw error;
+  }
 }
+
