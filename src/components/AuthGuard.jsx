@@ -6,10 +6,10 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
  * Redirects to /login if user is not set (with return url in state).
  */
 export default function AuthGuard() {
-  const user = useSelector((state) => state.auth?.user);
+  const { user, token } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  if (!user) {
+  if (!user || !token) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
