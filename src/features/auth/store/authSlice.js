@@ -35,30 +35,31 @@ export const googleLoginUser = createAsyncThunk(
     } catch (err) {
       const detail = err.response?.data?.detail;
       let message = "Google login failed";
-      
+
       if (Array.isArray(detail)) {
-        message = detail.map(d => d.msg || d).join(", ");
+        message = detail.map((d) => d.msg || d).join(", ");
       } else if (typeof detail === "string") {
         message = detail;
       } else if (detail && typeof detail === "object" && detail.msg) {
         message = detail.msg;
       }
-      
+
       return rejectWithValue(message);
     }
   },
 );
 
 // ─── Initial State ─────────────────────────────────────────────────────────────
-
-let initialState = { user: null, loading: false, error: null };
-
+let initialState = { user: null, token: null, loading: false, error: null };
 if (typeof window !== "undefined") {
   try {
-    const stored = localStorage.getItem("campussync_user");
-    if (stored) initialState.user = JSON.parse(stored);
+    const storedUser = localStorage.getItem("campussync_user");
+    const storedToken = localStorage.getItem("campussync_token");
+    if (storedUser) initialState.user = JSON.parse(storedUser);
+    if (storedToken) initialState.token = storedToken;
   } catch {
     localStorage.removeItem("campussync_user");
+    localStorage.removeItem("campussync_token");
   }
 }
 
@@ -68,12 +69,17 @@ if (typeof window !== "undefined") {
 function handleFulfilled(state, action) {
   state.loading = false;
   state.error = null;
-  state.user = action.payload;
+
+  // Extract user and token separately
+  const { user, token } = action.payload;
+  state.user = user; // Only store the user object
+  state.token = token; // Store token separately
+
   if (typeof window !== "undefined") {
-    localStorage.setItem("campussync_user", JSON.stringify(action.payload));
+    localStorage.setItem("campussync_user", JSON.stringify(user));
+    localStorage.setItem("campussync_token", token);
   }
 }
-
 // ─── Slice ─────────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({

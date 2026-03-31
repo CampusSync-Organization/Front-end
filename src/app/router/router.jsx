@@ -14,31 +14,50 @@ import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pa
 import EventDetailsPage from "../../features/events-communities/pages/EventDetailsPage.jsx";
 import MyEventsPage from "../../features/events-communities/pages/MyEventsPage.jsx";
 import MyCommunitiesPage from "../../features/events-communities/pages/MyCommunitiesPage.jsx";
+import GuestGuard from "../../components/GuestGuard.jsx";
 
 export const router = createBrowserRouter([
-    { path: "/", element: <Landing /> },
-    { path: "/login", element: <LoginPage /> },
-    { path: "/signup", element: <SignUpPage /> },
-    { path: "/assessment", element: <AssessmentPage /> },
-    {
-        element: <AuthGuard />,
+  { path: "/", element: <Landing /> },
+  {
+    path: "/login",
+    element: (
+      <GuestGuard>
+        {" "}
+        <LoginPage />{" "}
+      </GuestGuard>
+    ),
+  },
+  {
+    path: "/signup",
+    element: (
+      <GuestGuard>
+        <SignUpPage />
+      </GuestGuard>
+    ),
+  },
+  { path: "/assessment", element: <AssessmentPage /> },
+  {
+    element: <AuthGuard />,
+    children: [
+      {
+        path: "/",
+        element: <AppLayout />,
         children: [
-            {
-                path: "/",
-                element: <AppLayout />,
-                children: [
-                    { path: "home", element: <HomePage /> },
-                    { path: "events-communities", element: <EventsAndCommunitiesLayoutPage /> },
-                    { path: "events/:eventId", element: <EventDetailsPage /> },
-                    { path: "my-events", element: <MyEventsPage /> },
-                    { path: "my-communities", element: <MyCommunitiesPage /> },
-                    { path: "Profile-Page", element: <ProfilePage /> },
-                    { path: "User-profile", element: <UserProfilePage /> },
-                    { path: "Recommendation-Page", element: <RecommendationPage /> },
-                    { path: "Chat-Main-Page", element: <ChatMainPage /> },
-                ],
-            },
+          { path: "home", element: <HomePage /> },
+          {
+            path: "events-communities",
+            element: <EventsAndCommunitiesLayoutPage />,
+          },
+          { path: "events/:eventId", element: <EventDetailsPage /> },
+          { path: "my-events", element: <MyEventsPage /> },
+          { path: "my-communities", element: <MyCommunitiesPage /> },
+          { path: "Profile-Page", element: <ProfilePage /> },
+          { path: "User-profile", element: <UserProfilePage /> },
+          { path: "Recommendation-Page", element: <RecommendationPage /> },
+          { path: "Chat-Main-Page", element: <ChatMainPage /> },
         ],
-    },
-    { path: "*", element: <Navigate to="/" replace /> },
+      },
+    ],
+  },
+  { path: "*", element: <Navigate to="/" replace /> },
 ]);
