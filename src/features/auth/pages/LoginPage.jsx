@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { handleGoogleSuccess } from "../handlers/handleGoogleSuccess";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -16,8 +17,8 @@ import {
 } from "../componenets";
 
 function LoginPage() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth); // add this
   const containerRef = useRef(null);
   const formRef = useRef(null);
@@ -54,33 +55,14 @@ function LoginPage() {
 
     const result = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(result)) {
-      navigate(from, { replace: true });
-    } else {
-      toast.error(result.payload ?? "Sign in failed");
-    }
-  };
-  const handleGoogleSuccess = async (credential) => {
-    console.log("1. handleGoogleSuccess called with:", credential);
-
-    const result = await dispatch(googleLoginUser({ credential }));
-    console.log("2. Result from dispatch:", result);
-
-    console.log("3. Is fulfilled?", googleLoginUser.fulfilled.match(result));
-
-    if (googleLoginUser.fulfilled.match(result)) {
-      console.log("4. Inside fulfilled block");
-      console.log("5. Payload:", result.payload);
-      const { token, user } = result.payload;
-
-      if (user.assessment_completed) {
+      const { assessment_completed } = result.payload.user;
+      if (assessment_completed) {
         navigate("/home", { replace: true });
       } else {
         navigate("/assessment", { replace: true });
       }
     } else {
-      console.log("6. Inside else block");
-      console.log("7. Error payload:", result.payload);
-      toast.error(result.payload ?? "Google sign in failed");
+      toast.error(result.payload ?? "Sign in failed");
     }
   };
   return (
@@ -162,7 +144,9 @@ function LoginPage() {
             <AuthDivider />
 
             <GoogleButton
-              onSuccess={handleGoogleSuccess}
+              onSuccess={(cred) =>
+                handleGoogleSuccess(cred, dispatch, navigate, toast)
+              }
               onError={() => toast.error("Google sign in failed")}
             />
 

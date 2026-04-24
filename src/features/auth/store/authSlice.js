@@ -9,7 +9,7 @@ export const loginUser = createAsyncThunk(
     try {
       return await login({ email, password });
     } catch (err) {
-      return rejectWithValue(err.response?.data?.detail || "Login failed");
+      return rejectWithValue("Email or password incorrect");
     }
   },
 );
@@ -21,7 +21,7 @@ export const registerUser = createAsyncThunk(
       return await register({ email, name, password });
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.detail || "Registration failed",
+        err.response?.data?.error || "Registration failed",
       );
     }
   },

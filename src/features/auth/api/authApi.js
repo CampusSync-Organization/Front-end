@@ -46,4 +46,3 @@ export async function googleLogin({ credential }) {
     throw error;
   }
 }
-

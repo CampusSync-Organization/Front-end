@@ -2,7 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Bell, Menu, X, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  X,
+  User,
+  Settings,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 import { clearUser } from "../features/auth/store/authSlice";
 
 const NOTIFICATION_COUNT = 3;
@@ -12,7 +20,9 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const authUser = useSelector((state) => state.auth?.user);
-  const user = authUser ? { name: authUser.name ?? "User", role: authUser.role ?? "student" } : null;
+  const user = authUser
+    ? { name: authUser.name ?? "User", role: authUser.role ?? "student" }
+    : null;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setMobileOpen] = useState(false);
@@ -36,8 +46,10 @@ export default function Navbar() {
 
   useEffect(() => {
     const close = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-      if (userRef.current && !userRef.current.contains(e.target)) setUserMenuOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target))
+        setNotifOpen(false);
+      if (userRef.current && !userRef.current.contains(e.target))
+        setUserMenuOpen(false);
     };
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
@@ -84,7 +96,10 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-1" onMouseLeave={() => setHoveredPath(location.pathname)}>
+          <div
+            className="hidden md:flex items-center gap-1"
+            onMouseLeave={() => setHoveredPath(location.pathname)}
+          >
             {appLinks.map((link) => {
               const isActive = location.pathname === link.to;
               return (
@@ -93,7 +108,9 @@ export default function Navbar() {
                   to={link.to}
                   onMouseEnter={() => setHoveredPath(link.to)}
                   className={`relative px-4 py-2 rounded-xl text-[14px] font-medium transition-colors duration-200 ${
-                    isActive ? "text-[#14213D]" : "text-slate-600 hover:text-slate-900"
+                    isActive
+                      ? "text-[#14213D]"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   <span className="relative z-10">{link.label}</span>
@@ -132,24 +149,48 @@ export default function Navbar() {
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200/80 bg-white py-1 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.12)]">
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-900">Notifications</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Notifications
+                    </p>
                   </div>
                   <div className="max-h-72 overflow-y-auto py-1">
-                    <button type="button" className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors">
-                      <p className="text-sm text-slate-800 font-medium">New event: AI Workshop 2025</p>
-                      <p className="text-xs text-slate-500 mt-0.5">2 hours ago</p>
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors"
+                    >
+                      <p className="text-sm text-slate-800 font-medium">
+                        New event: AI Workshop 2025
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        2 hours ago
+                      </p>
                     </button>
-                    <button type="button" className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors">
-                      <p className="text-sm text-slate-800 font-medium">You joined Data Science Club</p>
-                      <p className="text-xs text-slate-500 mt-0.5">5 hours ago</p>
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors"
+                    >
+                      <p className="text-sm text-slate-800 font-medium">
+                        You joined Data Science Club
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        5 hours ago
+                      </p>
                     </button>
-                    <button type="button" className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors">
-                      <p className="text-sm text-slate-800 font-medium">Hackathon starts tomorrow</p>
+                    <button
+                      type="button"
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50/80 transition-colors"
+                    >
+                      <p className="text-sm text-slate-800 font-medium">
+                        Hackathon starts tomorrow
+                      </p>
                       <p className="text-xs text-slate-500 mt-0.5">1 day ago</p>
                     </button>
                   </div>
                   <div className="border-t border-slate-100 px-4 py-2">
-                    <button type="button" className="text-xs font-medium text-[#14213D] hover:underline">
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-[#14213D] hover:underline"
+                    >
                       View all
                     </button>
                   </div>
@@ -170,27 +211,39 @@ export default function Navbar() {
                 <span className="text-sm font-medium text-slate-800 max-w-[120px] truncate hidden lg:block">
                   {user ? user.name.split(" ")[0] : ""}
                 </span>
-                <ChevronDown className={`h-4 w-4 text-slate-500 hidden lg:block transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-4 w-4 text-slate-500 hidden lg:block transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`}
+                />
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-200/80 bg-white py-2 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.12)]">
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
-                    <p className="text-xs text-slate-500 capitalize mt-0.5">{user?.role}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-slate-500 capitalize mt-0.5">
+                      {user?.role}
+                    </p>
                   </div>
                   <Link
-                    to="/Profile-Page"
+                    to="/profile"
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >
-                    <User className="h-4 w-4 text-slate-400" strokeWidth={1.75} />
+                    <User
+                      className="h-4 w-4 text-slate-400"
+                      strokeWidth={1.75}
+                    />
                     Profile
                   </Link>
                   <button
                     type="button"
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                   >
-                    <Settings className="h-4 w-4 text-slate-400" strokeWidth={1.75} />
+                    <Settings
+                      className="h-4 w-4 text-slate-400"
+                      strokeWidth={1.75}
+                    />
                     Settings
                   </button>
                   <div className="my-1 h-px bg-slate-100" />
@@ -218,7 +271,11 @@ export default function Navbar() {
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
           >
-            {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isMobileOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
 
@@ -233,7 +290,9 @@ export default function Navbar() {
                     key={link.to}
                     to={link.to}
                     className={`block text-[15px] font-medium py-3.5 px-4 rounded-xl transition-colors ${
-                      active ? "text-[#14213D] bg-slate-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      active
+                        ? "text-[#14213D] bg-slate-100"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                     onClick={() => setMobileOpen(false)}
                   >
@@ -247,8 +306,12 @@ export default function Navbar() {
                 {user ? getInitials(user.name) : "?"}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900 truncate">{user?.name}</p>
-                <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+                <p className="text-sm font-semibold text-slate-900 truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-slate-500 capitalize">
+                  {user?.role}
+                </p>
               </div>
             </div>
             <button
