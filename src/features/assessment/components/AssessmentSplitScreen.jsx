@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, ArrowRight } from "lucide-react";
 import { useAssessmentStore } from "../store/useAssessmentStore";
 import { ALL_QUESTIONS } from "../config/questions";
 import { SplitOptionList } from "./SplitOptionList";
 import { SplitLikertTrack } from "./SplitLikertTrack";
-import { updateAssessment } from "../Api/assessmentApi";
 import { useSelector } from "react-redux";
+import { updateStudentMatrix } from "../Api/updateStudentMatrix";
+import { updateAssessment } from "../Api/assessmentApi";
 
 const QUESTION_IMAGES = {
   // Academic Images
@@ -66,6 +68,7 @@ export default function AssessmentSplitScreen() {
     setAnswer,
     getAnswerForKey,
     getFinalPayload,
+    getApiPayload,
     reset,
     totalSteps,
   } = useAssessmentStore();
@@ -84,20 +87,29 @@ export default function AssessmentSplitScreen() {
     ? getAnswerForKey(currentQuestion.key)
     : null;
 
+  const isAdvancing = useRef(false); // ✅ ref, not state — won't cause re-render
+
   const handleNext = () => {
+    if (isAdvancing.current) return; // ✅ block double calls
+    isAdvancing.current = true;
+
     if (currentStep === totalSteps - 1) {
       setIsFinishing(true);
       setTimeout(() => {
-        const payload = getFinalPayload();
-        console.log("Final payload:", payload);
         nextStep();
+        isAdvancing.current = false;
       }, 600);
       return;
     }
+
     setDirection(1);
     nextStep();
-  };
 
+    // Reset after animation settles
+    setTimeout(() => {
+      isAdvancing.current = false;
+    }, 300);
+  };
   const handleBack = () => {
     if (currentStep === 0) return;
     setDirection(-1);
@@ -110,12 +122,30 @@ export default function AssessmentSplitScreen() {
   };
 
   const handleCompleteRedirect = async () => {
-    reset();
-    console.log("sending token: ", token);
-    await updateAssessment({ token });
-    navigate("/home");
-  };
+    const apiPayload = useAssessmentStore.getState().getApiPayload();
 
+    const nullFields = Object.entries(apiPayload)
+      .filter(([, v]) => v == null)
+      .map(([k]) => k);
+
+    if (nullFields.length > 0) {
+      console.warn("Still null:", nullFields);
+      toast.error("Some questions were not answered. Please try again.");
+      return;
+    }
+
+    console.log("Submitting:", apiPayload);
+
+    try {
+      await updateStudentMatrix({ data: apiPayload });
+      await updateAssessment();
+      reset();
+      navigate("/home");
+    } catch (err) {
+      console.error("Submission failed:", err);
+      toast.error("Submission failed. Please try again.");
+    }
+  };
   if (isComplete) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
