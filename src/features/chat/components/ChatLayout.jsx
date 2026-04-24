@@ -1,58 +1,59 @@
-import React from "react";
-import ChatSidebar from "./ChatSidebar";
+import { useState } from "react";
+import SideNavBar from "./SideNavBar";
+import MessagesSidebar from "./MessagesSidebar";
 import ChatWindow from "./ChatWindow";
 import CreateGroupModal from "./CreateGroupModal";
-
 import ChatRightPanel from "./ChatRightPanel";
 
 const ChatLayout = () => {
-  const [rightPanel, setRightPanel] = React.useState("none"); // "none", "ai", "contact"
-  const [isGroupModalOpen, setIsGroupModalOpen] = React.useState(false);
+  const [rightPanel, setRightPanel] = useState("none");
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("messages");
 
-  // Default active chat
-  const [activeChat, setActiveChat] = React.useState({
+  const [activeChat, setActiveChat] = useState({
     id: 1,
-    name: "Cody Fisher",
-    avatar: "https://placehold.co/50x50",
-    status: "last seen today at 10 pm",
+    name: "Sarah Chen",
+    avatar: "https://placehold.co/100x100/14213D/FCA311?text=SC",
+    status: "Active",
     type: "individual",
+    role: "Research Fellow",
   });
 
   const toggleRightPanel = (panel) => {
     setRightPanel((prev) => (prev === panel ? "none" : panel));
   };
 
+  const handleChatSelect = (chat) => {
+    setActiveChat(chat);
+  };
+
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden font-inter relative">
+    <div className="flex h-[calc(100vh-4rem)] w-full bg-neutral-light overflow-hidden">
       <CreateGroupModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
       />
 
-      {/* Sidebar */}
-      <div className="w-80 md:w-96 flex-shrink-0 h-full border-r border-neutral-light">
-        <ChatSidebar
-          activeChat={activeChat}
-          setActiveChat={setActiveChat}
-          onOpenCreateGroup={() => setIsGroupModalOpen(true)}
-        />
-      </div>
+      <SideNavBar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
 
-      {/* Main Window */}
-      <div className="flex-1 h-full min-w-0 bg-[#EFE7DD]">
-        {" "}
-        {/* WhatsApp-ish background color base */}
-        <ChatWindow
-          activeChat={activeChat}
-          onOpenAi={() => toggleRightPanel("ai")}
-          onOpenContact={() => toggleRightPanel("contact")}
-          activePanel={rightPanel}
-        />
-      </div>
+      <MessagesSidebar
+        activeChat={activeChat}
+        setActiveChat={handleChatSelect}
+        onOpenCreateGroup={() => setIsGroupModalOpen(true)}
+      />
 
-      {/* Right Panel */}
+      <ChatWindow
+        activeChat={activeChat}
+        onOpenAi={() => toggleRightPanel("ai")}
+        onOpenContact={() => toggleRightPanel("contact")}
+        onBack={() => {}}
+      />
+
       {rightPanel !== "none" && (
-        <div className="w-80 border-l border-neutral-light bg-white h-full transition-all duration-300 ease-in-out shadow-xl z-10 flex flex-col">
+        <div className="w-[320px] shrink-0 border-l border-outline-variant/20 bg-white h-full transition-all duration-300 flex flex-col">
           <ChatRightPanel type={rightPanel} />
         </div>
       )}
