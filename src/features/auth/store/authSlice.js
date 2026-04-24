@@ -71,13 +71,21 @@ function handleFulfilled(state, action) {
   state.error = null;
 
   // Extract user and token separately
-  const { user, token } = action.payload;
+  const token = action.payload.token || action.payload.access_token;
+  const user = action.payload.user;
+  
   state.user = user; // Only store the user object
-  state.token = token; // Store token separately
+  if (token) {
+    state.token = token; // Store token separately
+  }
 
   if (typeof window !== "undefined") {
-    localStorage.setItem("campussync_user", JSON.stringify(user));
-    localStorage.setItem("campussync_token", token);
+    if (user) {
+      localStorage.setItem("campussync_user", JSON.stringify(user));
+    }
+    if (token) {
+      localStorage.setItem("campussync_token", token);
+    }
   }
 }
 // ─── Slice ─────────────────────────────────────────────────────────────────────
@@ -90,6 +98,12 @@ const authSlice = createSlice({
       state.user = action.payload;
       if (typeof window !== "undefined" && action.payload) {
         localStorage.setItem("campussync_user", JSON.stringify(action.payload));
+      }
+    },
+    setToken(state, action) {
+      state.token = action.payload;
+      if (typeof window !== "undefined" && action.payload) {
+        localStorage.setItem("campussync_token", action.payload);
       }
     },
     clearUser(state) {
@@ -118,5 +132,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, clearUser } = authSlice.actions;
+export const { setUser, setToken, clearUser } = authSlice.actions;
 export default authSlice.reducer;

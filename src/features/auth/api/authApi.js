@@ -1,6 +1,4 @@
-import axios from "axios";
-
-export const API_BASE = "https://back-end-production-7229.up.railway.app";
+import api from "../../../services/api";
 
 /**
  * Register a new user
@@ -8,7 +6,7 @@ export const API_BASE = "https://back-end-production-7229.up.railway.app";
  * @returns {Promise<{ id: number, email: string, role: string, auth_provider: string, assessment_completed: boolean, is_active: boolean }>}
  */
 export async function register({ email, name, password }) {
-  const { data } = await axios.post(`${API_BASE}/register`, {
+  const { data } = await api.post("/register", {
     email,
     name,
     password,
@@ -22,7 +20,7 @@ export async function register({ email, name, password }) {
  * @returns {Promise<{ id?: number, email: string, role?: string, access_token?: string, token_type?: string }>}
  */
 export async function login({ email, password }) {
-  const { data } = await axios.post(`${API_BASE}/login`, {
+  const { data } = await api.post("/login", {
     email,
     password,
   });
@@ -35,7 +33,7 @@ export async function login({ email, password }) {
  */
 export async function googleLogin({ credential }) {
   try {
-    const response = await axios.post(`${API_BASE}/auth/google`, {
+    const response = await api.post("/auth/google", {
       id_token: credential,
     });
     console.log("Response:", response);

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { store } from "../app/store/index.js";
-import { API_BASE } from "../features/auth/api/authApi";
+
+const API_BASE = "https://back-end-production-7229.up.railway.app";
 
 const api = axios.create({
   baseURL: API_BASE,

@@ -5,7 +5,7 @@ export async function updateStudentMatrix({ data }) {
     console.log("matrix response: ", response, data);
     return response.data;
   } catch (error) {
-    console.log("422 error detail:", error.response?.data); // ✅ this shows exactly what field is wrong
+    console.log(`Error ${error.response?.status} detail:`, error.response?.data);
     throw error;
   }
 }

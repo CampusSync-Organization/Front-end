@@ -68,9 +68,11 @@ function SignUpPage() {
 
     const result = await dispatch(registerUser({ email, name, password }));
     if (registerUser.fulfilled.match(result)) {
-      const log = await dispatch(loginUser({ email, password }));
-      if (loginUser.fulfilled.match(log)) {
+      const loginResult = await dispatch(loginUser({ email, password }));
+      if (loginUser.fulfilled.match(loginResult)) {
         navigate("/assessment", { replace: true });
+      } else {
+        toast.error(loginResult.payload ?? "Login after registration failed");
       }
     } else {
       toast.error(result.payload ?? "Registration failed");

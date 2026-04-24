@@ -7,9 +7,11 @@ export const handleGoogleSuccess = async (
   toast,
 ) => {
   const result = await dispatch(googleLoginUser({ credential }));
+  console.log("GOOGLE LOGIN RESULT PAYLOAD:", result.payload);
   if (googleLoginUser.fulfilled.match(result)) {
-    const { token, user } = result.payload;
-    if (user.assessment_completed) {
+    const token = result.payload.token || result.payload.access_token;
+    const user = result.payload.user;
+    if (user?.assessment_completed) {
       navigate("/home", { replace: true });
     } else {
       navigate("/assessment", { replace: true });

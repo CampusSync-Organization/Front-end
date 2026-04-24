@@ -8,6 +8,8 @@ export default function GuestGuard({ children }) {
   if (user && token) {
     if (user.assessment_completed) {
       return <Navigate to="/home" replace />;
+    } else {
+      return <Navigate to="/assessment" replace />;
     }
   }
 

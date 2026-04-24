@@ -121,7 +121,7 @@ export const useAssessmentStore = create(
         "2.99 – 2.5": "2.5–2.99",
         "2.49 – 2.0": "2.0–2.49",
         "Below 2.0": "Below 2.0",
-        "First semester / No GPA yet": "N/A",
+        "First semester / No GPA yet": "First semester",
       };
 
       const EXAM_PREP_MAP = {
@@ -139,7 +139,8 @@ export const useAssessmentStore = create(
       };
 
       const TIME_PRESSURE_MAP = {
-        "I like finishing things early so I can relax and clear my head": "Early",
+        "I like finishing things early so I can relax and clear my head":
+          "Early",
         "I work best under pressure and enjoy the adrenaline of last-minute deadlines":
           "Pressure",
         "It depends on the task": "Depends",
@@ -147,8 +148,10 @@ export const useAssessmentStore = create(
 
       const UNIVERSITY_PRIORITY_MAP = {
         "Most of my energy goes to university": "University-first",
-        "University is important, but balanced with other commitments": "Balanced",
-        "University often competes with major life/work commitments": "Life-first",
+        "University is important, but balanced with other commitments":
+          "Balanced",
+        "University often competes with major life/work commitments":
+          "Life-first",
       };
 
       const STUDY_HOURS_MAP = {
@@ -176,8 +179,14 @@ export const useAssessmentStore = create(
         gpa: normalize(GPA_MAP, responses.gpa),
         exam_prep_start: normalize(EXAM_PREP_MAP, responses.study_start),
         work_approach: normalize(WORK_APPROACH_MAP, responses.work_approach),
-        time_pressure_style: normalize(TIME_PRESSURE_MAP, responses.time_pressure),
-        university_priority: normalize(UNIVERSITY_PRIORITY_MAP, responses.commitment_priority),
+        time_pressure_style: normalize(
+          TIME_PRESSURE_MAP,
+          responses.time_pressure,
+        ),
+        university_priority: normalize(
+          UNIVERSITY_PRIORITY_MAP,
+          responses.commitment_priority,
+        ),
         reliability: responses.commitment_reliability ?? null,
         study_hours: normalize(STUDY_HOURS_MAP, responses.study_effort),
         working_style: normalize(WORKING_STYLE_MAP, responses.working_style),

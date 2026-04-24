@@ -13,5 +13,9 @@ export default function AuthGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  if (!user.assessment_completed) {
+    return <Navigate to="/assessment" replace />;
+  }
+
   return <Outlet />;
 }
