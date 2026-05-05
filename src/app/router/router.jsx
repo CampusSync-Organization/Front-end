@@ -17,7 +17,7 @@ import MyCommunitiesPage from "../../features/events-communities/pages/MyCommuni
 import GuestGuard from "../../components/GuestGuard.jsx";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Landing /> },
+  { path: "/", element: <Landing></Landing> },
   {
     path: "/login",
     element: (

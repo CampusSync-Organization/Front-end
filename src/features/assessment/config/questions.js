@@ -15,7 +15,7 @@ export const ACADEMIC_QUESTIONS = [
     category: "Academic",
     type: "singleSelect",
     question: "What year are you currently in?",
-    options: ["1st year", "2nd year", "3rd year", "4th year"],
+    options: ["1st year", "2nd year", "3rd year", "4th year", "4th+"],
   },
   {
     key: "gpa",
@@ -90,8 +90,7 @@ export const ACADEMIC_QUESTIONS = [
     key: "study_effort",
     category: "Academic",
     type: "singleSelect",
-    question:
-      "How many hours do you usually study per week outside class?",
+    question: "How many hours do you usually study per week outside class?",
     options: [
       "0–5 hours",
       "5–10 hours",
@@ -114,8 +113,7 @@ export const ACADEMIC_QUESTIONS = [
     key: "working_style",
     category: "Academic",
     type: "singleSelect",
-    question:
-      "When studying or working with someone, what's your ideal style?",
+    question: "When studying or working with someone, what's your ideal style?",
     options: [
       "Work together most of the time",
       "Plan together, work independently",
@@ -143,8 +141,7 @@ export const PERSONALITY_QUESTIONS = [
     max: 6,
     labels: LIKERT_1_6,
     reverseScored: true,
-    question:
-      "Yeah… I'd choose going home over any party or event.",
+    question: "Yeah… I'd choose going home over any party or event.",
   },
   {
     key: "cons_1",
@@ -193,8 +190,7 @@ export const PERSONALITY_QUESTIONS = [
     max: 6,
     labels: LIKERT_1_6,
     reverseScored: true,
-    question:
-      "I'm usually calm — some people even call me 'cold.'",
+    question: "I'm usually calm — some people even call me 'cold.'",
   },
   {
     key: "neu_2",

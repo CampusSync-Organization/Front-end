@@ -121,7 +121,7 @@ export const useAssessmentStore = create(
         "2.99 – 2.5": "2.5–2.99",
         "2.49 – 2.0": "2.0–2.49",
         "Below 2.0": "Below 2.0",
-        "First semester / No GPA yet": "First semester",
+        "First semester / No GPA yet": "No GPA",
       };
 
       const EXAM_PREP_MAP = {
@@ -140,14 +140,14 @@ export const useAssessmentStore = create(
 
       const TIME_PRESSURE_MAP = {
         "I like finishing things early so I can relax and clear my head":
-          "Early",
+          "Finish early",
         "I work best under pressure and enjoy the adrenaline of last-minute deadlines":
           "Pressure",
         "It depends on the task": "Depends",
       };
 
       const UNIVERSITY_PRIORITY_MAP = {
-        "Most of my energy goes to university": "University-first",
+        "Most of my energy goes to university": "Most to uni",
         "University is important, but balanced with other commitments":
           "Balanced",
         "University often competes with major life/work commitments":
@@ -163,9 +163,9 @@ export const useAssessmentStore = create(
       };
 
       const WORKING_STYLE_MAP = {
-        "Work together most of the time": "Work together",
-        "Plan together, work independently": "Plan together",
-        "Mostly independent, sync when needed": "Independent",
+        "Work together most of the time": "Together",
+        "Plan together, work independently": "Plan+independent ",
+        "Mostly independent, sync when needed": "Mostly independent",
       };
 
       const normalize = (map, raw) => (raw != null ? (map[raw] ?? raw) : null);
