@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { User } from "lucide-react";
+import { useEditableSection } from "../hooks/useEditableSection";
 
 const UNI_OPTIONS = [
   "Cairo University",
@@ -68,12 +69,64 @@ const InfoField = ({
 );
 
 export const ProfileInfo = ({ user, isOwnProfile = true }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [info, setInfo] = useState(user);
   const [errors, setErrors] = useState({});
 
+  const initialValues = useMemo(
+    () => ({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      faculty: user.faculty || "",
+      college: user.college || "",
+      gender: user.gender || "",
+      gpa: user.gpa ?? "",
+      goals: user.goals || "",
+    }),
+    [
+      user.college,
+      user.faculty,
+      user.firstName,
+      user.gender,
+      user.goals,
+      user.gpa,
+      user.lastName,
+    ],
+  );
+
+  const buildPayload = useCallback((draft, original) => {
+    const payload = {};
+    const nextName = `${draft.firstName.trim()} ${draft.lastName.trim()}`
+      .trim()
+      .replace(/\s+/g, " ");
+    const originalName = `${original.firstName.trim()} ${original.lastName.trim()}`
+      .trim()
+      .replace(/\s+/g, " ");
+    const nextGpa = draft.gpa === "" ? "" : Number(draft.gpa);
+    const originalGpa = original.gpa === "" ? "" : Number(original.gpa);
+
+    if (nextName !== originalName) {
+      payload.name = nextName;
+    }
+
+    if (nextGpa !== originalGpa) {
+      payload.cgpa = nextGpa;
+    }
+
+    return payload;
+  }, []);
+
+  const {
+    draft: info,
+    updateDraft,
+    isEditing,
+    startEdit,
+    cancelEdit,
+    save,
+    isSaving,
+    error,
+  } = useEditableSection(initialValues, { buildPayload });
+
   const handleChange = (field, value) => {
-    setInfo((prev) => ({ ...prev, [field]: value }));
+    updateDraft({ [field]: value });
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -85,14 +138,7 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
 
   const validate = () => {
     const newErrors = {};
-    const requiredFields = [
-      "firstName",
-      "lastName",
-      "faculty",
-      "college",
-      "gender",
-      "gpa",
-    ];
+    const requiredFields = ["firstName", "lastName", "gpa"];
 
     requiredFields.forEach((field) => {
       if (!info[field] || info[field].toString().trim() === "") {
@@ -100,7 +146,8 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
       }
     });
 
-    if (info.gpa && (info.gpa < 0 || info.gpa > 4)) {
+    const numericGpa = Number(info.gpa);
+    if (info.gpa && (Number.isNaN(numericGpa) || numericGpa < 0 || numericGpa > 4)) {
       newErrors.gpa = "GPA must be between 0 and 4.0";
     }
 
@@ -108,17 +155,15 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validate()) {
-      setIsEditing(false);
-      // In a real app, dispatch update here
+      await save();
     }
   };
 
   const handleCancel = () => {
-    setInfo(user);
+    cancelEdit();
     setErrors({});
-    setIsEditing(false);
   };
 
   return (
@@ -129,7 +174,7 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
         </h2>
         {!isEditing && isOwnProfile && (
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={startEdit}
             className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Edit Info
@@ -213,12 +258,9 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
             Academic Goals
           </label>
           {isEditing ? (
-            <textarea
-              value={info.goals}
-              onChange={(e) => handleChange("goals", e.target.value)}
-              className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
-              rows="3"
-            />
+            <div className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-400 italic">
+              Goals are not editable yet
+            </div>
           ) : (
             <div className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-slate-800">
               {info.goals || (
@@ -230,19 +272,24 @@ export const ProfileInfo = ({ user, isOwnProfile = true }) => {
       </div>
 
       {isEditing && (
-        <div className="flex justify-end gap-3 mt-8">
+        <div className="mt-8">
+          {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+          <div className="flex justify-end gap-3">
           <button
             onClick={handleCancel}
+            disabled={isSaving}
             className="px-6 py-2 text-slate-600 font-medium hover:text-primary hover:underline"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-8 py-2 bg-secondary text-primary font-bold rounded-lg hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20"
+            disabled={isSaving}
+            className="px-8 py-2 bg-secondary text-primary font-bold rounded-lg hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Save Changes
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
+          </div>
         </div>
       )}
     </section>
