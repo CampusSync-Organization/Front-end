@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "smoke:profile-api": "node scripts/profileApiSmokeTest.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
