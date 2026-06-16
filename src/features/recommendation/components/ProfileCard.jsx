@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../../services/api";
 import {
   Briefcase,
   Eye,
@@ -25,8 +26,17 @@ const ProfileCard = ({ profile = {}, variants }) => {
 
   // --- Data Logic Helpers ---
 
-  // 1. Handle the image fallback
-  const displayImage = pfp || "https://placehold.co/80x80";
+  const resolveAvatarUrl = (avatarUrl) => {
+    if (!avatarUrl) {
+      return "https://placehold.co/80x80";
+    }
+
+    if (/^https?:\/\//i.test(avatarUrl)) {
+      return avatarUrl;
+    }
+
+    return `${API_BASE_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
+  };
 
   // 2. Parse the explanation string into an array for the bullet points
   // This looks for the part after "due to similar" and splits by commas
@@ -67,7 +77,7 @@ const ProfileCard = ({ profile = {}, variants }) => {
         <div className="relative mb-3">
           <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-neutral-50 shadow-sm">
             <img
-              src={displayImage}
+              src={resolveAvatarUrl(pfp)}
               alt={name}
               loading="lazy"
               className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
