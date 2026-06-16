@@ -73,7 +73,7 @@ function handleFulfilled(state, action) {
   // Extract user and token separately
   const token = action.payload.token || action.payload.access_token;
   const user = action.payload.user;
-  
+
   state.user = user; // Only store the user object
   if (token) {
     state.token = token; // Store token separately
@@ -109,8 +109,10 @@ const authSlice = createSlice({
     clearUser(state) {
       state.user = null;
       state.error = null;
+      state.token = null;
       if (typeof window !== "undefined") {
         localStorage.removeItem("campussync_user");
+        localStorage.removeItem("campussync_token");
       }
     },
   },
