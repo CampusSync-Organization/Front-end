@@ -151,7 +151,7 @@ export const useAssessmentStore = create(
         "University is important, but balanced with other commitments":
           "Balanced",
         "University often competes with major life/work commitments":
-          "competes",
+          "Competes",
       };
 
       const STUDY_HOURS_MAP = {
