@@ -1,53 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import {
-  Video,
-  Phone,
-  MoreVertical,
   Paperclip,
   Smile,
   Image,
   Send,
   Download,
-  Edit3,
   ArrowLeft,
   Sparkle,
 } from "lucide-react";
-import ChatRightPanel from "./ChatRightPanel";
+import useChatStore from "../store/useChatStore";
 
-const MOCK_MESSAGES = [
-  {
-    id: 1,
-    type: "received",
-    sender: "Sarah Chen",
-    senderAvatar: "https://placehold.co/40x40/14213D/FCA311?text=SC",
-    text: "Hey! I finally got around to reading that paper on Bayesian networks we discussed yesterday. The methodology section was surprisingly clear!",
-    time: "10:42 AM",
-    attachment: null,
-  },
-  {
-    id: 2,
-    type: "sent",
-    text: "Right? I thought you'd like it. I'm actually trying to apply that same node structure to our collaborative project's data set.",
-    time: "10:45 AM",
-  },
-  {
-    id: 3,
-    type: "received",
-    sender: "Sarah Chen",
-    senderAvatar: "https://placehold.co/40x40/14213D/FCA311?text=SC",
-    text: "That's a great idea. Here are the supplementary sources I found that might help with the weighting logic:",
-    time: "10:48 AM",
-    attachment: {
-      name: "Bayesian_Supplement_v2.pdf",
-      size: "2.4 MB",
-      type: "PDF Document",
-    },
-  },
-];
+function formatTime(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date)) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
-const ChatBubble = ({ message }) => {
-  const isSent = message.type === "sent";
-  const hasAttachment = !!message.attachment;
+const ChatBubble = ({ message, currentUserId }) => {
+  const isSent = message.sender_id === currentUserId;
 
   return (
     <div
@@ -56,19 +28,6 @@ const ChatBubble = ({ message }) => {
       }`}
     >
       <div className={`flex flex-col gap-1.5 ${isSent ? "items-end" : ""}`}>
-        {!isSent && (
-          <div className="flex items-center gap-2.5 px-1">
-            <img
-              src={message.senderAvatar}
-              alt={message.sender}
-              className="w-8 h-8 rounded-full object-cover shrink-0"
-            />
-            <span className="text-sm font-bold text-on-surface">
-              {message.sender}
-            </span>
-          </div>
-        )}
-
         <div
           className={`p-4 rounded-2xl ${
             isSent
@@ -77,49 +36,26 @@ const ChatBubble = ({ message }) => {
           }`}
         >
           <p className="text-[15px] leading-relaxed font-medium">
-            {message.text}
+            {message.content}
           </p>
         </div>
-
-        {hasAttachment && (
-          <div
-            className={`flex items-center gap-4 p-4 rounded-2xl border border-outline-variant/20 hover:bg-surface-container-high transition-colors cursor-pointer group max-w-sm ${
-              isSent
-                ? "bg-surface-container-low"
-                : "bg-surface-container-lowest"
-            }`}
-          >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-secondary/20">
-              <span className="text-secondary text-sm font-bold">PDF</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-on-surface truncate">
-                {message.attachment.name}
-              </p>
-              <p className="text-xs text-outline">
-                {message.attachment.size} &bull; {message.attachment.type}
-              </p>
-            </div>
-            <Download className="w-4 h-4 text-outline group-hover:text-secondary shrink-0 transition-colors" />
-          </div>
-        )}
 
         <span
           className={`text-[11px] font-semibold text-outline px-1 ${
             isSent ? "mr-1" : "ml-1"
           }`}
         >
-          {message.time}
+          {formatTime(message.created_at)}
         </span>
       </div>
     </div>
   );
 };
 
-const DateDivider = () => (
+const DateDivider = ({ date }) => (
   <div className="flex justify-center py-2">
     <span className="text-[10px] font-black uppercase tracking-widest text-outline bg-surface-container-low px-3 py-1 rounded-full">
-      September 24, 2024
+      {date}
     </span>
   </div>
 );
@@ -131,8 +67,25 @@ export default function ChatWindow({
   onBack,
 }) {
   const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef(null);
 
-  if (!activeChat) {
+  const currentUser = useSelector((state) => state.auth?.user);
+  const currentUserId = currentUser?.userID ?? currentUser?.id;
+
+  const { activeRoomId, messages, fetchMessages, sendMessage } = useChatStore();
+  const roomMessages = messages[activeRoomId] ?? [];
+
+  useEffect(() => {
+    if (activeRoomId) {
+      fetchMessages(activeRoomId);
+    }
+  }, [activeRoomId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [roomMessages]);
+
+  if (!activeChat && !activeRoomId) {
     return (
       <div className="flex-1 flex h-full items-center justify-center bg-surface-container-lowest">
         <div className="text-center text-outline">
@@ -148,9 +101,13 @@ export default function ChatWindow({
   }
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !activeRoomId) return;
+    sendMessage(activeRoomId, inputValue.trim());
     setInputValue("");
   };
+
+  const chatName = activeChat?.name ?? "Chat";
+  const chatType = activeChat?.type;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white min-w-0 overflow-hidden">
@@ -169,22 +126,22 @@ export default function ChatWindow({
           >
             <div className="relative">
               <div className="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center text-primary font-bold text-sm">
-                {activeChat.name
+                {chatName
                   .split(" ")
                   .map((n) => n[0])
                   .join("")}
               </div>
-              {activeChat.type === "individual" && (
+              {chatType === "direct" && (
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-secondary rounded-full border-2 border-white" />
               )}
             </div>
             <div>
               <h2 className="font-bold text-primary leading-none tracking-tight">
-                {activeChat.name}
+                {chatName}
               </h2>
-              {activeChat.role && (
-                <p className="text-xs text-secondary font-semibold mt-0.5">
-                  {activeChat.role}
+              {chatType && (
+                <p className="text-xs text-secondary font-semibold mt-0.5 capitalize">
+                  {chatType === "direct" ? "Direct Message" : "Team"}
                 </p>
               )}
             </div>
@@ -203,16 +160,26 @@ export default function ChatWindow({
 
       {/* Messages area */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-6">
-        <DateDivider />
+        {roomMessages.length > 0 && (
+          <DateDivider
+            date={new Date(roomMessages[0].created_at).toLocaleDateString(
+              undefined,
+              { year: "numeric", month: "long", day: "numeric" }
+            )}
+          />
+        )}
 
-        {MOCK_MESSAGES.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} />
+        {roomMessages.map((msg) => (
+          <ChatBubble key={msg.id} message={msg} currentUserId={currentUserId} />
         ))}
 
-        <div className="flex items-center gap-2 text-secondary font-bold text-xs animate-pulse">
-          <Edit3 className="w-3.5 h-3.5" />
-          <span>{activeChat.name} is typing...</span>
-        </div>
+        {roomMessages.length === 0 && (
+          <div className="flex items-center justify-center h-full text-on-surface-variant/50 text-sm font-medium">
+            No messages yet. Say hello!
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input bar */}

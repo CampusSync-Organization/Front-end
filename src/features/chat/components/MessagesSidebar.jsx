@@ -1,86 +1,29 @@
 import { useState } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, User, Users } from "lucide-react";
+import useChatStore from "../store/useChatStore";
 
-const allChats = [
-  {
-    id: 1,
-    name: "Sarah Chen",
-    time: "2h ago",
-    msg: "The sources you shared are...",
-    avatar: "https://placehold.co/100x100/14213D/FCA311?text=SC",
-    type: "individual",
-    status: "active",
-    role: "Research Fellow",
-  },
-  {
-    id: 2,
-    name: "Alex Rivera",
-    time: "2h ago",
-    msg: "I'll check the repository tonight.",
-    avatar: "https://placehold.co/100x100/14213D/FCA311?text=AR",
-    type: "individual",
-    status: "offline",
-  },
-  {
-    id: 3,
-    name: "Marcus Johnson",
-    time: "Yesterday",
-    msg: "Are we still meeting at the library?",
-    avatar: "https://placehold.co/100x100/14213D/FCA311?text=MJ",
-    type: "individual",
-    status: "offline",
-  },
-  {
-    id: 101,
-    name: "Project Alpha Team",
-    time: "10:05 am",
-    msg: "Cody: I uploaded the files.",
-    avatar: "https://placehold.co/100x100/14213D/FCA311?text=PA",
-    type: "group",
-    participants: ["Cody, Devon, Marvin"],
-    status: "group",
-  },
-  {
-    id: 4,
-    name: "Floyd Miles",
-    time: "8:00 am",
-    msg: "don't forget our meeting..",
-    avatar: "https://placehold.co/100x100/14213D/FCA311?text=FM",
-    type: "individual",
-    status: "offline",
-  },
-];
+function formatTime(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date)) return "";
+  const now = new Date();
+  const diffMs = now - date;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours < 24) {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return "Yesterday";
+}
 
 export default function MessagesSidebar({
-  activeChat,
-  setActiveChat,
   onOpenCreateGroup,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { rooms, activeRoomId, setActiveRoom } = useChatStore();
 
-  const filteredChats = allChats.filter((chat) =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredChats = rooms.filter((room) =>
+    room.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const statusBadge = (chat) => {
-    if (chat.type === "group") {
-      return (
-        <span className="text-[10px] font-semibold text-secondary uppercase tracking-wide">
-          {chat.participants?.length ?? 0} members
-        </span>
-      );
-    }
-    const isActive = chat.status === "active";
-    return (
-      <span
-        className={`text-[10px] font-bold uppercase tracking-wide ${
-          isActive ? "text-secondary" : "text-on-surface-variant/50"
-        }`}
-      >
-        {isActive ? "Active" : "Offline"}
-      </span>
-    );
-  };
 
   return (
     <div className="w-[320px] shrink-0 h-full flex flex-col bg-background-light border-r border-outline-variant/20">
@@ -98,7 +41,7 @@ export default function MessagesSidebar({
           </button>
         </div>
 
-        {/* Search bar — white, elevated */}
+        {/* Search bar */}
         <div className="relative">
           <Search className="w-4 h-4 text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -113,12 +56,13 @@ export default function MessagesSidebar({
 
       {/* Chat list */}
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 pt-1 space-y-0.5">
-        {filteredChats.map((chat) => {
-          const isActive = activeChat?.id === chat.id;
+        {filteredChats.map((room) => {
+          const isActive = activeRoomId === room.id;
+          const isDirect = room.type === "direct";
           return (
             <div
-              key={chat.id}
-              onClick={() => setActiveChat(chat)}
+              key={room.id}
+              onClick={() => setActiveRoom(room.id)}
               className={`group flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${
                 isActive
                   ? "bg-white shadow-soft border border-outline-variant/20"
@@ -128,30 +72,12 @@ export default function MessagesSidebar({
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="w-11 h-11 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center text-primary font-bold text-sm">
-                  {chat.avatar.includes("placehold") ? (
-                    <span>
-                      {chat.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </span>
+                  {isDirect ? (
+                    <User className="w-5 h-5 text-primary" />
                   ) : (
-                    <img
-                      src={chat.avatar}
-                      alt={chat.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <Users className="w-5 h-5 text-primary" />
                   )}
                 </div>
-                {chat.type === "individual" && (
-                  <span
-                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background-light ${
-                      chat.status === "active"
-                        ? "bg-secondary"
-                        : "bg-on-surface-variant/30"
-                    }`}
-                  />
-                )}
               </div>
 
               {/* Info */}
@@ -162,19 +88,16 @@ export default function MessagesSidebar({
                       isActive ? "text-primary" : "text-on-surface-variant"
                     }`}
                   >
-                    {chat.name}
+                    {room.name}
                   </h3>
-                  {chat.time && (
-                    <span className="text-[11px] text-on-surface-variant/40 shrink-0 ml-2">
-                      {chat.time}
-                    </span>
-                  )}
                 </div>
                 <div className="flex justify-between items-center mt-0.5">
                   <p className="text-xs text-on-surface-variant/50 truncate font-medium leading-5">
-                    {chat.msg}
+                    {room.lastMessage || (isDirect ? "Direct message" : "Team channel")}
                   </p>
-                  {statusBadge(chat)}
+                  <span className="text-[10px] font-semibold text-secondary uppercase tracking-wide ml-2 shrink-0">
+                    {isDirect ? "DM" : "Team"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -183,9 +106,9 @@ export default function MessagesSidebar({
 
         {filteredChats.length === 0 && (
           <div className="flex flex-col items-center justify-center h-48 text-on-surface-variant text-sm p-8 text-center">
-            <p className="mb-1 font-medium">No results found</p>
+            <p className="mb-1 font-medium">No conversations yet</p>
             <p className="text-xs text-on-surface-variant/50">
-              Try a different search term.
+              {searchQuery ? "Try a different search term." : "Create a team or start a direct chat."}
             </p>
           </div>
         )}
