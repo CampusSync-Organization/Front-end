@@ -1,10 +1,105 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { toast } from "sonner";
 import { Plus, Users, Folder, Bookmark, Edit3 } from "lucide-react";
 import RecommendedUser from "./RecommendedUser";
+import { createAnnouncement } from "../store/announcementSlice";
+
+import { getErrorMessage } from "../../auth/utils/getErrorMessage";
 
 export function CreateAnnouncementWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const dispatch = useDispatch();
+  const [formData, setFormData] = useState({
+    announcement_type: "project-announcement",
+    course_name: "",
+    project_name: "",
+    start_date: "",
+    deadline: "",
+    num_members: "",
+    content: "",
+  });
+
+  const validate = () => {
+    if (!formData.course_name.trim()) {
+      toast.error("Course name is mandatory");
+      return false;
+    }
+
+    if (formData.announcement_type === "project-announcement") {
+      if (!formData.num_members || parseInt(formData.num_members) < 1) {
+        toast.error("Members needed must be at least 1");
+        return false;
+      }
+
+      if (formData.start_date && formData.deadline) {
+        const start = new Date(formData.start_date);
+        const end = new Date(formData.deadline);
+        if (end <= start) {
+          toast.error("Deadline must be after start date");
+          return false;
+        }
+      }
+
+      if (formData.start_date) {
+        const start = new Date(formData.start_date);
+        const now = new Date();
+        const tenDaysAgo = new Date();
+        tenDaysAgo.setDate(now.getDate() - 10);
+        
+        // Reset time for fair comparison
+        start.setHours(0, 0, 0, 0);
+        tenDaysAgo.setHours(0, 0, 0, 0);
+
+        if (start < tenDaysAgo) {
+          toast.error("Start date cannot be more than 10 days in the past");
+          return false;
+        }
+      }
+    } else if (formData.announcement_type === "connection-update") {
+      if (!formData.content.trim()) {
+        toast.error("Please provide some content for your update");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+
+    try {
+      const dataToSend = { ...formData };
+      
+      // Clean up data based on type
+      if (formData.announcement_type === "connection-update") {
+        delete dataToSend.project_name;
+        delete dataToSend.start_date;
+        delete dataToSend.deadline;
+        delete dataToSend.num_members;
+      } else {
+        // Ensure num_members is a number
+        dataToSend.num_members = parseInt(dataToSend.num_members);
+      }
+
+      await dispatch(createAnnouncement(dataToSend)).unwrap();
+      toast.success("Announcement posted successfully!");
+      setIsExpanded(false);
+      setFormData({
+        announcement_type: "project-announcement",
+        course_name: "",
+        project_name: "",
+        start_date: "",
+        deadline: "",
+        num_members: "",
+        content: "",
+      });
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to post announcement"));
+    }
+  };
 
   return (
     <section
@@ -26,75 +121,97 @@ export function CreateAnnouncementWidget() {
         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
           <div className="grid grid-cols-1 gap-3">
             <div className="relative">
-              <select className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-sm appearance-none focus:ring-2 focus:ring-secondary outline-none transition-all text-foreground cursor-pointer font-medium">
-                <option value="" disabled selected>
-                  Select Announcement Type
+              <select
+                className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-sm appearance-none focus:ring-2 focus:ring-secondary outline-none transition-all text-foreground cursor-pointer font-medium"
+                value={formData.announcement_type}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    announcement_type: e.target.value,
+                  })
+                }
+              >
+                <option value="project-announcement">
+                  Project Announcement
                 </option>
-                <option>Project Announcement</option>
-                <option>Event Announcement</option>
-                <option>Community Update</option>
+                <option value="connection-update">Connection Update</option>
               </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg
-                  width="10"
-                  height="6"
-                  viewBox="0 0 10 6"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M1 1L5 5L9 1"
-                    stroke="#64748B"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+            </div>
+
+            <input
+              type="text"
+              placeholder="Course Name (Required)"
+              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm font-bold"
+              value={formData.course_name}
+              onChange={(e) =>
+                setFormData({ ...formData, course_name: e.target.value })
+              }
+            />
+
+            <input
+              type="text"
+              placeholder="Title / Project Name (Optional)"
+              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
+              value={formData.project_name}
+              onChange={(e) =>
+                setFormData({ ...formData, project_name: e.target.value })
+              }
+            />
+          </div>
+
+          {formData.announcement_type === "project-announcement" && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
+                    value={formData.start_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, start_date: e.target.value })
+                    }
                   />
-                </svg>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
+                    Deadline
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
+                    value={formData.deadline}
+                    onChange={(e) =>
+                      setFormData({ ...formData, deadline: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-            </div>
 
-            <input
-              type="text"
-              placeholder="Title / Project Name"
-              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-            />
-            <input
-              type="text"
-              placeholder="Course Name (Optional)"
-              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
-                Start Date
-              </label>
               <input
-                type="date"
-                className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
+                type="number"
+                placeholder="Members Needed (Minimum 1)"
+                className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
+                value={formData.num_members}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    num_members: e.target.value,
+                  })
+                }
               />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
-                Deadline
-              </label>
-              <input
-                type="date"
-                className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-              />
-            </div>
-          </div>
-
-          <input
-            type="number"
-            placeholder="Members Needed"
-            className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-          />
+            </>
+          )}
 
           <textarea
             className="w-full h-32 p-4 bg-slate-50 border border-border-light rounded-xl text-sm focus:ring-2 focus:ring-secondary focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400 text-foreground"
-            placeholder="Description, requirements, and extra notes..."
+            placeholder="Description, requirements, and extra notes (Optional)..."
+            value={formData.content}
+            onChange={(e) =>
+              setFormData({ ...formData, content: e.target.value })
+            }
           ></textarea>
 
           <div className="flex gap-3 pt-2">
@@ -107,7 +224,10 @@ export function CreateAnnouncementWidget() {
             >
               Cancel
             </button>
-            <button className="flex-[2] bg-secondary text-primary font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20">
+            <button
+              onClick={handleSubmit}
+              className="flex-[2] bg-secondary text-primary font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20"
+            >
               <Plus size={20} />
               Post Announcement
             </button>
