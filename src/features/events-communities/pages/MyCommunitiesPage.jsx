@@ -3,26 +3,27 @@ import { useEventStore } from "../store/useEventStore";
 import { CommunityCard } from "../components/CommunityCard";
 import { Users, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 export default function MyCommunitiesPage() {
   const navigate = useNavigate();
-  const { 
-    communities, 
-    fetchCommunities, 
+  const {
+    communities,
+    fetchCommunities,
     isLoadingCommunities,
-    currentUser,
     joinCommunity,
     leaveCommunity
   } = useEventStore();
 
-  useEffect(() => {
-    if (communities.length === 0) {
-      fetchCommunities();
-    }
-  }, [communities.length, fetchCommunities]);
+  const authUser = useSelector((state) => state.auth?.user);
+  const currentUserId = authUser?.userID ?? authUser?.id ?? null;
 
-  const joinedCommunities = communities.filter(c => c.members?.includes(currentUser.id));
-  const createdCommunities = communities.filter(c => c.organizerId === currentUser.id);
+  useEffect(() => {
+    fetchCommunities();
+  }, [fetchCommunities]);
+
+  const createdCommunities = communities.filter(c => Number(c.moderatorId) === Number(currentUserId));
+  const joinedCommunities = communities.filter(c => c.isJoined && Number(c.moderatorId) !== Number(currentUserId));
 
   if (isLoadingCommunities) {
     return (
@@ -59,9 +60,10 @@ export default function MyCommunitiesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {joinedCommunities.map(community => (
                 <div key={community.id} className="h-full">
-                  <CommunityCard 
+                  <CommunityCard
                     community={community}
                     isJoined={true}
+                    isModerator={false}
                     onJoinToggle={async (id, isJoined) => {
                       if (isJoined) await leaveCommunity(id);
                       else await joinCommunity(id);
@@ -96,9 +98,10 @@ export default function MyCommunitiesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {createdCommunities.map(community => (
                 <div key={community.id} className="h-full">
-                  <CommunityCard 
+                  <CommunityCard
                     community={community}
                     isJoined={true}
+                    isModerator={true}
                     onClick={(id) => navigate(`/events-communities?communityId=${id}`)}
                   />
                 </div>
