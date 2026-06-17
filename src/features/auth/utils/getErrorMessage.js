@@ -6,7 +6,12 @@
  * @returns {string}
  */
 export function getErrorMessage(err, fallback = "Something went wrong") {
-  const data = err?.response?.data;
+  if (typeof err === "string") {
+    return err;
+  }
+
+  const data = err?.response?.data || err;
+  
   if (data == null) {
     return fallback;
   }
@@ -20,6 +25,10 @@ export function getErrorMessage(err, fallback = "Something went wrong") {
   let msg = data.message ?? data.detail ?? data.error ?? data.msg;
 
   if (msg == null) {
+    // If it's an Error object (e.g. from RTK SerializedError)
+    if (data.message && typeof data.message === "string") {
+        return data.message;
+    }
     return fallback;
   }
 

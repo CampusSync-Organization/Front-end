@@ -1,19 +1,51 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { announcementService } from "../service/announcementService";
+import { announcementApi } from "../api/announcementApi";
 
 export const fetchAnnouncements = createAsyncThunk(
   "announcements/fetchAnnouncements",
-  async () => {
-    const response = await announcementService.fetchannouncement();
-    return response;
+  async (filters, { rejectWithValue }) => {
+    try {
+      const response = await announcementApi.getGlobalFeed(filters);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
   },
 );
 
-export const fetchByCategory = createAsyncThunk(
-  "announcements/fetchByCategory",
-  async (category) => {
-    const response = await announcementService.fetchByCategory({ category });
-    return response;
+export const createAnnouncement = createAsyncThunk(
+  "announcements/createAnnouncement",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await announcementApi.createAnnouncement(data);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  },
+);
+
+export const updateAnnouncement = createAsyncThunk(
+  "announcements/updateAnnouncement",
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      const response = await announcementApi.updateAnnouncement(id, updates);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  },
+);
+
+export const deleteAnnouncement = createAsyncThunk(
+  "announcements/deleteAnnouncement",
+  async (id, { rejectWithValue }) => {
+    try {
+      await announcementApi.deleteAnnouncement(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
   },
 );
 
@@ -38,16 +70,19 @@ const announcementSlice = createSlice({
         state.status = "failed";
         state.error = action.error.message;
       })
-      .addCase(fetchByCategory.pending, (state) => {
-        state.status = "loading";
+      .addCase(createAnnouncement.fulfilled, (state, action) => {
+        state.items.unshift(action.payload);
       })
-      .addCase(fetchByCategory.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        state.items = action.payload;
+      .addCase(updateAnnouncement.fulfilled, (state, action) => {
+        const index = state.items.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
       })
-      .addCase(fetchByCategory.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.error.message;
+      .addCase(deleteAnnouncement.fulfilled, (state, action) => {
+        state.items = state.items.filter((item) => item.id !== action.payload);
       });
   },
 });

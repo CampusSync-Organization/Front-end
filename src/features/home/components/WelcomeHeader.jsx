@@ -1,8 +1,9 @@
+import { useSelector } from "react-redux";
 import { HeaderTextAnimation, SubtitleTextAnimation } from "../../../shared/animation/TextAnimation";
-import { MOCK_USER } from "../../profile/api/mockData";
 
 export default function WelcomeHeader() {
-    const name = MOCK_USER?.firstName ?? "there";
+    const currentUser = useSelector((state) => state.auth.user);
+    const name = currentUser?.name?.split(" ")[0] ?? "there";
 
     return (
         <div className="py-8 md:py-12">
