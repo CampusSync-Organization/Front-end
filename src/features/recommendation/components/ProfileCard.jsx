@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL } from "../../../services/api";
+import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import {
   Briefcase,
   Eye,
@@ -25,18 +25,6 @@ const ProfileCard = ({ profile = {}, variants }) => {
   const [request, setRequest] = useState(false);
 
   // --- Data Logic Helpers ---
-
-  const resolveAvatarUrl = (avatarUrl) => {
-    if (!avatarUrl) {
-      return "https://placehold.co/80x80";
-    }
-
-    if (/^https?:\/\//i.test(avatarUrl)) {
-      return avatarUrl;
-    }
-
-    return `${API_BASE_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
-  };
 
   // 2. Parse the explanation string into an array for the bullet points
   // This looks for the part after "due to similar" and splits by commas
