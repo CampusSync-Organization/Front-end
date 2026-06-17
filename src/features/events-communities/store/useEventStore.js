@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { mockEvents } from "../data/mockData";
 import { toast } from "sonner";
 import { store } from "../../../app/store/index.js";
 import {
@@ -16,11 +15,24 @@ import {
 } from "../api/communityApi";
 import { mapCommunities, mapCommunity } from "../utils/mapCommunity";
 
-// Simulate network delay for events
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const getAuthUser = () => store.getState().auth?.user;
 const getAuthUserId = () => { const u = getAuthUser(); return u?.userID ?? u?.id ?? null; };
+
+async function fetchAllCommunities() {
+  const [allData, joinedData, moderatedData] = await Promise.all([
+    getAllCommunities(),
+    getJoinedCommunities().catch(() => []),
+    apiGetModeratedCommunities().catch(() => []),
+  ]);
+  const joinedIds = [...new Set([...joinedData.map(c => c.id), ...moderatedData.map(c => c.id)])];
+  const detailResults = await Promise.all(allData.map(c => apiGetCommunity(c.id).catch(() => null)));
+  const mergedData = allData.map((c, i) => ({
+    ...c,
+    member_count: detailResults[i]?.member_count ?? c.member_count ?? 0,
+    events: detailResults[i]?.events ?? c.events ?? [],
+  }));
+  return mapCommunities(mergedData, { joinedIds, userId: getAuthUserId() });
+}
 
 export const useEventStore = create((set, get) => ({
   events: [],
@@ -33,37 +45,14 @@ export const useEventStore = create((set, get) => ({
   // Fetch all events
   fetchEvents: async () => {
     set({ isLoadingEvents: true, error: null });
-    try {
-      await delay(600); // simulated loading time
-      set({ events: mockEvents, isLoadingEvents: false });
-    } catch (error) {
-      set({ error: "Failed to fetch events", isLoadingEvents: false });
-      toast.error("Failed to fetch events");
-    }
+    set({ events: [], isLoadingEvents: false });
   },
 
   // Fetch all communities
   fetchCommunities: async () => {
     set({ isLoadingCommunities: true, error: null });
     try {
-      const [allData, joinedData] = await Promise.all([
-        getAllCommunities(),
-        getJoinedCommunities().catch(() => []),
-      ]);
-      const joinedIds = joinedData.map(c => c.id);
-      const currentUserId = getAuthUserId();
-
-      // Fetch public detail for each community to get member_count
-      const detailResults = await Promise.all(
-        allData.map(c => apiGetCommunity(c.id).catch(() => null))
-      );
-      const mergedData = allData.map((c, i) => ({
-        ...c,
-        member_count: detailResults[i]?.member_count ?? c.member_count ?? 0,
-        events: detailResults[i]?.events ?? c.events ?? [],
-      }));
-
-      const mapped = mapCommunities(mergedData, { joinedIds, userId: currentUserId });
+      const mapped = await fetchAllCommunities();
       set({ communities: mapped, isLoadingCommunities: false });
     } catch (error) {
       set({ error: "Failed to fetch communities", isLoadingCommunities: false });
@@ -134,99 +123,56 @@ export const useEventStore = create((set, get) => ({
     }
   },
 
-  // Create an event
+  // Create an event (placeholder until events API is available)
   createEvent: async (eventData) => {
     set({ isLoadingEvents: true });
-    try {
-      await delay(500);
-      const newEvent = {
-        id: `event-${Date.now()}`,
-        type: "event",
-        ...eventData,
-        organizerName: getAuthUser()?.name,
-        organizerId: getAuthUserId(),
-        currentParticipants: 0,
-        attendees: [],
-        createdAt: new Date(),
-      };
-      set((state) => ({ events: [newEvent, ...state.events], isLoadingEvents: false }));
-      toast.success("Event created successfully");
-      return newEvent;
-    } catch (error) {
-      set({ error: "Failed to create event", isLoadingEvents: false });
-      toast.error("Could not create event");
-    }
+    const newEvent = {
+      id: `event-${Date.now()}`,
+      type: "event",
+      ...eventData,
+      organizerName: getAuthUser()?.name,
+      organizerId: getAuthUserId(),
+      currentParticipants: 0,
+      attendees: [],
+      createdAt: new Date(),
+    };
+    set((state) => ({ events: [newEvent, ...state.events], isLoadingEvents: false }));
+    toast.success("Event created successfully");
+    return newEvent;
   },
 
-  // RSVP to an event
+  // RSVP to an event (placeholder until events API is available)
   rsvpEvent: async (eventId) => {
-    try {
-      // Optimistic update locally
-      set((state) => {
-        const userId = getAuthUserId();
-        const newEvents = state.events.map((e) => {
-          if (e.id === eventId) {
-            // Prevent duplicate RSVP or over max participants
-            if (e.attendees.includes(userId)) return e;
-            if (e.maxParticipants && e.currentParticipants >= e.maxParticipants) return e;
-            return {
-              ...e,
-              currentParticipants: e.currentParticipants + 1,
-              attendees: [...e.attendees, userId],
-            };
-          }
-          return e;
-        });
-        return { events: newEvents };
-      });
-      // Simulate API call
-      await delay(300);
-      toast.success("Successfully RSVP'd for the event!");
-    } catch (error) {
-      toast.error("Failed to RSVP. Please try again.");
-    }
+    const userId = getAuthUserId();
+    set((state) => ({
+      events: state.events.map((e) => {
+        if (e.id !== eventId) return e;
+        if (e.attendees.includes(userId)) return e;
+        if (e.maxParticipants && e.currentParticipants >= e.maxParticipants) return e;
+        return { ...e, currentParticipants: e.currentParticipants + 1, attendees: [...e.attendees, userId] };
+      }),
+    }));
+    toast.success("Successfully RSVP'd for the event!");
   },
 
-  // Cancel RSVP
+  // Cancel RSVP (placeholder until events API is available)
   cancelRsvpEvent: async (eventId) => {
-    try {
-      // Optimistic update
-      set((state) => {
-        const userId = getAuthUserId();
-        const newEvents = state.events.map((e) => {
-          if (e.id === eventId && e.attendees.includes(userId)) {
-            return {
-              ...e,
-              currentParticipants: Math.max(0, e.currentParticipants - 1),
-              attendees: e.attendees.filter((id) => id !== userId),
-            };
-          }
-          return e;
-        });
-        return { events: newEvents };
-      });
-      await delay(300);
-      toast.success("RSVP cancelled successfully.");
-    } catch (error) {
-      toast.error("Failed to cancel RSVP.");
-    }
+    const userId = getAuthUserId();
+    set((state) => ({
+      events: state.events.map((e) => {
+        if (e.id !== eventId || !e.attendees.includes(userId)) return e;
+        return { ...e, currentParticipants: Math.max(0, e.currentParticipants - 1), attendees: e.attendees.filter((id) => id !== userId) };
+      }),
+    }));
+    toast.success("RSVP cancelled successfully.");
   },
 
   // Create Community
   createCommunity: async (communityData) => {
     set({ isLoadingCommunities: true });
-    // Fire the create request — backend always creates the record even when it returns 500
     await apiCreateCommunity(communityData).catch(() => {});
-
-    // Refetch to get fresh server state regardless of create response
     try {
-      const [allData, joinedData] = await Promise.all([
-        getAllCommunities(),
-        getJoinedCommunities().catch(() => []),
-      ]);
-      const joinedIds = joinedData.map((c) => c.id);
-      const currentUserId = getAuthUserId();
-      const mapped = mapCommunities(allData, { joinedIds, userId: currentUserId });
+      const mapped = await fetchAllCommunities();
       set({ communities: mapped, isLoadingCommunities: false });
       toast.success("Community created successfully");
     } catch {
@@ -257,24 +203,13 @@ export const useEventStore = create((set, get) => ({
   // Delete Community
   deleteCommunity: async (communityId) => {
     await apiDeleteCommunity(communityId).catch(() => {});
-    // Refetch to reflect actual server state
     try {
-      const [allData, joinedData] = await Promise.all([
-        getAllCommunities(),
-        getJoinedCommunities().catch(() => []),
-      ]);
-      const joinedIds = joinedData.map((c) => c.id);
-      const currentUserId = getAuthUserId();
-      const mapped = mapCommunities(allData, { joinedIds, userId: currentUserId });
+      const mapped = await fetchAllCommunities();
       set({ communities: mapped });
-      toast.success("Community deleted successfully");
     } catch {
-      // Optimistically remove from local state if refetch fails
-      set((state) => ({
-        communities: state.communities.filter((c) => c.id !== communityId),
-      }));
-      toast.success("Community deleted successfully");
+      set((state) => ({ communities: state.communities.filter((c) => c.id !== communityId) }));
     }
+    toast.success("Community deleted successfully");
   },
 
   // Join Community
@@ -302,16 +237,7 @@ export const useEventStore = create((set, get) => ({
     } catch (error) {
       if (error?.response?.status === 400) {
         // Already a member — refetch to sync correct state
-        try {
-          const [allData, joinedData] = await Promise.all([
-            getAllCommunities(),
-            getJoinedCommunities().catch(() => []),
-          ]);
-          const joinedIds = joinedData.map((c) => c.id);
-          const currentUserId = getAuthUserId();
-          const mapped = mapCommunities(allData, { joinedIds, userId: currentUserId });
-          set({ communities: mapped });
-        } catch {}
+        fetchAllCommunities().then(mapped => set({ communities: mapped })).catch(() => {});
         return;
       }
       set({ communities: previousCommunities });
