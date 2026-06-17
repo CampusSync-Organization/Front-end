@@ -5,20 +5,26 @@ import { EventsAndCommunitiesPage } from "../components/EventsAndCommunitiesPage
 import { CommunityDetailsPage } from "../components/CommunityDetailsPage";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { CreateContentDialog } from "../components/CreateContentDialog";
-import { mockCurrentUser } from "../data/mockData";
 import { useEventStore } from "../store/useEventStore";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 export default function EventsAndCommunitiesLayoutPage() {
   const navigate = useNavigate();
-  const { 
-    events, 
-    communities, 
-    fetchEvents, 
-    fetchCommunities, 
-    createEvent, 
-    rsvpEvent, 
+  const authUser = useSelector((state) => state.auth?.user);
+  const {
+    events,
+    communities,
+    fetchEvents,
+    fetchCommunities,
+    createEvent,
+    createCommunity,
+    rsvpEvent,
     cancelRsvpEvent,
+    deleteCommunity,
+    updateCommunity,
+    fetchCommunity,
+    fetchCommunityMemberView,
     isLoadingEvents,
     isLoadingCommunities
   } = useEventStore();
@@ -26,7 +32,8 @@ export default function EventsAndCommunitiesLayoutPage() {
   const [activeTab, setActiveTab] = useState("explore");
   const [selectedCommunity, setSelectedCommunity] = useState(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [userRole, setUserRole] = useState(mockCurrentUser.role === "admin" ? "admin" : "student");
+  const isModerator = authUser?.role === "moderator" || authUser?.role === "admin";
+  const [userRole, setUserRole] = useState(isModerator ? "admin" : "student");
 
   // Fetch initial data
   useEffect(() => {
@@ -39,19 +46,19 @@ export default function EventsAndCommunitiesLayoutPage() {
     setIsCreateDialogOpen(false);
   };
 
-  const handleCreateCommunity = (data) => {
-    // Optimistic or store logic for communities
-    // Right now communities are static in this iteration, but can be added to store later
-    toast.success("Community created successfully!", {
-      description: "Your community has been posted to the platform.",
-    });
-    setIsCreateDialogOpen(false);
+  const handleCreateCommunity = async (data) => {
+    try {
+      await createCommunity({ name: data.name, description: data.description });
+      setIsCreateDialogOpen(false);
+    } catch {
+      // error toast is handled by the store
+    }
   };
 
   const handleJoinEvent = async (id) => {
     const event = events.find((e) => e.id === id);
     if (event) {
-      if (event.attendees?.includes(mockCurrentUser.id)) {
+      if (event.attendees?.includes(authUser?.id)) {
         await cancelRsvpEvent(id);
       } else {
         await rsvpEvent(id);
@@ -59,8 +66,13 @@ export default function EventsAndCommunitiesLayoutPage() {
     }
   };
 
-  const handleJoinCommunity = (id) => {
-    toast.success("Successfully joined community!");
+  const handleJoinCommunity = async (id) => {
+    const community = communities.find((c) => c.id === id);
+    if (community?.isJoined) {
+      await useEventStore.getState().leaveCommunity(id);
+    } else {
+      await useEventStore.getState().joinCommunity(id);
+    }
   };
 
   const handleEditEvent = (id) => {
@@ -71,16 +83,37 @@ export default function EventsAndCommunitiesLayoutPage() {
     toast.success("Event deleted", { description: "The event has been removed from the platform." });
   };
 
-  const handleEditCommunity = (id) => {
-    toast.info("Edit functionality", { description: "Edit feature would be implemented here." });
+  const handleEditCommunity = async (id, data) => {
+    try {
+      await updateCommunity(id, data);
+    } catch {
+      // error toast is handled by the store
+    }
   };
 
-  const handleDeleteCommunity = (id) => {
-    toast.success("Community deleted", { description: "The community has been removed from the platform." });
+  const handleDeleteCommunity = async (id) => {
+    try {
+      await deleteCommunity(id);
+      if (selectedCommunity === id) {
+        setSelectedCommunity(null);
+      }
+    } catch {
+      // error toast is handled by the store
+    }
   };
 
-  const handleCommunityClick = (id) => {
+  const handleCommunityClick = async (id) => {
     setSelectedCommunity(id);
+    try {
+      await fetchCommunityMemberView(id);
+    } catch {
+      // Not a member/moderator — load public view instead
+      try {
+        await fetchCommunity(id);
+      } catch {
+        // Keep whatever data is already in the store
+      }
+    }
   };
 
   const handleBackToCommunities = () => {
@@ -149,7 +182,7 @@ export default function EventsAndCommunitiesLayoutPage() {
             onEventClick={handleEventClick}
             currentUserRole={userRole}
             isLoading={isLoadingEvents || isLoadingCommunities}
-            currentUserId={mockCurrentUser.id}
+            currentUserId={authUser?.userID ?? authUser?.id}
           />
         );
       case "events":
@@ -172,7 +205,7 @@ export default function EventsAndCommunitiesLayoutPage() {
                   : "events"
             }
             isLoading={isLoadingEvents || isLoadingCommunities}
-            currentUserId={mockCurrentUser.id}
+            currentUserId={authUser?.userID ?? authUser?.id}
           />
         );
       default:
@@ -186,7 +219,7 @@ export default function EventsAndCommunitiesLayoutPage() {
             onEventClick={handleEventClick}
             currentUserRole={userRole}
             isLoading={isLoadingEvents || isLoadingCommunities}
-            currentUserId={mockCurrentUser.id}
+            currentUserId={authUser?.userID ?? authUser?.id}
           />
         );
     }

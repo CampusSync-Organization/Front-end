@@ -14,13 +14,6 @@ import { Textarea } from "./ui/textarea";
 import { Calendar as CalendarComponent } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 
 export function CreateContentDialog({
   open,
@@ -44,12 +37,10 @@ export function CreateContentDialog({
   const [communityData, setCommunityData] = useState({
     name: "",
     description: "",
-    category: "",
-    meetingSchedule: "",
-    tags: "",
   });
 
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleEventSubmit = (e) => {
     e.preventDefault();
@@ -69,19 +60,22 @@ export function CreateContentDialog({
     resetForms();
   };
 
-  const handleCommunitySubmit = (e) => {
+  const handleCommunitySubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const newErrors = {};
     if (!communityData.name.trim()) newErrors.name = "Community name is required";
-    if (!communityData.description.trim())
-      newErrors.description = "Description is required";
-    if (!communityData.category) newErrors.category = "Category is required";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    onSubmitCommunity(communityData);
-    resetForms();
+    setIsSubmitting(true);
+    try {
+      await onSubmitCommunity(communityData);
+    } finally {
+      setIsSubmitting(false);
+      resetForms();
+    }
   };
 
   const resetForms = () => {
@@ -98,9 +92,6 @@ export function CreateContentDialog({
     setCommunityData({
       name: "",
       description: "",
-      category: "",
-      meetingSchedule: "",
-      tags: "",
     });
     setErrors({});
   };
@@ -333,7 +324,7 @@ export function CreateContentDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="community-description">
-                  Description <span className="text-red-500">*</span>
+                  Description
                 </Label>
                 <Textarea
                   id="community-description"
@@ -341,67 +332,8 @@ export function CreateContentDialog({
                   value={communityData.description}
                   onChange={(e) => {
                     setCommunityData({ ...communityData, description: e.target.value });
-                    setErrors({ ...errors, description: "" });
                   }}
-                  className={errors.description ? "border-red-500" : ""}
                   rows={4}
-                />
-                {errors.description && (
-                  <p className="text-sm text-red-500">{errors.description}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">
-                  Category <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={communityData.category}
-                  onValueChange={(value) => {
-                    setCommunityData({ ...communityData, category: value });
-                    setErrors({ ...errors, category: "" });
-                  }}
-                >
-                  <SelectTrigger
-                    className={`h-12 ${errors.category ? "border-red-500" : ""}`}
-                  >
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Academic">Academic</SelectItem>
-                    <SelectItem value="Research">Research</SelectItem>
-                    <SelectItem value="Creative">Creative</SelectItem>
-                    <SelectItem value="Business">Business</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="text-sm text-red-500">{errors.category}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="meetingSchedule">Meeting Schedule</Label>
-                <Input
-                  id="meetingSchedule"
-                  placeholder="e.g., Every Monday at 6:00 PM"
-                  value={communityData.meetingSchedule}
-                  onChange={(e) =>
-                    setCommunityData({ ...communityData, meetingSchedule: e.target.value })
-                  }
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="community-tags">Tags (comma-separated)</Label>
-                <Input
-                  id="community-tags"
-                  placeholder="e.g., Data Science, ML, Python"
-                  value={communityData.tags}
-                  onChange={(e) =>
-                    setCommunityData({ ...communityData, tags: e.target.value })
-                  }
-                  className="h-12"
                 />
               </div>
 
@@ -419,10 +351,11 @@ export function CreateContentDialog({
                 </Button>
                 <Button
                   type="submit"
+                  disabled={isSubmitting}
                   className="bg-primary hover:bg-primary/90 text-white h-12 px-6"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Community
+                  {isSubmitting ? "Creating..." : "Create Community"}
                 </Button>
               </div>
             </form>

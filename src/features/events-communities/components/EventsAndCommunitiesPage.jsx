@@ -347,7 +347,8 @@ export function EventsAndCommunitiesPage({
                             <motion.div key={community.id} variants={itemVariants} className="h-full">
                               <CommunityCard
                                 community={community}
-                                isJoined={community.members?.includes(currentUser?.id)}
+                                isJoined={community.isJoined}
+                                isModerator={currentUserId != null && Number(currentUserId) === Number(community.moderatorId)}
                                 onJoinToggle={async (id, isJoined) => {
                                   if (isJoined) await leaveCommunity(id);
                                   else await joinCommunity(id);

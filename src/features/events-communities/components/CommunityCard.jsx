@@ -3,7 +3,7 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
-export function CommunityCard({ community, isJoined, onJoinToggle, onClick, currentUserRole }) {
+export function CommunityCard({ community, isJoined, isModerator, onJoinToggle, onClick, currentUserRole }) {
   const isPrivate = community.privacy === "private";
 
   return (
@@ -65,16 +65,22 @@ export function CommunityCard({ community, isJoined, onJoinToggle, onClick, curr
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Members</p>
             </div>
           </div>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onJoinToggle?.(community.id, isJoined, isPrivate);
-            }}
-            variant={isJoined ? "outline" : (isPrivate ? "secondary" : "default")}
-            className={`rounded-xl px-5 h-10 text-sm font-semibold transition-all ${isJoined ? 'text-foreground hover:bg-red-50 hover:text-red-600 border-border hover:border-red-200 bg-transparent shadow-none' : (isPrivate ? 'bg-muted text-foreground hover:bg-muted/80' : 'bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20')}`}
-          >
-            {isJoined ? "Leave" : (isPrivate ? "Request to Join" : "Join Now")}
-          </Button>
+          {isModerator ? (
+            <Badge className="bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-xl text-sm font-semibold">
+              Moderator
+            </Badge>
+          ) : (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                onJoinToggle?.(community.id, isJoined, isPrivate);
+              }}
+              variant={isJoined ? "outline" : (isPrivate ? "secondary" : "default")}
+              className={`rounded-xl px-5 h-10 text-sm font-semibold transition-all ${isJoined ? 'text-foreground hover:bg-red-50 hover:text-red-600 border-border hover:border-red-200 bg-transparent shadow-none' : (isPrivate ? 'bg-muted text-foreground hover:bg-muted/80' : 'bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20')}`}
+            >
+              {isJoined ? "Leave" : (isPrivate ? "Request to Join" : "Join Now")}
+            </Button>
+          )}
         </div>
       </div>
     </Card>

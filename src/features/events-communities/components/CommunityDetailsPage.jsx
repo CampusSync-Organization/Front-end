@@ -5,16 +5,19 @@ import {
   Clock,
   ArrowLeft,
   Share2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { useEventStore } from "../store/useEventStore";
+import { useSelector } from "react-redux";
 import { PostCard } from "./PostCard";
 import { PostForm } from "./PostForm";
+import { getProfileByUserId } from "../../profile/api/profileApi";
 
 export function CommunityDetailsPage({
   community,
@@ -23,56 +26,53 @@ export function CommunityDetailsPage({
   onJoinEvent,
   currentUserRole,
 }) {
-  const { currentUser, joinCommunity, leaveCommunity } = useEventStore();
-  const isJoined = community.members?.includes(currentUser?.id);
+  const { currentUser, joinCommunity, leaveCommunity, fetchCommunityMemberView, deleteCommunity } = useEventStore();
+  const authUser = useSelector((state) => state.auth?.user);
+const currentUserId = authUser?.userID ?? authUser?.id ?? currentUser?.userID ?? currentUser?.id;
+  const isJoined = community.isJoined;
+  const isModerator = currentUserId != null && Number(currentUserId) === Number(community.moderatorId);
+
+  const [leaderName, setLeaderName] = useState(community.organizerName || "");
+
+  useEffect(() => {
+    if (community.moderatorId) {
+      getProfileByUserId(community.moderatorId)
+        .then((profile) => setLeaderName(profile.name || "Unknown"))
+        .catch(() => setLeaderName("Unknown"));
+    }
+  }, [community.moderatorId]);
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${community.name}"? This cannot be undone.`)) return;
+    await deleteCommunity(community.id);
+    onBack();
+  };
 
   const handleJoinToggle = async () => {
     if (isJoined) {
       await leaveCommunity(community.id);
     } else {
       await joinCommunity(community.id);
+      try {
+        await fetchCommunityMemberView(community.id);
+      } catch {}
     }
   };
 
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      authorName: community.organizerName,
-      content: `Welcome to the ${community.name} community! We are thrilled to have you here. Feel free to introduce yourselves and start discussions below.`,
-      likes: 12,
-      comments: 3,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      authorName: "Sarah Johnson",
-      content: "Does anyone want to study together this weekend at the Student Union?",
-      likes: 5,
-      comments: 1,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    }
-  ]);
+  const realPosts = community.posts || [];
 
   const handleCreatePost = async (content) => {
-    const newPost = {
-      id: Date.now(),
-      authorName: currentUser?.name || "Anonymous User",
-      content,
-      likes: 0,
-      comments: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setPosts([newPost, ...posts]);
+    // Posts would be created via a dedicated post API endpoint.
+    // For now this is a placeholder until the post creation endpoint is available.
   };
 
-  const members = [
-    { id: 1, name: "Sarah Johnson", role: "Admin" },
-    { id: 2, name: "Michael Chen", role: "Member" },
-    { id: 3, name: "Emma Davis", role: "Member" },
-    { id: 4, name: "James Wilson", role: "Member" },
-    { id: 5, name: "Olivia Brown", role: "Member" },
-    { id: 6, name: "William Lee", role: "Member" },
-  ];
+  const members = community.membersList?.length > 0
+    ? community.membersList.map((m) => ({
+        id: m.id,
+        name: m.name || "Unknown",
+        role: m.id === community.moderatorId ? "Admin" : "Member",
+      }))
+    : [];
 
   return (
     <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8">
@@ -140,17 +140,28 @@ export function CommunityDetailsPage({
               >
                 <Share2 className="h-5 w-5" />
               </Button>
-              <Button
-                onClick={handleJoinToggle}
-                variant={isJoined ? "outline" : "default"}
-                className={
-                  isJoined
-                    ? "h-12 px-8 rounded-xl border-2 text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-                    : "bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-xl shadow-lg transition-colors"
-                }
-              >
-                {isJoined ? "Leave Community" : "Join Community"}
-              </Button>
+              {isModerator ? (
+                <Button
+                  onClick={handleDelete}
+                  variant="outline"
+                  className="h-12 px-8 rounded-xl border-2 text-destructive border-destructive/30 hover:bg-red-50 hover:border-destructive transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Community
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleJoinToggle}
+                  variant={isJoined ? "outline" : "default"}
+                  className={
+                    isJoined
+                      ? "h-12 px-8 rounded-xl border-2 text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                      : "bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-xl shadow-lg transition-colors"
+                  }
+                >
+                  {isJoined ? "Leave Community" : "Join Community"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -201,14 +212,14 @@ export function CommunityDetailsPage({
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 bg-primary">
                 <AvatarFallback className="bg-primary text-white text-lg">
-                  {community.organizerName
+                  {(leaderName || "")
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-lg text-foreground">{community.organizerName}</p>
+                <p className="text-lg text-foreground">{leaderName}</p>
                 <p className="text-sm text-muted-foreground">Community Admin</p>
               </div>
             </div>
@@ -218,7 +229,7 @@ export function CommunityDetailsPage({
         <TabsContent value="posts" className="space-y-6">
           <div className="max-w-3xl mx-auto">
             {isJoined ? (
-              <PostForm currentUser={currentUser} onSubmit={handleCreatePost} />
+              <PostForm currentUser={authUser || currentUser} onSubmit={handleCreatePost} />
             ) : (
               <Card className="p-8 border-2 border-dashed border-border shadow-sm text-center rounded-2xl bg-white mb-8">
                 <h3 className="text-xl text-foreground mb-2">Join community to post</h3>
@@ -230,9 +241,18 @@ export function CommunityDetailsPage({
             )}
 
             <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
+              {realPosts.length > 0 ? (
+                realPosts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))
+              ) : (
+                <Card className="p-8 border-2 border-dashed border-border shadow-sm text-center rounded-2xl bg-white">
+                  <h3 className="text-xl text-foreground mb-2">No posts yet</h3>
+                  <p className="text-muted-foreground">
+                    Be the first to start a discussion in this community!
+                  </p>
+                </Card>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -300,27 +320,36 @@ export function CommunityDetailsPage({
         <TabsContent value="members">
           <Card className="p-8 border-2 border-border shadow-sm rounded-2xl bg-white">
             <h2 className="text-2xl text-foreground mb-6">Members ({community.memberCount})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors border border-transparent hover:border-border"
-                >
-                  <Avatar className="h-12 w-12 bg-primary">
-                    <AvatarFallback className="bg-primary text-white">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.role}</p>
+            {members.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors border border-transparent hover:border-border"
+                  >
+                    <Avatar className="h-12 w-12 bg-primary">
+                      <AvatarFallback className="bg-primary text-white">
+                        {(member.name || "")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground truncate">{member.name}</p>
+                      <p className="text-xs text-muted-foreground">{member.role}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  {isJoined ? "Member details are loading..." : "Join this community to see its members."}
+                </p>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
