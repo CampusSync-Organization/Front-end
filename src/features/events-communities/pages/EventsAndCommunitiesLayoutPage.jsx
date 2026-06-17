@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Toaster, toast } from "sonner";
 import { Home, Compass, Plus, CalendarDays } from "lucide-react";
 import { EventsAndCommunitiesPage } from "../components/EventsAndCommunitiesPage";
 import { CommunityDetailsPage } from "../components/CommunityDetailsPage";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { CreateContentDialog } from "../components/CreateContentDialog";
+import EditEventDialog from "../components/EditEventDialog";
 import { useEventStore } from "../store/useEventStore";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -21,6 +21,8 @@ export default function EventsAndCommunitiesLayoutPage() {
     createCommunity,
     rsvpEvent,
     cancelRsvpEvent,
+    updateEvent,
+    deleteEvent,
     deleteCommunity,
     updateCommunity,
     fetchCommunity,
@@ -32,6 +34,7 @@ export default function EventsAndCommunitiesLayoutPage() {
   const [activeTab, setActiveTab] = useState("explore");
   const [selectedCommunity, setSelectedCommunity] = useState(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const isModerator = authUser?.role === "moderator" || authUser?.role === "admin";
   const userRole = isModerator ? "admin" : "student";
 
@@ -76,11 +79,13 @@ export default function EventsAndCommunitiesLayoutPage() {
   };
 
   const handleEditEvent = (id) => {
-    toast.info("Edit functionality", { description: "Edit feature would be implemented here." });
+    const event = events.find((e) => e.id === id);
+    if (event) setEditingEvent(event);
   };
 
-  const handleDeleteEvent = (id) => {
-    toast.success("Event deleted", { description: "The event has been removed from the platform." });
+  const handleDeleteEvent = async (id) => {
+    if (!window.confirm("Delete this event?")) return;
+    await deleteEvent(id);
   };
 
   const handleEditCommunity = async (id, data) => {
@@ -271,7 +276,17 @@ export default function EventsAndCommunitiesLayoutPage() {
         onSubmitCommunity={handleCreateCommunity}
       />
 
-      <Toaster richColors position="top-right" />
+      {editingEvent && (
+        <EditEventDialog
+          event={editingEvent}
+          open={!!editingEvent}
+          onOpenChange={(v) => { if (!v) setEditingEvent(null); }}
+          onSave={async (data) => {
+            await updateEvent(editingEvent.id, data);
+            setEditingEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function EventCard({
   onJoinEvent, 
   onEventClick 
 }) {
-  const isAttending = event.attendees?.includes(currentUserId);
+  const isAttending = event.isAttending ?? false;
   const isFull = event.maxParticipants ? event.currentParticipants >= event.maxParticipants : false;
   const capacityPercentage = event.maxParticipants
     ? (event.currentParticipants / event.maxParticipants) * 100

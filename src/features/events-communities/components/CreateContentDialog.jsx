@@ -24,14 +24,12 @@ export function CreateContentDialog({
   const [activeTab, setActiveTab] = useState("event");
 
   const [eventData, setEventData] = useState({
-    title: "",
+    name: "",
     description: "",
-    eventDate: undefined,
-    eventTime: "",
-    location: "",
-    club: "",
-    maxParticipants: "",
-    tags: "",
+    date: undefined,
+    time: "",
+    place: "",
+    capacity: "",
   });
 
   const [communityData, setCommunityData] = useState({
@@ -45,18 +43,21 @@ export function CreateContentDialog({
   const handleEventSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
-    if (!eventData.title.trim()) newErrors.title = "Event title is required";
+    if (!eventData.name.trim()) newErrors.name = "Event name is required";
     if (!eventData.description.trim()) newErrors.description = "Description is required";
-    if (!eventData.eventDate) newErrors.eventDate = "Event date is required";
-    if (eventData.eventDate && eventData.eventDate < new Date())
-      newErrors.eventDate = "Event date must be in the future";
-    if (!eventData.eventTime.trim()) newErrors.eventTime = "Event time is required";
-    if (!eventData.location.trim()) newErrors.location = "Location is required";
+    if (!eventData.date) newErrors.date = "Event date is required";
+    if (eventData.date && eventData.date < new Date()) newErrors.date = "Event date must be in the future";
+    if (!eventData.time.trim()) newErrors.time = "Event time is required";
+    if (!eventData.place.trim()) newErrors.place = "Location is required";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    onSubmitEvent(eventData);
+    onSubmitEvent({
+      ...eventData,
+      date: eventData.date instanceof Date ? eventData.date.toISOString().split("T")[0] : eventData.date,
+      capacity: eventData.capacity ? Number(eventData.capacity) : null,
+    });
     resetForms();
   };
 
@@ -80,14 +81,12 @@ export function CreateContentDialog({
 
   const resetForms = () => {
     setEventData({
-      title: "",
+      name: "",
       description: "",
-      eventDate: undefined,
-      eventTime: "",
-      location: "",
-      club: "",
-      maxParticipants: "",
-      tags: "",
+      date: undefined,
+      time: "",
+      place: "",
+      capacity: "",
     });
     setCommunityData({
       name: "",
@@ -137,20 +136,20 @@ export function CreateContentDialog({
           <TabsContent value="event" className="mt-6">
             <form onSubmit={handleEventSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">
-                  Event Title <span className="text-red-500">*</span>
+                <Label htmlFor="name">
+                  Event Name <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="title"
+                  id="name"
                   placeholder="e.g., AI Workshop 2025"
-                  value={eventData.title}
+                  value={eventData.name}
                   onChange={(e) => {
-                    setEventData({ ...eventData, title: e.target.value });
-                    setErrors({ ...errors, title: "" });
+                    setEventData({ ...eventData, name: e.target.value });
+                    setErrors({ ...errors, name: "" });
                   }}
-                  className={`h-12 ${errors.title ? "border-red-500" : ""}`}
+                  className={`h-12 ${errors.name ? "border-red-500" : ""}`}
                 />
-                {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
+                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
               </div>
 
               <div className="space-y-2">
@@ -175,107 +174,84 @@ export function CreateContentDialog({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Event Date <span className="text-red-500">*</span></Label>
+                  <Label>Date <span className="text-red-500">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={`w-full justify-start text-left h-12 ${
-                          errors.eventDate ? "border-red-500" : ""
+                          errors.date ? "border-red-500" : ""
                         }`}
                       >
-                        {formatDate(eventData.eventDate)}
+                        {formatDate(eventData.date)}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarComponent
                         mode="single"
-                        selected={eventData.eventDate}
+                        selected={eventData.date}
                         onSelect={(date) => {
-                          setEventData({ ...eventData, eventDate: date });
-                          setErrors({ ...errors, eventDate: "" });
+                          setEventData({ ...eventData, date });
+                          setErrors({ ...errors, date: "" });
                         }}
                         disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
                   </Popover>
-                  {errors.eventDate && (
-                    <p className="text-sm text-red-500">{errors.eventDate}</p>
+                  {errors.date && (
+                    <p className="text-sm text-red-500">{errors.date}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="eventTime">
-                    Event Time <span className="text-red-500">*</span>
+                  <Label htmlFor="time">
+                    Time <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="eventTime"
-                    placeholder="e.g., 10:00 AM - 4:00 PM"
-                    value={eventData.eventTime}
+                    id="time"
+                    type="time"
+                    value={eventData.time}
                     onChange={(e) => {
-                      setEventData({ ...eventData, eventTime: e.target.value });
-                      setErrors({ ...errors, eventTime: "" });
+                      setEventData({ ...eventData, time: e.target.value });
+                      setErrors({ ...errors, time: "" });
                     }}
-                    className={`h-12 ${errors.eventTime ? "border-red-500" : ""}`}
+                    className={`h-12 ${errors.time ? "border-red-500" : ""}`}
                   />
-                  {errors.eventTime && (
-                    <p className="text-sm text-red-500">{errors.eventTime}</p>
+                  {errors.time && (
+                    <p className="text-sm text-red-500">{errors.time}</p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">
-                  Location <span className="text-red-500">*</span>
+                <Label htmlFor="place">
+                  Place <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="location"
+                  id="place"
                   placeholder="e.g., Ibrahim Farg Building, Room 301"
-                  value={eventData.location}
+                  value={eventData.place}
                   onChange={(e) => {
-                    setEventData({ ...eventData, location: e.target.value });
-                    setErrors({ ...errors, location: "" });
+                    setEventData({ ...eventData, place: e.target.value });
+                    setErrors({ ...errors, place: "" });
                   }}
-                  className={`h-12 ${errors.location ? "border-red-500" : ""}`}
+                  className={`h-12 ${errors.place ? "border-red-500" : ""}`}
                 />
-                {errors.location && (
-                  <p className="text-sm text-red-500">{errors.location}</p>
+                {errors.place && (
+                  <p className="text-sm text-red-500">{errors.place}</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="club">Club / Organization</Label>
-                  <Input
-                    id="club"
-                    placeholder="e.g., AI Club"
-                    value={eventData.club}
-                    onChange={(e) => setEventData({ ...eventData, club: e.target.value })}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxParticipants">Max Participants</Label>
-                  <Input
-                    id="maxParticipants"
-                    type="number"
-                    placeholder="e.g., 100"
-                    value={eventData.maxParticipants}
-                    onChange={(e) =>
-                      setEventData({ ...eventData, maxParticipants: e.target.value })
-                    }
-                    className="h-12"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="event-tags">Tags (comma-separated)</Label>
+                <Label htmlFor="capacity">Capacity</Label>
                 <Input
-                  id="event-tags"
-                  placeholder="e.g., AI, Workshop, Tech"
-                  value={eventData.tags}
-                  onChange={(e) => setEventData({ ...eventData, tags: e.target.value })}
+                  id="capacity"
+                  type="number"
+                  placeholder="e.g., 100"
+                  value={eventData.capacity}
+                  onChange={(e) =>
+                    setEventData({ ...eventData, capacity: e.target.value })
+                  }
                   className="h-12"
                 />
               </div>

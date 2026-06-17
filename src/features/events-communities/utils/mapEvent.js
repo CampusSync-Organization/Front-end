@@ -14,7 +14,7 @@ export function mapEvent(api, { isAttending = false } = {}) {
     organizerId: api.organizer_id,
     organizerName: api.organizer_name ?? "Unknown",
     communityId: api.community_id ?? null,
-    attendees: Array.isArray(api.attendees) ? api.attendees.map((a) => a.id ?? a) : [],
+    attendees: Array.isArray(api.attendees) ? api.attendees : [],
     community: api.community ?? null,
     organizer: api.organizer ?? null,
     createdAt: api.created_at,

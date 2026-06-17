@@ -142,12 +142,8 @@ export const useEventStore = create((set, get) => ({
   fetchEvents: async () => {
     set({ isLoadingEvents: true, error: null });
     try {
-      const [allData, organizedData] = await Promise.all([
-        apiGetAllEvents(),
-        apiGetMyOrganizedEvents().catch(() => []),
-      ]);
-      const organizedIds = new Set(organizedData.map((e) => e.id));
-      // Check attendance for each event in parallel (best-effort)
+      const allData = await apiGetAllEvents();
+      // Check attendance per event (best-effort, requires auth)
       const attendanceResults = await Promise.allSettled(
         allData.map((e) => apiCheckAttendance(e.id))
       );
@@ -156,9 +152,29 @@ export const useEventStore = create((set, get) => ({
         return mapEvent(e, { isAttending });
       });
       set({ events: mapped, isLoadingEvents: false });
-    } catch {
+    } catch (err) {
+      console.error("[fetchEvents] error:", err?.response?.status, err?.response?.data);
       set({ isLoadingEvents: false });
       toast.error("Failed to load events.");
+    }
+  },
+
+  // Fetch a single event fresh from API (EventWithAttendees)
+  fetchEventById: async (eventId) => {
+    try {
+      const raw = await apiGetEventById(eventId);
+      const isAttending = await apiCheckAttendance(eventId)
+        .then((r) => r.is_attending)
+        .catch(() => false);
+      const mapped = mapEvent(raw, { isAttending });
+      set((state) => ({
+        events: state.events.some((e) => e.id === mapped.id)
+          ? state.events.map((e) => (e.id === mapped.id ? mapped : e))
+          : [...state.events, mapped],
+      }));
+      return mapped;
+    } catch {
+      return null;
     }
   },
 
@@ -243,6 +259,44 @@ export const useEventStore = create((set, get) => ({
     }
   },
 
+  // Update an event
+  updateEvent: async (eventId, eventData) => {
+    try {
+      const payload = {
+        name: eventData.name,
+        description: eventData.description ?? "",
+        date: eventData.date instanceof Date
+          ? eventData.date.toISOString().split("T")[0]
+          : eventData.date,
+        time: eventData.time ?? "",
+        place: eventData.place ?? "",
+        capacity: eventData.capacity ? Number(eventData.capacity) : null,
+      };
+      const raw = await apiUpdateEvent(eventId, payload);
+      const mapped = mapEvent(raw, { isAttending: get().events.find((e) => e.id === eventId)?.isAttending ?? false });
+      set((state) => ({ events: state.events.map((e) => (e.id === eventId ? mapped : e)) }));
+      toast.success("Event updated successfully");
+      return mapped;
+    } catch (err) {
+      console.error("[updateEvent] error:", err?.response?.status, err?.response?.data);
+      toast.error("Failed to update event.");
+      throw err;
+    }
+  },
+
+  // Delete an event
+  deleteEvent: async (eventId) => {
+    const prev = get().events;
+    set((state) => ({ events: state.events.filter((e) => e.id !== eventId) }));
+    try {
+      await apiDeleteEvent(eventId);
+      toast.success("Event deleted successfully");
+    } catch {
+      set({ events: prev });
+      toast.error("Failed to delete event.");
+    }
+  },
+
   // Create an event
   createEvent: async (eventData) => {
     try {
@@ -253,7 +307,8 @@ export const useEventStore = create((set, get) => ({
       set((state) => ({ events: [mapped, ...state.events] }));
       toast.success("Event created successfully");
       return mapped;
-    } catch {
+    } catch (err) {
+      console.error("[createEvent] error:", err?.response?.status, err?.response?.data);
       toast.error("Failed to create event.");
     }
   },
