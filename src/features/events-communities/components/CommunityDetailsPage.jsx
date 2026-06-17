@@ -42,6 +42,7 @@ const currentUserId = authUser?.userID ?? authUser?.id ?? currentUser?.userID ??
     }
   }, [community.moderatorId]);
 
+
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${community.name}"? This cannot be undone.`)) return;
     await deleteCommunity(community.id);

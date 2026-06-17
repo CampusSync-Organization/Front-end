@@ -218,7 +218,10 @@ export const useEventStore = create((set, get) => ({
       
       return mapped;
     } catch (error) {
-      toast.error("Failed to fetch community member details");
+      // 403 = not a member, expected — don't toast
+      if (error?.response?.status !== 403) {
+        toast.error("Failed to fetch community member details");
+      }
       throw error;
     }
   },
