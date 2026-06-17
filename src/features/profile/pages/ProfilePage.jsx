@@ -13,21 +13,7 @@ import {
   selectProfileError,
   selectProfileStatus,
 } from "../store/profileSlice";
-import { API_BASE_URL } from "../../../services/api";
-
-const FALLBACK_AVATAR = "/campussync-icon.png";
-
-const resolveAvatarUrl = (avatarUrl) => {
-  if (!avatarUrl) {
-    return FALLBACK_AVATAR;
-  }
-
-  if (/^https?:\/\//i.test(avatarUrl)) {
-    return avatarUrl;
-  }
-
-  return `${API_BASE_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
-};
+import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 
 const splitName = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -130,7 +116,9 @@ const ProfilePage = () => {
   }
 
   const user = mapProfileToUser(profile);
-  const projects = mapProjects(Array.isArray(profile.projects) ? profile.projects : []);
+  const projects = mapProjects(
+    Array.isArray(profile.projects) ? profile.projects : [],
+  );
 
   return (
     <div className="min-h-screen bg-background-light p-4 md:p-8">

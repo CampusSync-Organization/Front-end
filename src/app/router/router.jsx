@@ -6,6 +6,7 @@ import LoginPage from "../../features/auth/pages/LoginPage.jsx";
 import SignUpPage from "../../features/auth/pages/SignUpPage.jsx";
 import AssessmentPage from "../../features/assessment/pages/AssessmentPage.jsx";
 import HomePage from "../../features/home/pages/HomePage.jsx";
+import AnnouncementFeed from "../../features/announcement/components/AnnouncementFeed.jsx";
 import ProfilePage from "../../features/profile/pages/ProfilePage.jsx";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
@@ -45,7 +46,13 @@ export const router = createBrowserRouter([
         path: "/",
         element: <AppLayout />,
         children: [
-          { path: "home", element: <HomePage /> },
+          {
+            path: "home",
+            element: <HomePage />,
+            children: [
+              { index: true, element: <AnnouncementFeed /> },
+            ],
+          },
           {
             path: "events-communities",
             element: <EventsAndCommunitiesLayoutPage />,
