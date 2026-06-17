@@ -120,7 +120,7 @@ const UserProfilePage = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Content Column */}
                     <div className="lg:col-span-8 space-y-6">
-                        <ProfileHeader user={user} isOwnProfile={false} />
+                        <ProfileHeader user={user} isOwnProfile={false} userId={profile.user_id ?? profile.id} />
                         <ProfileAbout user={user} isOwnProfile={false} />
                         <ProfileInfo user={user} isOwnProfile={false} />
                         <ProfileAnnouncements

@@ -18,6 +18,18 @@ import { mapCommunities, mapCommunity } from "../utils/mapCommunity";
 const getAuthUser = () => store.getState().auth?.user;
 const getAuthUserId = () => { const u = getAuthUser(); return u?.userID ?? u?.id ?? null; };
 
+function syncCommunityRooms(communities) {
+  // Dynamically import to avoid circular deps
+  import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
+    const { addRoom } = useChatStore.getState();
+    communities.forEach((c) => {
+      if (c.roomId) {
+        addRoom({ id: c.roomId, type: "community", name: c.name, lastMessage: "" });
+      }
+    });
+  });
+}
+
 async function fetchAllCommunities() {
   const [allData, joinedData, moderatedData] = await Promise.all([
     getAllCommunities(),
@@ -30,8 +42,12 @@ async function fetchAllCommunities() {
     ...c,
     member_count: detailResults[i]?.member_count ?? c.member_count ?? 0,
     events: detailResults[i]?.events ?? c.events ?? [],
+    room_id: detailResults[i]?.room_id ?? c.room_id ?? null,
   }));
-  return mapCommunities(mergedData, { joinedIds, userId: getAuthUserId() });
+  const mapped = mapCommunities(mergedData, { joinedIds, userId: getAuthUserId() });
+  // Push joined community rooms into chat sidebar
+  syncCommunityRooms(mapped.filter(c => c.isJoined));
+  return mapped;
 }
 
 export const useEventStore = create((set, get) => ({
@@ -232,7 +248,19 @@ export const useEventStore = create((set, get) => ({
         });
         return { communities: newCommunities };
       });
-      await apiJoinCommunity(communityId);
+      const result = await apiJoinCommunity(communityId);
+      // If backend returns a room_id, add it to chat sidebar
+      if (result?.room_id) {
+        const community = get().communities.find(c => c.id === communityId);
+        import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
+          useChatStore.getState().addRoom({
+            id: result.room_id,
+            type: "community",
+            name: community?.name ?? `Community ${communityId}`,
+            lastMessage: "",
+          });
+        });
+      }
       toast.success("Successfully joined the community!");
     } catch (error) {
       if (error?.response?.status === 400) {
@@ -265,6 +293,15 @@ export const useEventStore = create((set, get) => ({
         return { communities: newCommunities };
       });
       await apiLeaveCommunity(communityId);
+      // Remove community room from chat sidebar
+      const community = get().communities.find(c => c.id === communityId);
+      if (community?.roomId) {
+        import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
+          useChatStore.setState((state) => ({
+            rooms: state.rooms.filter(r => r.id !== community.roomId),
+          }));
+        });
+      }
       toast.success("Left the community.");
     } catch (error) {
       // Revert on failure

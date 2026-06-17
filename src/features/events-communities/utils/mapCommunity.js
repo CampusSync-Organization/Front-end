@@ -41,6 +41,7 @@ export function mapCommunity(api, options = {}) {
     privacy: api.privacy ?? "public",
     meetingSchedule: api.meeting_schedule,
     isJoined,
+    roomId: api.room_id ?? null,
   };
 }
 

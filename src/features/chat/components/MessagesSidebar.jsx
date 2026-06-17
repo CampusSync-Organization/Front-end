@@ -93,10 +93,10 @@ export default function MessagesSidebar({
                 </div>
                 <div className="flex justify-between items-center mt-0.5">
                   <p className="text-xs text-on-surface-variant/50 truncate font-medium leading-5">
-                    {room.lastMessage || (isDirect ? "Direct message" : "Team channel")}
+                    {room.lastMessage || (isDirect ? "Direct message" : room.type === "community" ? "Community chat" : "Team channel")}
                   </p>
                   <span className="text-[10px] font-semibold text-secondary uppercase tracking-wide ml-2 shrink-0">
-                    {isDirect ? "DM" : "Team"}
+                    {isDirect ? "DM" : room.type === "community" ? "Community" : "Team"}
                   </span>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import {
   MessagesSquare,
 } from "lucide-react";
 import { useEditableSection } from "../hooks/useEditableSection";
+import StartDirectChatButton from "../../chat/components/StartDirectChatButton";
 
 const ImageModal = ({ isOpen, onClose, imgSrc, onUpload }) => {
   if (!isOpen) return null;
@@ -53,7 +54,7 @@ const ImageModal = ({ isOpen, onClose, imgSrc, onUpload }) => {
   );
 };
 
-export const ProfileHeader = ({ user, isOwnProfile = true }) => {
+export const ProfileHeader = ({ user, isOwnProfile = true, userId = null }) => {
   const initialValues = useMemo(() => ({ avatar: null }), []);
   const buildPayload = useCallback((draft) => {
     if (!draft.avatar) {
@@ -227,15 +228,18 @@ export const ProfileHeader = ({ user, isOwnProfile = true }) => {
 
           {/* Row 2: Action Buttons (full width on their own row) */}
           {!isOwnProfile && (
-            <div className="flex flex-col sm:flex-row sm:justify-center  gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:justify-center gap-3 w-full sm:w-auto">
               <button className="flex-1 sm:flex-none px-6 py-2.5 bg-secondary/90 text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
-                <UserRoundPlus></UserRoundPlus>
+                <UserRoundPlus />
                 Connect
               </button>
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-700 text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
-                <MessagesSquare></MessagesSquare>
-                Message
-              </button>
+              {userId && (
+                <StartDirectChatButton
+                  userId={userId}
+                  userName={`${user.firstName} ${user.lastName}`}
+                  className="flex-1 sm:flex-none px-6 py-2.5 !rounded-lg !text-sm !font-bold justify-center"
+                />
+              )}
             </div>
           )}
         </div>
