@@ -24,19 +24,17 @@ export default function MyEventsPage() {
   const [activeTab, setActiveTab] = useState("attending");
 
   useEffect(() => {
-    if (events.length === 0) {
-      fetchEvents();
-    }
-  }, [events.length, fetchEvents]);
+    fetchEvents();
+  }, []);
 
-  // Derived state
-  const attendingEvents = events.filter(e => e.attendees?.includes(currentUser.id));
-  const createdEvents = events.filter(e => e.organizerId === currentUser.id);
+  const currentUserId = currentUser?.userID ?? currentUser?.id ?? null;
+  const attendingEvents = events.filter(e => e.isAttending);
+  const createdEvents = events.filter(e => Number(e.organizerId) === Number(currentUserId));
 
   const handleJoinEvent = async (id) => {
     const event = events.find((e) => e.id === id);
     if (event) {
-      if (event.attendees?.includes(currentUser.id)) {
+      if (event.isAttending) {
         await cancelRsvpEvent(id);
       } else {
         await rsvpEvent(id);
@@ -76,8 +74,8 @@ export default function MyEventsPage() {
                   >
                     <EventCard
                       event={event}
-                      currentUserId={currentUser.id}
-                      currentUserRole={currentUser.role === "admin" ? "admin" : "student"}
+                      currentUserId={currentUserId}
+                      currentUserRole={currentUser?.role === "admin" ? "admin" : "student"}
                       onJoinEvent={handleJoinEvent}
                       onEventClick={handleEventClick}
                     />

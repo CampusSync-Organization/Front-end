@@ -14,12 +14,24 @@ import {
   deleteCommunity as apiDeleteCommunity
 } from "../api/communityApi";
 import { mapCommunities, mapCommunity } from "../utils/mapCommunity";
+import {
+  getAllEvents as apiGetAllEvents,
+  getEventById as apiGetEventById,
+  getMyOrganizedEvents as apiGetMyOrganizedEvents,
+  reserveEvent as apiReserveEvent,
+  cancelReservation as apiCancelReservation,
+  checkAttendance as apiCheckAttendance,
+  createEvent as apiCreateEvent,
+  createCommunityEvent as apiCreateCommunityEvent,
+  deleteEvent as apiDeleteEvent,
+  updateEvent as apiUpdateEvent,
+} from "../api/eventApi";
+import { mapEvent, mapEvents } from "../utils/mapEvent";
 
 const getAuthUser = () => store.getState().auth?.user;
 const getAuthUserId = () => { const u = getAuthUser(); return u?.userID ?? u?.id ?? null; };
 
 function syncCommunityRooms(communities) {
-  // Dynamically import to avoid circular deps
   import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
     const { addRoom } = useChatStore.getState();
     communities.forEach((c) => {
@@ -30,6 +42,46 @@ function syncCommunityRooms(communities) {
   });
 }
 
+async function fetchAndSyncMyCommunityChats() {
+  try {
+    const api = (await import("../../../services/api")).default;
+
+    // Fetch member chats + moderated communities in parallel
+    const [chatsRes, moderatedRes] = await Promise.allSettled([
+      api.get("/communities/me/chats"),
+      api.get("/communities/me/moderated"),
+    ]);
+
+    const { addRoom } = (await import("../../chat/store/useChatStore")).default.getState();
+
+    // Member community chats
+    const chats = chatsRes.value?.data?.community_chats ?? [];
+    chats.forEach((item) => {
+      const room = item.chat_room;
+      if (room?.id) {
+        addRoom({ id: room.id, type: "community", name: item.community_name, lastMessage: "" });
+      }
+    });
+
+    // Moderated communities — fetch their chat room via member/chats endpoint or by community id
+    const moderated = moderatedRes.value?.data ?? [];
+    await Promise.all(
+      moderated.map(async (c) => {
+        try {
+          const { data } = await api.get(`/communities/${c.id}/member`);
+          if (data?.room_id) {
+            addRoom({ id: data.room_id, type: "community", name: c.name, lastMessage: "" });
+          }
+        } catch {
+          // not a member view — skip
+        }
+      })
+    );
+  } catch {
+    // silently fail
+  }
+}
+
 async function fetchAllCommunities() {
   const [allData, joinedData, moderatedData] = await Promise.all([
     getAllCommunities(),
@@ -37,15 +89,26 @@ async function fetchAllCommunities() {
     apiGetModeratedCommunities().catch(() => []),
   ]);
   const joinedIds = [...new Set([...joinedData.map(c => c.id), ...moderatedData.map(c => c.id)])];
+
+  // Fetch public detail for member_count + events, and member view for joined ones to get room_id
   const detailResults = await Promise.all(allData.map(c => apiGetCommunity(c.id).catch(() => null)));
+  const memberViewResults = await Promise.all(
+    allData.map(c =>
+      joinedIds.includes(c.id)
+        ? apiGetCommunityMemberView(c.id).catch(() => null)
+        : Promise.resolve(null)
+    )
+  );
+
   const mergedData = allData.map((c, i) => ({
     ...c,
     member_count: detailResults[i]?.member_count ?? c.member_count ?? 0,
     events: detailResults[i]?.events ?? c.events ?? [],
-    room_id: detailResults[i]?.room_id ?? c.room_id ?? null,
+    // room_id may come from member view or public view
+    room_id: memberViewResults[i]?.room_id ?? detailResults[i]?.room_id ?? c.room_id ?? null,
   }));
+
   const mapped = mapCommunities(mergedData, { joinedIds, userId: getAuthUserId() });
-  // Push joined community rooms into chat sidebar
   syncCommunityRooms(mapped.filter(c => c.isJoined));
   return mapped;
 }
@@ -61,14 +124,35 @@ export const useEventStore = create((set, get) => ({
   // Fetch all events
   fetchEvents: async () => {
     set({ isLoadingEvents: true, error: null });
-    set({ events: [], isLoadingEvents: false });
+    try {
+      const [allData, organizedData] = await Promise.all([
+        apiGetAllEvents(),
+        apiGetMyOrganizedEvents().catch(() => []),
+      ]);
+      const organizedIds = new Set(organizedData.map((e) => e.id));
+      // Check attendance for each event in parallel (best-effort)
+      const attendanceResults = await Promise.allSettled(
+        allData.map((e) => apiCheckAttendance(e.id))
+      );
+      const mapped = allData.map((e, i) => {
+        const isAttending = attendanceResults[i]?.value?.is_attending ?? false;
+        return mapEvent(e, { isAttending });
+      });
+      set({ events: mapped, isLoadingEvents: false });
+    } catch {
+      set({ isLoadingEvents: false });
+      toast.error("Failed to load events.");
+    }
   },
 
   // Fetch all communities
   fetchCommunities: async () => {
     set({ isLoadingCommunities: true, error: null });
     try {
-      const mapped = await fetchAllCommunities();
+      const [mapped] = await Promise.all([
+        fetchAllCommunities(),
+        fetchAndSyncMyCommunityChats(),
+      ]);
       set({ communities: mapped, isLoadingCommunities: false });
     } catch (error) {
       set({ error: "Failed to fetch communities", isLoadingCommunities: false });
@@ -139,48 +223,70 @@ export const useEventStore = create((set, get) => ({
     }
   },
 
-  // Create an event (placeholder until events API is available)
+  // Create an event
   createEvent: async (eventData) => {
-    set({ isLoadingEvents: true });
-    const newEvent = {
-      id: `event-${Date.now()}`,
-      type: "event",
-      ...eventData,
-      organizerName: getAuthUser()?.name,
-      organizerId: getAuthUserId(),
-      currentParticipants: 0,
-      attendees: [],
-      createdAt: new Date(),
-    };
-    set((state) => ({ events: [newEvent, ...state.events], isLoadingEvents: false }));
-    toast.success("Event created successfully");
-    return newEvent;
+    try {
+      const raw = eventData.communityId
+        ? await apiCreateCommunityEvent(eventData.communityId, eventData)
+        : await apiCreateEvent(eventData);
+      const mapped = mapEvent(raw, { isAttending: false });
+      set((state) => ({ events: [mapped, ...state.events] }));
+      toast.success("Event created successfully");
+      return mapped;
+    } catch {
+      toast.error("Failed to create event.");
+    }
   },
 
-  // RSVP to an event (placeholder until events API is available)
+  // RSVP to an event
   rsvpEvent: async (eventId) => {
     const userId = getAuthUserId();
+    // Optimistic update
     set((state) => ({
       events: state.events.map((e) => {
         if (e.id !== eventId) return e;
-        if (e.attendees.includes(userId)) return e;
-        if (e.maxParticipants && e.currentParticipants >= e.maxParticipants) return e;
-        return { ...e, currentParticipants: e.currentParticipants + 1, attendees: [...e.attendees, userId] };
+        return { ...e, isAttending: true, currentParticipants: e.currentParticipants + 1, attendees: [...e.attendees, userId] };
       }),
     }));
-    toast.success("Successfully RSVP'd for the event!");
+    try {
+      await apiReserveEvent(eventId);
+      toast.success("Successfully RSVP'd for the event!");
+    } catch (err) {
+      // Revert
+      set((state) => ({
+        events: state.events.map((e) => {
+          if (e.id !== eventId) return e;
+          return { ...e, isAttending: false, currentParticipants: Math.max(0, e.currentParticipants - 1), attendees: e.attendees.filter((id) => id !== userId) };
+        }),
+      }));
+      const msg = err?.response?.data?.detail ?? "Failed to RSVP.";
+      toast.error(msg);
+    }
   },
 
-  // Cancel RSVP (placeholder until events API is available)
+  // Cancel RSVP
   cancelRsvpEvent: async (eventId) => {
     const userId = getAuthUserId();
+    // Optimistic update
     set((state) => ({
       events: state.events.map((e) => {
-        if (e.id !== eventId || !e.attendees.includes(userId)) return e;
-        return { ...e, currentParticipants: Math.max(0, e.currentParticipants - 1), attendees: e.attendees.filter((id) => id !== userId) };
+        if (e.id !== eventId) return e;
+        return { ...e, isAttending: false, currentParticipants: Math.max(0, e.currentParticipants - 1), attendees: e.attendees.filter((id) => id !== userId) };
       }),
     }));
-    toast.success("RSVP cancelled successfully.");
+    try {
+      await apiCancelReservation(eventId);
+      toast.success("RSVP cancelled successfully.");
+    } catch {
+      // Revert
+      set((state) => ({
+        events: state.events.map((e) => {
+          if (e.id !== eventId) return e;
+          return { ...e, isAttending: true, currentParticipants: e.currentParticipants + 1, attendees: [...e.attendees, userId] };
+        }),
+      }));
+      toast.error("Failed to cancel RSVP.");
+    }
   },
 
   // Create Community
@@ -190,6 +296,7 @@ export const useEventStore = create((set, get) => ({
     try {
       const mapped = await fetchAllCommunities();
       set({ communities: mapped, isLoadingCommunities: false });
+      await fetchAndSyncMyCommunityChats();
       toast.success("Community created successfully");
     } catch {
       set({ isLoadingCommunities: false });
@@ -249,14 +356,15 @@ export const useEventStore = create((set, get) => ({
         return { communities: newCommunities };
       });
       const result = await apiJoinCommunity(communityId);
-      // If backend returns a room_id, add it to chat sidebar
-      if (result?.room_id) {
+      // Backend returns { chat_room: { id, name } }
+      const roomId = result?.chat_room?.id ?? result?.room_id ?? null;
+      if (roomId) {
         const community = get().communities.find(c => c.id === communityId);
         import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
           useChatStore.getState().addRoom({
-            id: result.room_id,
+            id: roomId,
             type: "community",
-            name: community?.name ?? `Community ${communityId}`,
+            name: result?.chat_room?.name ?? community?.name ?? `Community ${communityId}`,
             lastMessage: "",
           });
         });

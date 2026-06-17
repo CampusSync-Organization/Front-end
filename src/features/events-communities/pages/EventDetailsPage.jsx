@@ -28,8 +28,8 @@ export default function EventDetailsPage() {
     }
   }, [events.length, fetchEvents]);
 
-  const event = events.find((e) => e.id === eventId);
-  const isAttending = event?.attendees?.includes(currentUser.id);
+  const event = events.find((e) => String(e.id) === String(eventId));
+  const isAttending = event?.isAttending ?? false;
   const isFull = event?.maxParticipants ? event.currentParticipants >= event.maxParticipants : false;
   const capacityPercentage = event?.maxParticipants 
     ? (event.currentParticipants / event.maxParticipants) * 100 
