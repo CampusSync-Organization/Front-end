@@ -36,7 +36,13 @@ function syncCommunityRooms(communities) {
     const { addRoom } = useChatStore.getState();
     communities.forEach((c) => {
       if (c.roomId) {
-        addRoom({ id: c.roomId, type: "community", name: c.name, lastMessage: "" });
+        addRoom({
+          id: c.roomId,
+          type: "community",
+          name: c.name,
+          lastMessage: "",
+          members: Array.isArray(c.membersList) ? c.membersList : [],
+        });
       }
     });
   });
@@ -54,23 +60,33 @@ async function fetchAndSyncMyCommunityChats() {
 
     const { addRoom } = (await import("../../chat/store/useChatStore")).default.getState();
 
-    // Member community chats
+    // Member community chats — also fetch member view to get names
     const chats = chatsRes.value?.data?.community_chats ?? [];
-    chats.forEach((item) => {
+    await Promise.all(chats.map(async (item) => {
       const room = item.chat_room;
-      if (room?.id) {
-        addRoom({ id: room.id, type: "community", name: item.community_name, lastMessage: "" });
-      }
-    });
+      if (!room?.id) return;
+      let members = [];
+      try {
+        const { data } = await api.get(`/communities/${item.community_id}/member`);
+        members = Array.isArray(data.members) ? data.members : [];
+      } catch {}
+      addRoom({ id: room.id, type: "community", name: item.community_name, lastMessage: "", members });
+    }));
 
-    // Moderated communities — fetch their chat room via member/chats endpoint or by community id
+    // Moderated communities — fetch their chat room via member view
     const moderated = moderatedRes.value?.data ?? [];
     await Promise.all(
       moderated.map(async (c) => {
         try {
           const { data } = await api.get(`/communities/${c.id}/member`);
           if (data?.room_id) {
-            addRoom({ id: data.room_id, type: "community", name: c.name, lastMessage: "" });
+            addRoom({
+              id: data.room_id,
+              type: "community",
+              name: c.name,
+              lastMessage: "",
+              members: Array.isArray(data.members) ? data.members : [],
+            });
           }
         } catch {
           // not a member view — skip
@@ -104,8 +120,9 @@ async function fetchAllCommunities() {
     ...c,
     member_count: detailResults[i]?.member_count ?? c.member_count ?? 0,
     events: detailResults[i]?.events ?? c.events ?? [],
-    // room_id may come from member view or public view
     room_id: memberViewResults[i]?.room_id ?? detailResults[i]?.room_id ?? c.room_id ?? null,
+    // Include members from member view so chat can resolve sender names
+    members: memberViewResults[i]?.members ?? c.members ?? [],
   }));
 
   const mapped = mapCommunities(mergedData, { joinedIds, userId: getAuthUserId() });

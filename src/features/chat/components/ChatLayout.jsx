@@ -5,6 +5,7 @@ import ChatWindow from "./ChatWindow";
 import CreateGroupModal from "./CreateGroupModal";
 import ChatRightPanel from "./ChatRightPanel";
 import useChatStore from "../store/useChatStore";
+import { useEventStore } from "../../events-communities/store/useEventStore";
 
 const ChatLayout = () => {
   const [rightPanel, setRightPanel] = useState("none");
@@ -12,9 +13,11 @@ const ChatLayout = () => {
   const [activeSection, setActiveSection] = useState("messages");
 
   const { connectSocket, disconnectSocket, activeRoomId, rooms } = useChatStore();
+  const { fetchCommunities } = useEventStore();
 
   useEffect(() => {
     connectSocket();
+    fetchCommunities();
     return () => {
       disconnectSocket();
     };
@@ -40,6 +43,7 @@ const ChatLayout = () => {
 
       <MessagesSidebar
         onOpenCreateGroup={() => setIsGroupModalOpen(true)}
+        activeSection={activeSection}
       />
 
       <ChatWindow

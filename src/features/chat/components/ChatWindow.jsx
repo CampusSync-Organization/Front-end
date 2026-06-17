@@ -18,8 +18,11 @@ function formatTime(dateStr) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-const ChatBubble = ({ message, currentUserId }) => {
-  const isSent = message.sender_id === currentUserId;
+const ChatBubble = ({ message, currentUserId, memberNameMap = {}, isGroup = false }) => {
+  const isSent = Number(message.sender_id) === Number(currentUserId);
+  const senderName = !isSent && isGroup
+    ? (memberNameMap[Number(message.sender_id)] ?? message.sender_name ?? null)
+    : null;
 
   return (
     <div
@@ -28,6 +31,9 @@ const ChatBubble = ({ message, currentUserId }) => {
       }`}
     >
       <div className={`flex flex-col gap-1.5 ${isSent ? "items-end" : ""}`}>
+        {senderName && (
+          <span className="text-[11px] font-semibold text-primary ml-1">{senderName}</span>
+        )}
         <div
           className={`p-4 rounded-2xl ${
             isSent
@@ -74,6 +80,16 @@ export default function ChatWindow({
 
   const { activeRoomId, messages, fetchMessages, sendMessage } = useChatStore();
   const roomMessages = messages[activeRoomId] ?? [];
+  // Build a sender id → name map from room members for group chats
+  const memberNameMap = (() => {
+    if (activeChat?.type !== "community" && activeChat?.type !== "team") return {};
+    const list = activeChat?.members ?? [];
+    const map = {};
+    list.forEach((m) => {
+      if (typeof m === "object" && m.id != null) map[Number(m.id)] = m.name;
+    });
+    return map;
+  })();
 
   useEffect(() => {
     if (activeRoomId) {
@@ -170,7 +186,13 @@ export default function ChatWindow({
         )}
 
         {roomMessages.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} currentUserId={currentUserId} />
+          <ChatBubble
+            key={msg.id}
+            message={msg}
+            currentUserId={currentUserId}
+            memberNameMap={memberNameMap}
+            isGroup={activeChat?.type === "community" || activeChat?.type === "team"}
+          />
         ))}
 
         {roomMessages.length === 0 && (

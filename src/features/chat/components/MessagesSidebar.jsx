@@ -17,11 +17,18 @@ function formatTime(dateStr) {
 
 export default function MessagesSidebar({
   onOpenCreateGroup,
+  activeSection = "messages",
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const { rooms, activeRoomId, setActiveRoom } = useChatStore();
 
-  const filteredChats = rooms.filter((room) =>
+  const sectionRooms = rooms.filter((room) => {
+    if (activeSection === "communities") return room.type === "community";
+    if (activeSection === "teams") return room.type === "team";
+    return true; // messages tab shows all
+  });
+
+  const filteredChats = sectionRooms.filter((room) =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -108,7 +115,7 @@ export default function MessagesSidebar({
           <div className="flex flex-col items-center justify-center h-48 text-on-surface-variant text-sm p-8 text-center">
             <p className="mb-1 font-medium">No conversations yet</p>
             <p className="text-xs text-on-surface-variant/50">
-              {searchQuery ? "Try a different search term." : "Create a team or start a direct chat."}
+              {searchQuery ? "Try a different search term." : activeSection === "communities" ? "Join a community to see its chat." : activeSection === "teams" ? "Join a team to see its chat." : "Start a direct chat."}
             </p>
           </div>
         )}
