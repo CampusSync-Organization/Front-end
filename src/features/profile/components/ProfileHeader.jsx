@@ -80,6 +80,7 @@ export const ProfileHeader = ({
     useEditableSection(initialValues, { buildPayload });
 
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
@@ -130,8 +131,8 @@ export const ProfileHeader = ({
               className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden bg-slate-200 ${isOwnProfile ? "cursor-pointer group" : ""}`}
               onClick={isOwnProfile ? () => fileInputRef.current?.click() : undefined}
             >
-              {resolvedAvatar ? (
-                <img src={resolvedAvatar} alt={fullName} className="w-full h-full object-cover" />
+              {resolvedAvatar && !avatarBroken ? (
+                <img src={resolvedAvatar} alt={fullName} onError={() => setAvatarBroken(true)} className="w-full h-full object-cover" />
               ) : (
                 <UserAvatar name={fullName} className="w-full h-full text-4xl" />
               )}

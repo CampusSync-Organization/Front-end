@@ -56,7 +56,7 @@ async function fetchAndSyncMyCommunityChats() {
     // Fetch member chats + moderated communities in parallel
     const [chatsRes, moderatedRes] = await Promise.allSettled([
       api.get("/communities/me/chats"),
-      api.get("/communities/me/moderated"),
+      Promise.resolve({ data: [] }),
     ]);
 
     const { addRoom } = (await import("../../chat/store/useChatStore")).default.getState();

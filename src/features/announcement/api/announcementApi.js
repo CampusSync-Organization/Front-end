@@ -15,6 +15,10 @@ export const announcementApi = {
     const response = await api.get(`/announcements/me?${params}`);
     return response.data;
   },
+  getUserAnnouncements: async (userId) => {
+    const response = await api.get(`/announcements/user/${userId}`);
+    return response.data;
+  },
   getConnectionsFeed: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await api.get(`/announcements/feed?${params}`);

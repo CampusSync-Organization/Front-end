@@ -25,14 +25,16 @@ function avatarHue(name = "") {
 }
 
 function Avatar({ name, avatarUrl, type, size = 11 }) {
+  const [broken, setBroken] = useState(false);
   const hue = avatarHue(name);
   const px = size * 4;
   const resolved = resolveAvatarUrl(avatarUrl);
-  if (resolved) {
+  if (resolved && !broken) {
     return (
       <img
         src={resolved}
         alt={name}
+        onError={() => setBroken(true)}
         className="rounded-full object-cover shrink-0"
         style={{ width: px, height: px }}
       />

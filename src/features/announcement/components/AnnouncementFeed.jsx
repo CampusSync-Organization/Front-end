@@ -27,22 +27,11 @@ import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import useChatStore from "../../chat/store/useChatStore";
 
 function UserAvatar({ user }) {
+  const [broken, setBroken] = useState(false);
   const avatar = resolveAvatarUrl(user?.avatar_url);
   const name = user?.name ?? "";
-  const ini =
-    name
-      .split(" ")
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase())
-      .join("") || "?";
-  if (avatar)
-    return (
-      <img
-        src={avatar}
-        alt={name}
-        className="w-9 h-9 rounded-full object-cover shrink-0"
-      />
-    );
+  const ini = name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
+  if (avatar && !broken) return <img src={avatar} alt={name} onError={() => setBroken(true)} className="w-9 h-9 rounded-full object-cover shrink-0" />;
   return (
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"

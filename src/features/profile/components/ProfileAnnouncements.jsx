@@ -4,6 +4,7 @@ import { Megaphone, Plus, X, Check, Edit3 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import AnnouncementCard from "../../announcement/components/AnnouncementCard";
+import { announcementApi } from "../../announcement/api/announcementApi";
 import {
   fetchMyAnnouncements,
   createAnnouncement,
@@ -212,20 +213,31 @@ const CreateAnnouncementForm = ({ onCancel }) => {
   );
 };
 
-export const ProfileAnnouncements = ({ isOwnProfile = true }) => {
+export const ProfileAnnouncements = ({ isOwnProfile = true, userId = null }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const announcements = useSelector(selectMyAnnouncements);
+  const myAnnouncements = useSelector(selectMyAnnouncements);
   const status = useSelector(selectMyAnnouncementStatus);
   const [isCreating, setIsCreating] = useState(false);
+  const [userAnnouncements, setUserAnnouncements] = useState([]);
+  const [userAnnouncementsLoading, setUserAnnouncementsLoading] = useState(false);
 
   useEffect(() => {
-    if (status === "idle") {
-      dispatch(fetchMyAnnouncements());
+    if (isOwnProfile) {
+      if (status === "idle") dispatch(fetchMyAnnouncements());
+    } else if (userId) {
+      setUserAnnouncementsLoading(true);
+      announcementApi.getUserAnnouncements(userId)
+        .then((data) => setUserAnnouncements(Array.isArray(data) ? data : data?.announcements ?? []))
+        .catch(() => setUserAnnouncements([]))
+        .finally(() => setUserAnnouncementsLoading(false));
     }
-  }, [status, dispatch]);
+  }, [isOwnProfile, userId, status, dispatch]);
 
-  if (status === "loading") {
+  const announcements = isOwnProfile ? myAnnouncements : userAnnouncements;
+  const loading = isOwnProfile ? status === "loading" : userAnnouncementsLoading;
+
+  if (loading) {
     return (
       <section className="bg-card-light p-6 sm:p-8 rounded-xl shadow-sm border border-border-light">
         <p className="text-center text-slate-500">Loading announcements...</p>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { Send, ArrowLeft, MessageSquare, Users, Users2 } from "lucide-react";
+import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb } from "lucide-react";
 import useChatStore from "../store/useChatStore";
+import { chatSocket } from "../services/chatSocket";
 
 function formatTime(dateStr) {
   if (!dateStr) return "";
@@ -102,15 +103,34 @@ function groupByDate(messages) {
   return groups;
 }
 
+function ChatHeaderAvatar({ avatarUrl, name, type }) {
+  const [broken, setBroken] = useState(false);
+  if (avatarUrl && !broken) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        onError={() => setBroken(true)}
+        className="w-10 h-10 rounded-full object-cover shrink-0"
+      />
+    );
+  }
+  return <RoomAvatar name={name} type={type} size={10} />;
+}
+
 export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   const [inputValue, setInputValue] = useState("");
+  const [moderationFeedback, setModerationFeedback] = useState(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const moderationSubscribed = useRef(false);
 
   const currentUser = useSelector((state) => state.auth?.user);
   const currentUserId = currentUser?.userID ?? currentUser?.id;
 
-  const { activeRoomId, messages, sendMessage } = useChatStore();
+  const { activeRoomId, messages, sendMessage, fetchMessages } = useChatStore();
+  const lastSentRef = useRef(null);
+
   const roomMessages = messages[activeRoomId] ?? [];
 
   const memberNameMap = (() => {
@@ -127,6 +147,18 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [roomMessages.length]);
+
+  useEffect(() => {
+    if (moderationSubscribed.current) return;
+    moderationSubscribed.current = true;
+    const unsubscribe = chatSocket.onModeration(({ explanation, suggestion }) => {
+      setModerationFeedback({ explanation, suggestion });
+    });
+    return () => {
+      moderationSubscribed.current = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -156,8 +188,18 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
 
   const handleSend = () => {
     if (!inputValue.trim() || !activeRoomId) return;
+    setModerationFeedback(null);
+    lastSentRef.current = { roomId: activeRoomId, content: inputValue.trim() };
     sendMessage(activeRoomId, inputValue.trim());
     setInputValue("");
+  };
+
+  const handleSendAnyway = () => {
+    if (!lastSentRef.current) return;
+    const { roomId, content } = lastSentRef.current;
+    lastSentRef.current = null;
+    setModerationFeedback(null);
+    sendMessage(roomId, content, true);
   };
 
   const chatName = activeChat?.name ?? "Chat";
@@ -170,15 +212,7 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
       <div className="px-5 py-3.5 flex items-center justify-between border-b border-outline-variant/15 bg-white shrink-0">
         <div className="flex items-center gap-3 cursor-pointer" onClick={onOpenContact}>
           <div className="relative">
-            {activeChat?.avatarUrl ? (
-              <img
-                src={activeChat.avatarUrl}
-                alt={chatName}
-                className="w-10 h-10 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <RoomAvatar name={chatName} type={activeChat?.type} size={10} />
-            )}
+            <ChatHeaderAvatar avatarUrl={activeChat?.avatarUrl} name={chatName} type={activeChat?.type} />
             {activeChat?.type === "direct" && (
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
             )}
@@ -222,6 +256,37 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Moderation feedback banner */}
+      {moderationFeedback && (
+        <div className="mx-5 mb-2 mt-1 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex gap-3 items-start shrink-0">
+          <ShieldAlert className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-amber-800 mb-1">Message blocked</p>
+            {moderationFeedback.explanation && (
+              <p className="text-[12.5px] text-amber-700 leading-snug">{moderationFeedback.explanation}</p>
+            )}
+            {moderationFeedback.suggestion && (
+              <div className="flex items-start gap-1.5 mt-2">
+                <Lightbulb className="w-3.5 h-3.5 text-[#14213D] mt-0.5 shrink-0" />
+                <p className="text-[12px] text-[#14213D] font-medium leading-snug">{moderationFeedback.suggestion}</p>
+              </div>
+            )}
+            <button
+              onClick={handleSendAnyway}
+              className="mt-3 text-[12px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900 transition-colors"
+            >
+              Send anyway
+            </button>
+          </div>
+          <button
+            onClick={() => setModerationFeedback(null)}
+            className="text-amber-500 hover:text-amber-700 transition-colors shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="px-5 py-3 shrink-0 border-t border-outline-variant/10">
