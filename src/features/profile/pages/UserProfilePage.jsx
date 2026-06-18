@@ -225,9 +225,8 @@ const UserProfilePage = () => {
                         <ProfileAbout user={user} isOwnProfile={false} />
                         <ProfileInfo user={user} isOwnProfile={false} />
                         <ProfileAnnouncements
-                            user={user}
-                            announcements={[]}
                             isOwnProfile={false}
+                            userId={profile?.user_id}
                         />
                         <UserProjects projects={projects} isOwnProfile={false} />
                         <UserReviews reviews={[]} />
