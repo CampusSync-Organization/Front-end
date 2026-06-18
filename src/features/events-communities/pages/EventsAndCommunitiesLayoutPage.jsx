@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Toaster, toast } from "sonner";
-import { Home, Compass, Plus, UserCog, CalendarDays } from "lucide-react";
+import { Home, Compass, Plus, CalendarDays } from "lucide-react";
 import { EventsAndCommunitiesPage } from "../components/EventsAndCommunitiesPage";
 import { CommunityDetailsPage } from "../components/CommunityDetailsPage";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { CreateContentDialog } from "../components/CreateContentDialog";
+import EditEventDialog from "../components/EditEventDialog";
 import { useEventStore } from "../store/useEventStore";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -21,6 +21,8 @@ export default function EventsAndCommunitiesLayoutPage() {
     createCommunity,
     rsvpEvent,
     cancelRsvpEvent,
+    updateEvent,
+    deleteEvent,
     deleteCommunity,
     updateCommunity,
     fetchCommunity,
@@ -32,8 +34,9 @@ export default function EventsAndCommunitiesLayoutPage() {
   const [activeTab, setActiveTab] = useState("explore");
   const [selectedCommunity, setSelectedCommunity] = useState(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const isModerator = authUser?.role === "moderator" || authUser?.role === "admin";
-  const [userRole, setUserRole] = useState(isModerator ? "admin" : "student");
+  const userRole = isModerator ? "admin" : "student";
 
   // Fetch initial data
   useEffect(() => {
@@ -58,7 +61,7 @@ export default function EventsAndCommunitiesLayoutPage() {
   const handleJoinEvent = async (id) => {
     const event = events.find((e) => e.id === id);
     if (event) {
-      if (event.attendees?.includes(authUser?.id)) {
+      if (event.isAttending) {
         await cancelRsvpEvent(id);
       } else {
         await rsvpEvent(id);
@@ -76,11 +79,13 @@ export default function EventsAndCommunitiesLayoutPage() {
   };
 
   const handleEditEvent = (id) => {
-    toast.info("Edit functionality", { description: "Edit feature would be implemented here." });
+    const event = events.find((e) => e.id === id);
+    if (event) setEditingEvent(event);
   };
 
-  const handleDeleteEvent = (id) => {
-    toast.success("Event deleted", { description: "The event has been removed from the platform." });
+  const handleDeleteEvent = async (id) => {
+    if (!window.confirm("Delete this event?")) return;
+    await deleteEvent(id);
   };
 
   const handleEditCommunity = async (id, data) => {
@@ -124,14 +129,6 @@ export default function EventsAndCommunitiesLayoutPage() {
     const community = communities.find((c) => c.id === communityId);
     if (!community) return [];
     return events.filter((e) => e.club === community.name);
-  };
-
-  const handleToggleRole = () => {
-    const newRole = userRole === "admin" ? "student" : "admin";
-    setUserRole(newRole);
-    toast.success(`Switched to ${newRole} view`, {
-      description: newRole === "admin" ? "You can now create and manage content" : "You can now view and join content",
-    });
   };
 
   const handleEventClick = (id) => {
@@ -254,24 +251,15 @@ export default function EventsAndCommunitiesLayoutPage() {
           My Events
         </button>
       </div>
-      <div className="flex items-center gap-2">
+      {isModerator && (
         <button
-          onClick={handleToggleRole}
-          className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-primary hover:bg-secondary/90"
         >
-          <UserCog className="h-4 w-4" />
-          <span className="hidden sm:inline">{userRole === "admin" ? "Admin" : "Student"}</span>
+          <Plus className="h-4 w-4" />
+          Create
         </button>
-        {userRole === "admin" && (
-          <button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-primary hover:bg-secondary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Create
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 
@@ -288,7 +276,17 @@ export default function EventsAndCommunitiesLayoutPage() {
         onSubmitCommunity={handleCreateCommunity}
       />
 
-      <Toaster richColors position="top-right" />
+      {editingEvent && (
+        <EditEventDialog
+          event={editingEvent}
+          open={!!editingEvent}
+          onOpenChange={(v) => { if (!v) setEditingEvent(null); }}
+          onSave={async (data) => {
+            await updateEvent(editingEvent.id, data);
+            setEditingEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

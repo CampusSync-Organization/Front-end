@@ -12,6 +12,8 @@ import ProfilePage from "../../features/profile/pages/ProfilePage.jsx";
 import ProfileConnectionsPage from "../../features/profile/pages/ProfileConnectionsPage.jsx";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
+import TeamsPage from "../../features/chat/pages/TeamsPage.jsx";
+import TeamDetailPage from "../../features/chat/pages/TeamDetailPage.jsx";
 import RecommendationPage from "../../features/recommendation/pages/RecommendationPage.jsx";
 import EventsAndCommunitiesLayoutPage from "../../features/events-communities/pages/EventsAndCommunitiesLayoutPage.jsx";
 import EventDetailsPage from "../../features/events-communities/pages/EventDetailsPage.jsx";
@@ -66,6 +68,8 @@ export const router = createBrowserRouter([
           { path: "user-profile/:id", element: <UserProfilePage /> },
           { path: "Recommendation-Page", element: <RecommendationPage /> },
           { path: "Chat-Main-Page", element: <ChatMainPage /> },
+          { path: "teams", element: <TeamsPage /> },
+          { path: "teams/:teamId", element: <TeamDetailPage /> },
         ],
       },
     ],
