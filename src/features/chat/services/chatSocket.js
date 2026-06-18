@@ -6,6 +6,7 @@ class ChatSocket {
   constructor() {
     this.socket = null;
     this.handlers = [];
+    this.moderationHandlers = [];
     this.reconnectDelay = MIN_RECONNECT_DELAY;
     this.token = null;
     this.shouldReconnect = false;
@@ -34,6 +35,8 @@ class ChatSocket {
         const parsed = JSON.parse(event.data);
         if (parsed.type === "message" && parsed.data) {
           this.handlers.forEach((handler) => handler(parsed.data));
+        } else if (parsed.type === "moderation_feedback" && parsed.data) {
+this.moderationHandlers.forEach((handler) => handler(parsed.data));
         }
       } catch {
         // ignore malformed messages
@@ -64,19 +67,40 @@ class ChatSocket {
       this.socket = null;
     }
     this.handlers = [];
+    this.moderationHandlers = [];
   }
 
-  send(roomId, content) {
+  // Close and reopen the socket without clearing handlers — resets backend session state
+  softReconnect() {
+    if (this.socket) {
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      this.socket.close();
+      this.socket = null;
+    }
+    this._open();
+  }
+
+  send(roomId, content, override = false) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       throw new Error("WebSocket not connected");
     }
-    this.socket.send(JSON.stringify({ room_id: roomId, content }));
+    const payload = { room_id: roomId, content };
+    if (override) payload.override = true;
+    this.socket.send(JSON.stringify(payload));
   }
 
   onMessage(handler) {
     this.handlers.push(handler);
     return () => {
       this.handlers = this.handlers.filter((h) => h !== handler);
+    };
+  }
+
+  onModeration(handler) {
+    this.moderationHandlers.push(handler);
+    return () => {
+      this.moderationHandlers = this.moderationHandlers.filter((h) => h !== handler);
     };
   }
 

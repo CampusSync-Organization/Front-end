@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectConnectedUserIds, selectPendingRequesterIds } from "../../../services/connections/store/connectionsSlice";
@@ -19,6 +20,7 @@ export default function WelcomeHeader() {
   const user = useSelector((s) => s.auth.user);
   const name = user?.name ?? "Student";
   const firstName = name.split(" ")[0];
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const avatar = resolveAvatarUrl(user?.avatar_url);
   const connIds = useSelector(selectConnectedUserIds);
   const pendingIds = useSelector(selectPendingRequesterIds);
@@ -28,8 +30,8 @@ export default function WelcomeHeader() {
       <div className="flex items-start gap-3">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 mt-0.5">
-          {avatar ? (
-            <img src={avatar} alt={name} className="w-full h-full object-cover" />
+          {avatar && !avatarBroken ? (
+            <img src={avatar} alt={name} onError={() => setAvatarBroken(true)} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-sm font-bold"
               style={{ background: "#14213D", color: "#FCA311" }}>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Users, MessageSquare, BookOpen, Loader2, UserPlus, Check } from "lucide-react";
@@ -14,12 +14,15 @@ const QUICK_LINKS = [
 ];
 
 function PeerAvatar({ src, name }) {
+  const [broken, setBroken] = useState(false);
   const resolved = resolveAvatarUrl(src);
-  if (resolved) return <img src={resolved} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />;
   const ini = name?.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
   let h = 0;
   for (let i = 0; i < (name?.length ?? 0); i++) h = (h * 31 + (name?.charCodeAt(i) ?? 0)) & 0xfffff;
   const hue = (h % 280) + 30;
+  if (resolved && !broken) {
+    return <img src={resolved} alt={name} onError={() => setBroken(true)} className="w-8 h-8 rounded-full object-cover shrink-0" />;
+  }
   return (
     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
       style={{ background: `hsl(${hue},45%,90%)`, color: `hsl(${hue},45%,30%)` }}>

@@ -13,6 +13,27 @@ function avatarHue(name = "") {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xfffff;
   return (h % 280) + 30;
 }
+function ProfileAvatar({ avatarUrl, name, hue }) {
+  const [broken, setBroken] = useState(false);
+  if (avatarUrl && !broken) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        onError={() => setBroken(true)}
+        className="w-10 h-10 rounded-full object-cover shrink-0"
+      />
+    );
+  }
+  return (
+    <div
+      className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
+      style={{ background: `hsl(${hue},55%,88%)`, color: `hsl(${hue},55%,32%)` }}
+    >
+      {initials(name)}
+    </div>
+  );
+}
 
 export default function NewMessageModal({ onClose }) {
   const navigate = useNavigate();
@@ -135,20 +156,7 @@ export default function NewMessageModal({ onClose }) {
                   disabled={!!opening}
                   className="w-full flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low transition-colors text-left disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={name}
-                      className="w-10 h-10 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
-                      style={{ background: `hsl(${hue},55%,88%)`, color: `hsl(${hue},55%,32%)` }}
-                    >
-                      {initials(name)}
-                    </div>
-                  )}
+                  <ProfileAvatar avatarUrl={profile.avatar_url} name={name} hue={hue} />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[14px] text-on-surface truncate">{name}</p>
                     {profile.major && (

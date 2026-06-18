@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -11,6 +11,7 @@ import {
 
 function ConnectionCard({ person }) {
   const navigate = useNavigate();
+  const [broken, setBroken] = useState(false);
   const name = person.name || person.full_name || `User ${person.user_id}`;
   const firstName = name.split(" ")[0];
   const avatar = resolveAvatarUrl(person.avatar_url);
@@ -28,8 +29,8 @@ function ConnectionCard({ person }) {
       style={{ height: 130, background: `hsl(${hue},40%,88%)` }}
     >
       {/* Background fill / avatar */}
-      {avatar ? (
-        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+      {avatar && !broken ? (
+        <img src={avatar} alt={name} onError={() => setBroken(true)} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-2xl font-bold" style={{ color: `hsl(${hue},40%,35%)` }}>
           {ini}
@@ -42,7 +43,7 @@ function ConnectionCard({ person }) {
       {/* Small avatar ring at top */}
       <div className="absolute top-2.5 left-1/2 -translate-x-1/2">
         <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white">
-          {avatar
+          {avatar && !broken
             ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
             : <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: `hsl(${hue},40%,70%)`, color: "#fff" }}>{ini}</div>
           }

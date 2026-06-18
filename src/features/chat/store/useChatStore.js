@@ -49,6 +49,23 @@ function resolveNameFromStore(userId) {
   return found?.name ?? found?.full_name ?? null;
 }
 
+/** Look up a peer by name or room name and return their avatar_url and user_id. */
+function resolvePeerFromStore(name) {
+  if (!name) return { avatarUrl: null, userId: null };
+  const state = store.getState();
+  const connections = state.connections?.hydratedConnections ?? [];
+  const recommendations = state.recommendations?.items ?? [];
+  const all = [...connections, ...recommendations];
+  const found = all.find((u) => {
+    const uName = u.name ?? u.full_name ?? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
+    return uName && uName === name;
+  });
+  return {
+    avatarUrl: found?.avatar_url ?? null,
+    userId: found?.user_id ?? found?.id ?? null,
+  };
+}
+
 const useChatStore = create(
   persist(
     (set, get) => ({
@@ -58,6 +75,7 @@ const useChatStore = create(
   isConnected: false,
   isLoadingRooms: false,
   teams: [],
+  pendingOptimistic: null,
 
   // ── Socket ───────────────────────────────────────────────────────────────────
 
@@ -67,6 +85,19 @@ const useChatStore = create(
     chatSocket.connect(token);
     set({ isConnected: true });
     chatSocket.onMessage((msg) => get().receiveMessage(msg));
+    chatSocket.onModeration(() => {
+      const pending = get().pendingOptimistic;
+      if (!pending) return;
+      set((state) => ({
+        pendingOptimistic: null,
+        messages: {
+          ...state.messages,
+          [pending.roomId]: (state.messages[pending.roomId] ?? []).filter(
+            (m) => m.id !== pending.id
+          ),
+        },
+      }));
+    });
   },
 
   disconnectSocket() {
@@ -97,9 +128,16 @@ const useChatStore = create(
 
         let name;
         let avatarUrl = peer?.avatar_url ?? null;
+        let resolvedPeerId = peerId;
         if (type === "direct") {
-          const resolved = peer?.name ?? peer?.full_name ?? (peerId ? resolveNameFromStore(peerId) : null);
+          const resolved = peer?.name ?? peer?.full_name ?? (peerId ? resolveNameFromStore(peerId) : null) ?? room.name ?? null;
           name = resolved ?? null;
+          // Try to get avatar + userId from connections/recommendations store by name
+          if (!avatarUrl && name) {
+            const fromStore = resolvePeerFromStore(name);
+            avatarUrl = fromStore.avatarUrl;
+            if (!resolvedPeerId && fromStore.userId) resolvedPeerId = fromStore.userId;
+          }
         } else {
           name = room.name ?? `Room ${room.id}`;
         }
@@ -107,33 +145,37 @@ const useChatStore = create(
         const roomEntry = {
           id: room.id,
           type,
-          name: name ?? `User ${peerId ?? room.id}`,
+          name: name ?? `User ${resolvedPeerId ?? room.id}`,
           lastMessage: room.last_message?.content ?? "",
           avatarUrl,
           members,
-          peerId: peerId ? Number(peerId) : null,
+          peerId: resolvedPeerId ? Number(resolvedPeerId) : null,
         };
         get().addRoom(roomEntry);
-        roomEntries.push({ roomEntry, name, peerId, type });
+        roomEntries.push({ roomEntry, name, peerId: resolvedPeerId, type });
       });
 
       // Batch-fetch last messages and resolve names in background
-      roomEntries.forEach(({ roomEntry, name, peerId, type }) => {
-        // Fetch real last message for each room
+      roomEntries.forEach(({ roomEntry, peerId, type }) => {
+        // Fetch real last message for each room (only update lastMessage field)
         getRoomMessages(roomEntry.id).then((msgs) => {
           if (msgs?.length) {
             const last = msgs[msgs.length - 1];
-            get().addRoom({ ...roomEntry, lastMessage: last.content });
+            get().addRoom({ id: roomEntry.id, lastMessage: last.content });
           }
         }).catch(() => {});
 
-        // Resolve name for direct chats if still unresolved
-        if (type === "direct" && !name && peerId) {
+        // Fetch profile for direct chats to resolve name and avatar (only update changed fields)
+        if (type === "direct" && peerId) {
           getProfileByUserId(peerId).then((profile) => {
             const resolvedName = profile?.name ?? profile?.full_name ?? null;
             const resolvedAvatar = profile?.avatar_url ?? null;
-            if (resolvedName) {
-              get().addRoom({ ...roomEntry, name: resolvedName, avatarUrl: resolvedAvatar });
+            if (resolvedName || resolvedAvatar) {
+              get().addRoom({
+                id: roomEntry.id,
+                ...(resolvedName ? { name: resolvedName } : {}),
+                ...(resolvedAvatar ? { avatarUrl: resolvedAvatar } : {}),
+              });
             }
           }).catch(() => {});
         }
@@ -154,7 +196,16 @@ const useChatStore = create(
       const exists = state.rooms.some((r) => r.id === room.id);
       if (exists) {
         return {
-          rooms: state.rooms.map((r) => (r.id === room.id ? { ...r, ...room } : r)),
+          rooms: state.rooms.map((r) => {
+            if (r.id !== room.id) return r;
+            return {
+              ...r,
+              ...room,
+              // Preserve good existing values when the incoming update has nothing better
+              lastMessage: room.lastMessage || r.lastMessage || "",
+              avatarUrl: room.avatarUrl ?? r.avatarUrl ?? null,
+            };
+          }),
         };
       }
       return { rooms: [...state.rooms, room] };
@@ -181,7 +232,7 @@ const useChatStore = create(
     }
   },
 
-  async sendMessage(roomId, content) {
+  async sendMessage(roomId, content, override = false) {
     if (!roomId || !content) return;
     const currentUserId = getCurrentUserId();
     const optimistic = {
@@ -196,10 +247,33 @@ const useChatStore = create(
         ...state.messages,
         [roomId]: [...(state.messages[roomId] ?? []), optimistic],
       },
+      pendingOptimistic: { roomId, id: optimistic.id, content },
     }));
 
     try {
-      chatSocket.send(roomId, content);
+      chatSocket.send(roomId, content, override);
+      if (override) {
+        // Once backend confirms the overridden message, reconnect to reset the
+        // backend's per-connection override flag so future messages are moderated.
+        let done = false;
+        let unsubConfirm;
+        const doReconnect = () => {
+          if (done) return;
+          done = true;
+          if (unsubConfirm) unsubConfirm();
+          chatSocket.softReconnect();
+        };
+        unsubConfirm = chatSocket.onMessage((msg) => {
+          if (
+            Number(msg.sender_id) === Number(currentUserId) &&
+            msg.content === content
+          ) {
+            doReconnect();
+          }
+        });
+        // Safety fallback: reconnect after 4s even if confirmation never arrives
+        setTimeout(doReconnect, 4000);
+      }
     } catch {
       set((state) => ({
         messages: {
@@ -217,8 +291,21 @@ const useChatStore = create(
             [roomId]: [...(state.messages[roomId] ?? []), msg],
           },
         }));
-      } catch {
-        toast.error("Failed to send message.");
+      } catch (err) {
+        const detail = err?.response?.data?.detail;
+        if (detail?.code === "MESSAGE_FLAGGED") {
+          set((state) => ({
+            messages: {
+              ...state.messages,
+              [roomId]: (state.messages[roomId] ?? []).filter((m) => m.id !== optimistic.id),
+            },
+          }));
+          chatSocket.moderationHandlers.forEach((h) =>
+            h({ explanation: detail.explanation, suggestion: detail.suggestion ?? null })
+          );
+        } else {
+          toast.error("Failed to send message.");
+        }
       }
     }
   },
@@ -228,14 +315,18 @@ const useChatStore = create(
       const existing = state.messages[msg.room_id] ?? [];
       if (existing.some((m) => m.id === msg.id)) return {};
       const currentUserId = getCurrentUserId();
-      const filtered =
-        msg.sender_id === currentUserId
-          ? existing.filter(
-              (m) =>
-                !(String(m.id).startsWith("tmp-") && m.content === msg.content)
-            )
-          : existing;
+      const isMine = Number(msg.sender_id) === Number(currentUserId);
+      const pending = state.pendingOptimistic;
+      const filtered = isMine
+        ? existing.filter((m) => {
+            if (!String(m.id).startsWith("tmp-")) return true;
+            // Remove the tracked optimistic by exact ID first, then fall back to content
+            if (pending && m.id === pending.id) return false;
+            return m.content !== msg.content;
+          })
+        : existing;
       return {
+        pendingOptimistic: null,
         messages: {
           ...state.messages,
           [msg.room_id]: [...filtered, msg],
@@ -362,7 +453,16 @@ const useChatStore = create(
     }),
     {
       name: `chat-rooms-${store.getState().auth?.user?.userID ?? store.getState().auth?.user?.id ?? "guest"}`,
-      partialize: (state) => ({ rooms: state.rooms }),
+      partialize: (state) => ({
+        rooms: state.rooms,
+        activeRoomId: state.activeRoomId,
+        messages: Object.fromEntries(
+          Object.entries(state.messages).map(([roomId, msgs]) => [
+            roomId,
+            msgs.filter((m) => !String(m.id).startsWith("tmp-")).slice(-50),
+          ])
+        ),
+      }),
     }
   )
 );

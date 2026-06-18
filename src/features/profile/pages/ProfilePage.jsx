@@ -118,6 +118,7 @@ const ProfilePage = () => {
   const [tab, setTab] = useState("overview");
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
 
   useEffect(() => {
@@ -209,9 +210,11 @@ const ProfilePage = () => {
                 className="w-28 h-28 rounded-2xl ring-4 ring-white shadow-xl overflow-hidden bg-slate-200 cursor-pointer group"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {resolvedAvatar
-                  ? <img src={resolvedAvatar} alt={fullName} className="w-full h-full object-cover" />
-                  : <UserAvatar name={fullName} className="w-full h-full text-4xl" />}
+                {resolvedAvatar && !avatarBroken ? (
+                  <img src={resolvedAvatar} alt={fullName} onError={() => setAvatarBroken(true)} className="w-full h-full object-cover" />
+                ) : (
+                  <UserAvatar name={fullName} className="w-full h-full text-4xl" />
+                )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
                   <Camera className="text-white" size={22} />
                 </div>
