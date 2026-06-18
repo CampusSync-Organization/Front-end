@@ -81,6 +81,9 @@ const useChatStore = create(
   isLoadingRooms: false,
   teams: [],
   pendingOptimistic: null,
+  incomingJoinRequests: [],
+  joinRequestStatus: {},
+  joinRequestError: {},
 
   // ── Socket ───────────────────────────────────────────────────────────────────
 
@@ -392,6 +395,10 @@ const useChatStore = create(
     // GET /teams not implemented by backend — no-op
   },
 
+  async fetchIncomingJoinRequests() {
+    // no-op until backend endpoint is available
+  },
+
   async fetchTeam(teamId) {
     try {
       const team = await apiGetTeam(teamId);
@@ -407,18 +414,27 @@ const useChatStore = create(
     }
   },
 
-  async requestJoinTeam(teamId) {
+  async requestJoinTeam(teamId, userId) {
+    const key = userId ? `${userId}:${teamId}` : String(teamId);
+    set((state) => ({
+      joinRequestStatus: { ...state.joinRequestStatus, [key]: "pending" },
+      joinRequestError: { ...state.joinRequestError, [key]: null },
+    }));
     try {
       await apiRequestJoinTeam(teamId);
       set((state) => ({
+        joinRequestStatus: { ...state.joinRequestStatus, [key]: "sent" },
         teams: state.teams.map((t) =>
           t.id === teamId ? { ...t, join_request_status: "pending" } : t
         ),
       }));
-      toast.success("Join request sent!");
-    } catch {
-      toast.error("Failed to send join request.");
-      throw new Error("requestJoinTeam failed");
+    } catch (err) {
+      const msg = err?.response?.data?.detail ?? "Failed to send join request.";
+      set((state) => ({
+        joinRequestStatus: { ...state.joinRequestStatus, [key]: "error" },
+        joinRequestError: { ...state.joinRequestError, [key]: msg },
+      }));
+      throw err;
     }
   },
 
@@ -450,13 +466,26 @@ const useChatStore = create(
     }),
     {
       name: `chat-rooms-${store.getState().auth?.user?.userID ?? store.getState().auth?.user?.id ?? "guest"}`,
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted ?? {}),
+        rooms: Array.isArray(persisted?.rooms) ? persisted.rooms : current.rooms,
+        messages: Object.fromEntries(
+          Object.entries(persisted?.messages ?? {}).map(([id, msgs]) => [
+            id,
+            Array.isArray(msgs) ? msgs : [],
+          ])
+        ),
+      }),
       partialize: (state) => ({
         rooms: state.rooms,
         activeRoomId: state.activeRoomId,
         messages: Object.fromEntries(
-          Object.entries(state.messages).map(([roomId, msgs]) => [
+          Object.entries(state.messages ?? {}).map(([roomId, msgs]) => [
             roomId,
-            msgs.filter((m) => !String(m.id).startsWith("tmp-")).slice(-50),
+            (Array.isArray(msgs) ? msgs : [])
+              .filter((m) => !String(m.id).startsWith("tmp-"))
+              .slice(-50),
           ])
         ),
       }),
