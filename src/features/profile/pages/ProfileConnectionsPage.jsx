@@ -10,6 +10,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { UserAvatar } from "../../../shared/ui/UserAvatar";
+import StartDirectChatButton from "../../chat/components/StartDirectChatButton";
 import {
   acceptConnectionRequest,
   fetchConnectionsWithHydration,
@@ -31,7 +32,7 @@ const TABS = {
 
 const getProfileUserId = (profile) => profile?.user_id || profile?.id;
 
-const ProfileListItem = ({ profile, action }) => {
+const ProfileListItem = ({ profile, action, showMessage = false }) => {
   const userId = getProfileUserId(profile);
 
   return (
@@ -59,6 +60,13 @@ const ProfileListItem = ({ profile, action }) => {
           <Eye size={16} />
           View
         </Link>
+        {showMessage && (
+          <StartDirectChatButton
+            userId={userId}
+            userName={profile?.name}
+            className="rounded-lg px-4 py-2 text-sm"
+          />
+        )}
         {action}
       </div>
     </article>
@@ -172,6 +180,7 @@ const ProfileConnectionsPage = () => {
                 <ProfileListItem
                   key={getProfileUserId(profile)}
                   profile={profile}
+                  showMessage
                   action={
                     <span className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
                       <UserCheck size={16} />

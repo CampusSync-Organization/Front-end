@@ -2,7 +2,7 @@ import { MessageSquare, Users, Users2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const NAV_ITEMS = [
-  { key: "messages", ICON: MessageSquare, label: "Messages", path: "/Chat-Main-Page" },
+  { key: "messages", ICON: MessageSquare, label: "Messages", path: null },
   { key: "communities", ICON: Users, label: "Communities", path: null },
   { key: "teams", ICON: Users2, label: "Teams", path: "/teams" },
 ];

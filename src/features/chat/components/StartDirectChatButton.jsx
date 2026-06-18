@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import useChatStore from "../store/useChatStore";
 
@@ -13,7 +13,7 @@ export default function StartDirectChatButton({ userId, userName, className = ""
     if (isLoading) return;
     setIsLoading(true);
     try {
-      await openDirectChat(userId);
+      await openDirectChat(userId, userName); // pass name so sidebar shows it correctly
       navigate("/Chat-Main-Page");
     } catch (err) {
       const status = err?.response?.status;
@@ -34,8 +34,12 @@ export default function StartDirectChatButton({ userId, userName, className = ""
       aria-label={`Message ${userName ?? "user"}`}
       className={`flex items-center gap-2 bg-primary text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-primary/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
     >
-      <MessageSquare className="w-4 h-4 shrink-0" />
-      {isLoading ? "Opening..." : "Message"}
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+      ) : (
+        <MessageSquare className="w-4 h-4 shrink-0" />
+      )}
+      {isLoading ? "Opening…" : "Message"}
     </button>
   );
 }

@@ -1,122 +1,241 @@
 import { useState } from "react";
-import { Search, Plus, User, Users } from "lucide-react";
+import { Search, Plus, MessageSquare, Users, Users2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
 
-function formatTime(dateStr) {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  if (isNaN(date)) return "";
-  const now = new Date();
-  const diffMs = now - date;
-  const diffHours = diffMs / (1000 * 60 * 60);
-  if (diffHours < 24) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  return "Yesterday";
+/** Resolve a display name from any profile shape the backend might return. */
+function resolveName(profile) {
+  if (!profile) return null;
+  return (
+    profile.name ??
+    (profile.first_name ? `${profile.first_name} ${profile.last_name ?? ""}`.trim() : null) ??
+    profile.full_name ??
+    null
+  );
 }
 
-export default function MessagesSidebar({
-  onOpenCreateGroup,
-  activeSection = "messages",
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const { rooms, activeRoomId, setActiveRoom } = useChatStore();
+function initials(name = "") {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+function avatarHue(name = "") {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xfffff;
+  return (h % 280) + 30;
+}
 
-  const sectionRooms = rooms.filter((room) => {
-    if (activeSection === "communities") return room.type === "community";
-    if (activeSection === "teams") return room.type === "team";
-    return true; // messages tab shows all
-  });
-
-  const filteredChats = sectionRooms.filter((room) =>
-    room.name.toLowerCase().includes(searchQuery.toLowerCase())
+function Avatar({ name, avatarUrl, type, size = 11 }) {
+  const hue = avatarHue(name);
+  const px = size * 4;
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: px, height: px }}
+      />
+    );
+  }
+  const color = `hsl(${hue},55%,32%)`;
+  return (
+    <div
+      className="rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
+      style={{ width: px, height: px, background: `hsl(${hue},55%,88%)`, color }}
+    >
+      {type === "community" ? (
+        <Users className="w-5 h-5" style={{ color }} />
+      ) : type === "team" ? (
+        <Users2 className="w-5 h-5" style={{ color }} />
+      ) : (
+        initials(name) || <MessageSquare className="w-4 h-4" />
+      )}
+    </div>
   );
+}
+
+const SECTION_EMPTY = {
+  communities: { icon: Users,  title: "No community chats", hint: "Join a community to see its chat here." },
+  teams:       { icon: Users2, title: "No team chats",      hint: "Join or create a team to chat." },
+};
+
+export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "messages", connections = [], connectionsLoading = false }) {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openingId, setOpeningId] = useState(null);
+
+  const { rooms, activeRoomId, setActiveRoom, isLoadingRooms, fetchMessages, openDirectChat, addRoom } = useChatStore();
+
+  // Build merged list for messages tab:
+  // connections enriched with existing room data if DM already exists
+  const mergedItems = (() => {
+    if (activeSection !== "messages") return [];
+
+    // Map existing DM rooms by the other user's ID (peerId stored on room)
+    const roomByUserId = new Map();
+    rooms.filter((r) => r.type === "direct").forEach((room) => {
+      if (room.peerId) roomByUserId.set(room.peerId, room);
+    });
+
+    return connections.map((profile) => {
+      const userId = Number(profile.user_id ?? profile.id);
+      const name = resolveName(profile) || `User ${userId}`;
+      const room = roomByUserId.get(userId) ?? null;
+      // Patch stale "User {id}" room names with the real name
+      if (room && room.name !== name) addRoom({ ...room, name });
+      return { userId, name, avatarUrl: profile.avatar_url ?? null, major: profile.major ?? null, room };
+    });
+  })();
+
+  const q = searchQuery.toLowerCase();
+
+  const displayItems = activeSection === "messages"
+    ? mergedItems.filter((item) => item.name.toLowerCase().includes(q))
+    : rooms
+        .filter(activeSection === "communities" ? (r) => r.type === "community" : (r) => r.type === "team")
+        .filter((r) => r.name.toLowerCase().includes(q));
+
+  const handleSelectRoom = (room) => {
+    setActiveRoom(room.id);
+    fetchMessages(room.id);
+  };
+
+  const handleSelectConnection = async (item) => {
+    if (openingId) return;
+    if (item.room) {
+      // Patch the stored room name with the real profile name in case it was "User {id}"
+      addRoom({ ...item.room, name: item.name });
+      handleSelectRoom(item.room);
+      return;
+    }
+    setOpeningId(item.userId);
+    try {
+      await openDirectChat(item.userId, item.name);
+      navigate("/Chat-Main-Page");
+    } catch {
+      // toast shown inside openDirectChat
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const isLoading = activeSection === "messages" ? connectionsLoading || isLoadingRooms : isLoadingRooms;
+  const empty = SECTION_EMPTY[activeSection];
 
   return (
-    <div className="w-[320px] shrink-0 h-full flex flex-col bg-background-light border-r border-outline-variant/20">
+    <div className="w-[300px] shrink-0 h-full flex flex-col bg-white border-r border-outline-variant/20">
       {/* Header */}
-      <div className="px-5 pt-5 pb-4">
+      <div className="px-5 pt-5 pb-4 border-b border-outline-variant/10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-primary tracking-tight">
-            Messages
+          <h2 className="text-[17px] font-bold text-primary tracking-tight capitalize">
+            {activeSection === "messages" ? "Messages" : activeSection === "communities" ? "Communities" : "Teams"}
           </h2>
-          <button
-            onClick={onOpenCreateGroup}
-            className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-secondary hover:text-white transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          {activeSection !== "communities" && (
+            <button
+              onClick={onOpenCreateGroup}
+              title="New group"
+              className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Search bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-on-surface-variant/40 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Find connections..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-outline-variant/30 rounded-xl focus:outline-none focus:border-outline-variant/60 transition-all text-sm font-medium placeholder:text-on-surface-variant/40 text-on-surface"
+            placeholder={activeSection === "messages" ? "Search connections…" : "Search…"}
+            className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl focus:outline-none focus:border-outline-variant/50 text-sm font-medium placeholder:text-on-surface-variant/40 text-on-surface transition-colors"
           />
         </div>
       </div>
 
-      {/* Chat list */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 pt-1 space-y-0.5">
-        {filteredChats.map((room) => {
-          const isActive = activeRoomId === room.id;
-          const isDirect = room.type === "direct";
-          return (
-            <div
-              key={room.id}
-              onClick={() => setActiveRoom(room.id)}
-              className={`group flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${
-                isActive
-                  ? "bg-white shadow-soft border border-outline-variant/20"
-                  : "hover:bg-white/60"
-              }`}
-            >
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div className="w-11 h-11 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center text-primary font-bold text-sm">
-                  {isDirect ? (
-                    <User className="w-5 h-5 text-primary" />
-                  ) : (
-                    <Users className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline">
-                  <h3
-                    className={`font-semibold truncate text-[14px] leading-tight transition-colors ${
-                      isActive ? "text-primary" : "text-on-surface-variant"
+      {/* List */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-2 px-2">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-32 gap-2 text-on-surface-variant/50">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="text-xs font-medium">Loading…</span>
+          </div>
+        ) : activeSection === "messages" ? (
+          displayItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+              <MessageSquare className="w-8 h-8 text-on-surface-variant/30 mb-3" />
+              <p className="text-sm font-semibold text-on-surface-variant/60">No connections yet</p>
+              <p className="text-xs text-on-surface-variant/40 mt-1 leading-relaxed">
+                Connect with people to start chatting.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {displayItems.map((item) => {
+                const isActive = item.room && activeRoomId === item.room.id;
+                const isOpening = openingId === item.userId;
+                return (
+                  <button
+                    key={item.userId}
+                    onClick={() => handleSelectConnection(item)}
+                    disabled={!!openingId}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left disabled:opacity-60 ${
+                      isActive
+                        ? "bg-primary/8 border border-primary/15 shadow-sm"
+                        : "hover:bg-surface-container-low"
                     }`}
                   >
-                    {room.name}
-                  </h3>
-                </div>
-                <div className="flex justify-between items-center mt-0.5">
-                  <p className="text-xs text-on-surface-variant/50 truncate font-medium leading-5">
-                    {room.lastMessage || (isDirect ? "Direct message" : room.type === "community" ? "Community chat" : "Team channel")}
-                  </p>
-                  <span className="text-[10px] font-semibold text-secondary uppercase tracking-wide ml-2 shrink-0">
-                    {isDirect ? "DM" : room.type === "community" ? "Community" : "Team"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                    <div className="relative">
+                      <Avatar name={item.name} avatarUrl={item.avatarUrl} type="direct" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
+                    </div>
 
-        {filteredChats.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-48 text-on-surface-variant text-sm p-8 text-center">
-            <p className="mb-1 font-medium">No conversations yet</p>
-            <p className="text-xs text-on-surface-variant/50">
-              {searchQuery ? "Try a different search term." : activeSection === "communities" ? "Join a community to see its chat." : activeSection === "teams" ? "Join a team to see its chat." : "Start a direct chat."}
-            </p>
+                    <div className="flex-1 min-w-0">
+                      <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
+                        {item.name}
+                      </span>
+                      <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
+                        {item.room?.lastMessage || (item.major ?? "Tap to message")}
+                      </p>
+                    </div>
+
+                    {isOpening && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : displayItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+            <empty.icon className="w-8 h-8 text-on-surface-variant/30 mb-3" />
+            <p className="text-sm font-semibold text-on-surface-variant/60">{empty.title}</p>
+            <p className="text-xs text-on-surface-variant/40 mt-1 leading-relaxed">{empty.hint}</p>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {displayItems.map((room) => {
+              const isActive = activeRoomId === room.id;
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => handleSelectRoom(room)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left ${
+                    isActive
+                      ? "bg-primary/8 border border-primary/15 shadow-sm"
+                      : "hover:bg-surface-container-low"
+                  }`}
+                >
+                  <Avatar name={room.name} type={room.type} />
+                  <div className="flex-1 min-w-0">
+                    <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
+                      {room.name}
+                    </span>
+                    <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
+                      {room.lastMessage || (room.type === "community" ? "Community chat" : "Team channel")}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

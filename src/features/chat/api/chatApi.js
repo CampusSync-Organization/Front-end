@@ -1,5 +1,10 @@
 import api from "../../../services/api";
 
+export async function getUserChats() {
+  const response = await api.get("/chats");
+  return response.data;
+}
+
 export async function getOrCreateDirectChat(userId) {
   const response = await api.post(`/chats/direct/${userId}`);
   return response.data;

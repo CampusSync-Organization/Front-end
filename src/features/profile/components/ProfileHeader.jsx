@@ -12,9 +12,9 @@ import {
   UserCheck,
   UserRoundPlus,
   UsersRound,
-  MessagesSquare,
   X,
 } from "lucide-react";
+import StartDirectChatButton from "../../chat/components/StartDirectChatButton";
 import { useEditableSection } from "../hooks/useEditableSection";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import { UserAvatar } from "../../../shared/ui/UserAvatar";
@@ -343,10 +343,13 @@ export const ProfileHeader = ({
                   {connectionButtonLabel}
                 </button>
               )}
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-700 text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
-                <MessagesSquare></MessagesSquare>
-                Message
-              </button>
+              {isConnected && (
+                <StartDirectChatButton
+                  userId={user.userId}
+                  userName={user.firstName}
+                  className="flex-1 sm:flex-none px-6 py-2.5 font-bold rounded-lg whitespace-nowrap justify-center"
+                />
+              )}
             </div>
           )}
         </div>
