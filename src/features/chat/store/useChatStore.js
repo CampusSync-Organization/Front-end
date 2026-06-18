@@ -12,6 +12,7 @@ import {
   createTeam as apiCreateTeam,
   requestJoinTeam as apiRequestJoinTeam,
   approveJoinRequest as apiApproveJoinRequest,
+  getIncomingJoinRequests as apiGetIncomingJoinRequests,
   getTeam as apiGetTeam,
   leaveTeam as apiLeaveTeam,
 } from "../api/teamApi";
@@ -23,11 +24,15 @@ function getCurrentUserId() {
   return user?.userID ?? user?.id ?? null;
 }
 
+function getJoinRequestKey(teamId, userId = getCurrentUserId()) {
+  return userId ? `${userId}:${teamId}` : String(teamId);
+}
+
 /** Resolve a display name for a direct-chat room from its members array. */
 function resolveDmName(members, currentUserId, fallback) {
   if (!Array.isArray(members) || !currentUserId) return fallback;
   const other = members.find(
-    (m) => Number(m.id ?? m.user_id) !== Number(currentUserId)
+    (m) => Number(m.id ?? m.user_id) !== Number(currentUserId),
   );
   if (!other) return fallback;
   const name =
@@ -141,6 +146,7 @@ const useChatStore = create(
         } else {
           name = room.name ?? `Room ${room.id}`;
         }
+      },
 
         const roomEntry = {
           id: room.id,
@@ -288,8 +294,142 @@ const useChatStore = create(
         set((state) => ({
           messages: {
             ...state.messages,
-            [roomId]: [...(state.messages[roomId] ?? []), msg],
+            [roomId]: [...(state.messages[roomId] ?? []), optimistic],
           },
+        }));
+
+        try {
+          chatSocket.send(roomId, content);
+        } catch {
+          set((state) => ({
+            messages: {
+              ...state.messages,
+              [roomId]: (state.messages[roomId] ?? []).filter(
+                (m) => m.id !== optimistic.id,
+              ),
+            },
+          }));
+          try {
+            const msg = await postMessage(roomId, content);
+            set((state) => ({
+              messages: {
+                ...state.messages,
+                [roomId]: [...(state.messages[roomId] ?? []), msg],
+              },
+            }));
+          } catch {
+            toast.error("Failed to send message.");
+          }
+        }
+      },
+
+      receiveMessage(msg) {
+        set((state) => {
+          const existing = state.messages[msg.room_id] ?? [];
+          if (existing.some((m) => m.id === msg.id)) return {};
+          const currentUserId = getCurrentUserId();
+          const filtered =
+            msg.sender_id === currentUserId
+              ? existing.filter(
+                  (m) =>
+                    !(
+                      String(m.id).startsWith("tmp-") &&
+                      m.content === msg.content
+                    ),
+                )
+              : existing;
+          return {
+            messages: {
+              ...state.messages,
+              [msg.room_id]: [...filtered, msg],
+            },
+            rooms: state.rooms.map((r) =>
+              r.id === msg.room_id ? { ...r, lastMessage: msg.content } : r,
+            ),
+          };
+        });
+      },
+
+      // ── Direct Chat ──────────────────────────────────────────────────────────────
+
+      async openDirectChat(userId, name, avatarUrl) {
+        try {
+          const room = await getOrCreateDirectChat(userId);
+          const currentUserId = getCurrentUserId();
+
+          // Best-effort name resolution: members array > passed name > fallback
+          const roomName =
+            resolveDmName(room.members, currentUserId, null) ??
+            name ??
+            `User ${userId}`;
+
+          const roomEntry = {
+            id: room.id,
+            type: "direct",
+            name: roomName,
+            lastMessage: "",
+            members: room.members ?? [],
+            peerId: Number(userId),
+            avatarUrl: avatarUrl ?? null,
+          };
+          get().addRoom(roomEntry);
+          set({ activeRoomId: room.id });
+          await get().fetchMessages(room.id);
+        } catch (err) {
+          toast.error("Failed to open direct chat.");
+          throw err;
+        }
+      },
+
+      // ── Teams ────────────────────────────────────────────────────────────────────
+
+      async createTeam(name, description) {
+        try {
+          const team = await apiCreateTeam(name, description);
+          const roomEntry = {
+            id: team.id,
+            type: "team",
+            name: team.name,
+            lastMessage: "",
+            members: [],
+          };
+          get().addRoom(roomEntry);
+          set({ activeRoomId: team.id });
+          set((state) => ({
+            teams: [...state.teams.filter((t) => t.id !== team.id), team],
+          }));
+        } catch {
+          toast.error("Failed to create team.");
+        }
+      },
+
+      async fetchTeams() {
+        // GET /teams not implemented by backend — no-op
+      },
+
+      async fetchTeam(teamId) {
+        try {
+          const team = await apiGetTeam(teamId);
+          set((state) => ({
+            teams: state.teams.some((t) => t.id === team.id)
+              ? state.teams.map((t) => (t.id === team.id ? team : t))
+              : [...state.teams, team],
+          }));
+          return team;
+        } catch {
+          toast.error("Failed to load team details.");
+          throw new Error("fetchTeam failed");
+        }
+      },
+      async requestJoinTeam(teamId, userId = getCurrentUserId()) {
+        const requestKey = getJoinRequestKey(teamId, userId);
+
+        set((state) => ({
+          joinRequestStatus: {
+            ...state.joinRequestStatus,
+            [requestKey]: "pending",
+          },
+          joinRequestError: { ...state.joinRequestError, [requestKey]: null },
         }));
       } catch (err) {
         const detail = err?.response?.data?.detail;

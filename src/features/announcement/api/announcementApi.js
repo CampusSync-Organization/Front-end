@@ -8,7 +8,6 @@ export const announcementApi = {
   getGlobalFeed: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const response = await api.get(`/announcements?${params}`);
-    console.log("announcements data: ", response.data);
     return response.data;
   },
   getMyAnnouncements: async (filters = {}) => {
