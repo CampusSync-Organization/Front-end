@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 import {
   Briefcase,
   Eye,
@@ -9,8 +11,19 @@ import {
   Sparkles,
   Zap,
   ClockArrowDown,
+  UserCheck,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
+import {
+  acceptConnectionRequest,
+  addConnection,
+  dismissPendingConnectionRequest,
+  selectDeclinedRequesterIds,
+  selectConnectedUserIds,
+  selectPendingRequesterIds,
+  selectSentRequestUserIds,
+} from "../../../services/connections/store/connectionsSlice";
 
 const ProfileCard = ({ profile = {}, variants }) => {
   const {
@@ -22,7 +35,18 @@ const ProfileCard = ({ profile = {}, variants }) => {
   } = profile;
 
   const navigate = useNavigate();
-  const [request, setRequest] = useState(false);
+  const dispatch = useDispatch();
+  const connectedUserIds = useSelector(selectConnectedUserIds);
+  const declinedRequesterIds = useSelector(selectDeclinedRequesterIds);
+  const pendingRequesterIds = useSelector(selectPendingRequesterIds);
+  const sentRequestUserIds = useSelector(selectSentRequestUserIds);
+  const [isSending, setIsSending] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const targetUserId = profile.user_id || id;
+  const isConnected = connectedUserIds.includes(targetUserId);
+  const isRequestDeclined = declinedRequesterIds.includes(targetUserId);
+  const isRequestPending = sentRequestUserIds.includes(targetUserId);
+  const isIncomingRequest = pendingRequesterIds.includes(targetUserId);
 
   // --- Data Logic Helpers ---
 
@@ -43,9 +67,65 @@ const ProfileCard = ({ profile = {}, variants }) => {
 
   const role = "Undergraduate";
   const isBestMatch = id % 5 === 0; // Just a placeholder logic for visual flair
+  const connectDisabled =
+    !targetUserId || isSending || isConnected || isRequestPending || isRequestDeclined;
+  const connectLabel = isSending
+    ? "Sending..."
+    : isConnected
+      ? "Connected"
+      : isRequestDeclined
+        ? "Declined"
+      : isRequestPending
+        ? "Pending"
+        : "Connect";
+  const ConnectIcon = isConnected
+    ? UserCheck
+    : isRequestDeclined
+      ? X
+    : isRequestPending
+      ? ClockArrowDown
+      : UserPlus;
+
+  const handleConnect = () => {
+    if (!targetUserId || connectDisabled) return;
+    setIsSending(true);
+    dispatch(addConnection(targetUserId))
+      .unwrap()
+      .then(() => {
+        toast.success("Connection request sent");
+      })
+      .catch((err) => {
+        toast.error(err || "Failed to send connection request");
+      })
+      .finally(() => {
+        setIsSending(false);
+      });
+  };
+
+  const handleConfirm = () => {
+    if (!targetUserId || isConfirming) return;
+    setIsConfirming(true);
+    dispatch(acceptConnectionRequest(targetUserId))
+      .unwrap()
+      .then(() => {
+        toast.success("Connection request accepted");
+      })
+      .catch((err) => {
+        toast.error(err || "Failed to accept connection request");
+      })
+      .finally(() => {
+        setIsConfirming(false);
+      });
+  };
+
+  const handleDecline = () => {
+    if (!targetUserId) return;
+    dispatch(dismissPendingConnectionRequest(targetUserId));
+    toast.success("Connection request declined");
+  };
 
   return (
-    <motion.div
+    <Motion.div
       variants={variants}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="group relative bg-white rounded-3xl p-5 shadow-soft hover:shadow-soft-lg transition-shadow duration-300 border border-neutral-200/60 overflow-hidden flex flex-col"
@@ -64,11 +144,10 @@ const ProfileCard = ({ profile = {}, variants }) => {
       <div className="flex flex-col items-center mb-6 pt-6">
         <div className="relative mb-3">
           <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-neutral-50 shadow-sm">
-            <img
-              src={resolveAvatarUrl(pfp)}
-              alt={name}
-              loading="lazy"
-              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+            <UserAvatar
+              src={pfp}
+              name={name}
+              className="w-full h-full object-cover text-2xl transform group-hover:scale-105 transition-transform duration-500"
             />
           </div>
           <div className="absolute -bottom-2 -right-2 bg-white p-1 rounded-full shadow-sm border border-neutral-100">
@@ -123,7 +202,14 @@ const ProfileCard = ({ profile = {}, variants }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-auto grid grid-cols-2 gap-3">
+      <div
+        className={clsx(
+          "mt-auto grid gap-3",
+          isIncomingRequest && !isConnected && !isRequestDeclined
+            ? "grid-cols-3"
+            : "grid-cols-2",
+        )}
+      >
         <button
           onClick={() => navigate(`/user-profile/${id}`)}
           className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-neutral-200 text-primary text-sm font-semibold hover:bg-neutral-50 transition-colors"
@@ -131,24 +217,49 @@ const ProfileCard = ({ profile = {}, variants }) => {
           <Eye className="w-4 h-4" />
           View
         </button>
-        <button
-          onClick={() => setRequest(!request)}
-          className={clsx(
-            "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-white text-sm font-semibold shadow-lg transition-all hover:translate-y-[-1px]",
-            request
-              ? "bg-secondary hover:bg-secondary/80"
-              : "bg-primary hover:bg-primary/80",
-          )}
-        >
-          {request ? (
-            <ClockArrowDown className="w-4 h-4" />
-          ) : (
-            <UserPlus className="w-4 h-4" />
-          )}
-          {request ? "Pending" : "Connect"}
-        </button>
+        {isIncomingRequest && !isConnected && !isRequestDeclined ? (
+          <>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isConfirming}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg transition-all hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <UserCheck className="w-4 h-4" />
+              {isConfirming ? "..." : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDecline}
+              disabled={isConfirming}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold transition-colors hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <X className="w-4 h-4" />
+              Decline
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={handleConnect}
+            disabled={connectDisabled}
+            className={clsx(
+              "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold shadow-lg transition-all hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:hover:translate-y-0",
+              isConnected
+                ? "bg-emerald-600 text-white"
+                : isRequestDeclined
+                  ? "bg-slate-200 text-slate-600 shadow-none"
+                : isRequestPending
+                  ? "bg-slate-200 text-slate-600 shadow-none"
+                  : "bg-primary text-white hover:bg-primary/80 disabled:opacity-60",
+            )}
+          >
+            <ConnectIcon className="w-4 h-4" />
+            {connectLabel}
+          </button>
+        )}
       </div>
-    </motion.div>
+    </Motion.div>
   );
 };
 
