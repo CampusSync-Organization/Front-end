@@ -15,6 +15,11 @@ export async function approveJoinRequest(teamId, requestId) {
   return response.data;
 }
 
+export async function getIncomingJoinRequests() {
+  const response = await api.get("/teams/requests");
+  return response.data;
+}
+
 export async function getAllTeams() {
   const response = await api.get("/teams");
   return response.data;
