@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, Plus, MessageSquare, Users, Users2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
+import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 
 /** Resolve a display name from any profile shape the backend might return. */
 function resolveName(profile) {
@@ -26,10 +27,11 @@ function avatarHue(name = "") {
 function Avatar({ name, avatarUrl, type, size = 11 }) {
   const hue = avatarHue(name);
   const px = size * 4;
-  if (avatarUrl) {
+  const resolved = resolveAvatarUrl(avatarUrl);
+  if (resolved) {
     return (
       <img
-        src={avatarUrl}
+        src={resolved}
         alt={name}
         className="rounded-full object-cover shrink-0"
         style={{ width: px, height: px }}
@@ -80,8 +82,11 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
       const userId = Number(profile.user_id ?? profile.id);
       const name = resolveName(profile) || `User ${userId}`;
       const room = roomByUserId.get(userId) ?? null;
-      // Patch stale "User {id}" room names with the real name
-      if (room && room.name !== name) addRoom({ ...room, name });
+      // Patch room with real name and avatar
+      const avatarUrl = resolveAvatarUrl(profile.avatar_url ?? null);
+      if (room && (room.name !== name || room.avatarUrl !== avatarUrl)) {
+        addRoom({ ...room, name, avatarUrl });
+      }
       return { userId, name, avatarUrl: profile.avatar_url ?? null, major: profile.major ?? null, room };
     });
   })();
@@ -109,7 +114,7 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
     }
     setOpeningId(item.userId);
     try {
-      await openDirectChat(item.userId, item.name);
+      await openDirectChat(item.userId, item.name, item.avatarUrl);
       navigate("/Chat-Main-Page");
     } catch {
       // toast shown inside openDirectChat

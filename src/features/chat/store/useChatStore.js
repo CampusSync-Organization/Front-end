@@ -196,7 +196,7 @@ const useChatStore = create((set, get) => ({
 
   // ── Direct Chat ──────────────────────────────────────────────────────────────
 
-  async openDirectChat(userId, name) {
+  async openDirectChat(userId, name, avatarUrl) {
     try {
       const room = await getOrCreateDirectChat(userId);
       const currentUserId = getCurrentUserId();
@@ -214,6 +214,7 @@ const useChatStore = create((set, get) => ({
         lastMessage: "",
         members: room.members ?? [],
         peerId: Number(userId),
+        avatarUrl: avatarUrl ?? null,
       };
       get().addRoom(roomEntry);
       set({ activeRoomId: room.id });

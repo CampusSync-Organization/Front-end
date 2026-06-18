@@ -170,7 +170,15 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
       <div className="px-5 py-3.5 flex items-center justify-between border-b border-outline-variant/15 bg-white shrink-0">
         <div className="flex items-center gap-3 cursor-pointer" onClick={onOpenContact}>
           <div className="relative">
-            <RoomAvatar name={chatName} type={activeChat?.type} size={10} />
+            {activeChat?.avatarUrl ? (
+              <img
+                src={activeChat.avatarUrl}
+                alt={chatName}
+                className="w-10 h-10 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <RoomAvatar name={chatName} type={activeChat?.type} size={10} />
+            )}
             {activeChat?.type === "direct" && (
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
             )}
