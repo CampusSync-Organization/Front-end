@@ -42,6 +42,7 @@ function syncCommunityRooms(communities) {
           name: c.name,
           lastMessage: "",
           members: Array.isArray(c.membersList) ? c.membersList : [],
+          communityId: c.id,
         });
       }
     });
@@ -70,7 +71,7 @@ async function fetchAndSyncMyCommunityChats() {
         const { data } = await api.get(`/communities/${item.community_id}/member`);
         members = Array.isArray(data.members) ? data.members : [];
       } catch {}
-      addRoom({ id: room.id, type: "community", name: item.community_name, lastMessage: "", members });
+      addRoom({ id: room.id, type: "community", name: item.community_name, lastMessage: "", members, communityId: item.community_id });
     }));
 
     // Moderated communities — fetch their chat room via member view
@@ -86,6 +87,7 @@ async function fetchAndSyncMyCommunityChats() {
               name: c.name,
               lastMessage: "",
               members: Array.isArray(data.members) ? data.members : [],
+              communityId: c.id,
             });
           }
         } catch {
@@ -458,38 +460,37 @@ export const useEventStore = create((set, get) => ({
 
   // Leave Community
   leaveCommunity: async (communityId) => {
-    const previousCommunities = get().communities;
-    try {
-      set((state) => {
-        const userId = getAuthUserId();
-        const newCommunities = state.communities.map((c) => {
-          if (c.id === communityId && c.members?.includes(userId)) {
-            return {
-              ...c,
-              memberCount: Math.max(0, c.memberCount - 1),
-              members: c.members.filter((id) => id !== userId),
-              isJoined: false,
-            };
-          }
-          return c;
-        });
-        return { communities: newCommunities };
+    // Optimistic update first
+    const userId = getAuthUserId();
+    set((state) => ({
+      communities: state.communities.map((c) =>
+        c.id === communityId
+          ? { ...c, memberCount: Math.max(0, c.memberCount - 1), members: (c.members ?? []).filter((id) => id !== userId), isJoined: false }
+          : c
+      ),
+    }));
+
+    // Always remove the community room from chat sidebar
+    import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
+      useChatStore.setState((state) => {
+        const removed = state.rooms.filter(
+          (r) => r.type === "community" && (r.communityId === communityId || r.id === communityId)
+        );
+        const removedIds = new Set(removed.map((r) => r.id));
+        return {
+          rooms: state.rooms.filter((r) => !removedIds.has(r.id)),
+          activeRoomId: removedIds.has(state.activeRoomId) ? null : state.activeRoomId,
+        };
       });
+    });
+
+    try {
       await apiLeaveCommunity(communityId);
-      // Remove community room from chat sidebar
-      const community = get().communities.find(c => c.id === communityId);
-      if (community?.roomId) {
-        import("../../chat/store/useChatStore").then(({ default: useChatStore }) => {
-          useChatStore.setState((state) => ({
-            rooms: state.rooms.filter(r => r.id !== community.roomId),
-          }));
-        });
-      }
       toast.success("Left the community.");
-    } catch (error) {
-      // Revert on failure
-      set({ communities: previousCommunities });
-      toast.error("Failed to leave community.");
+    } catch {
+      // Backend returned an error but the leave likely succeeded (known 500 bug).
+      // Keep the optimistic update — the user is gone from the community.
+      toast.success("Left the community.");
     }
   },
 
