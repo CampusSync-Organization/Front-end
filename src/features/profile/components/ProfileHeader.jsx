@@ -6,16 +6,23 @@ import React, {
   useState,
 } from "react";
 import {
+  Bell,
   Camera,
-  MapPin,
-  Terminal,
+  Clock,
+  UserCheck,
   UserRoundPlus,
+  UsersRound,
   MessagesSquare,
+  X,
 } from "lucide-react";
 import { useEditableSection } from "../hooks/useEditableSection";
+import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 
-const ImageModal = ({ isOpen, onClose, imgSrc, onUpload }) => {
+const ImageModal = ({ isOpen, onClose, imgSrc, name, onUpload }) => {
   if (!isOpen) return null;
+
+  const resolvedImgSrc = resolveAvatarUrl(imgSrc);
 
   return (
     <div
@@ -33,11 +40,19 @@ const ImageModal = ({ isOpen, onClose, imgSrc, onUpload }) => {
           <span className="material-icons-outlined text-2xl">close</span>
         </button>
 
-        <img
-          src={imgSrc}
-          alt="Profile Full Screen"
-          className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl mb-6"
-        />
+        {resolvedImgSrc ? (
+          <img
+            src={resolvedImgSrc}
+            alt="Profile Full Screen"
+            className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl mb-6"
+          />
+        ) : (
+          <UserAvatar
+            name={name}
+            className="mb-6 h-48 w-48 rounded-2xl text-5xl"
+            fallbackClassName="bg-secondary/10 text-secondary"
+          />
+        )}
 
         <div className="flex gap-4">
           <button
@@ -53,7 +68,43 @@ const ImageModal = ({ isOpen, onClose, imgSrc, onUpload }) => {
   );
 };
 
-export const ProfileHeader = ({ user, isOwnProfile = true }) => {
+const ConnectionsSummary = ({ count = 0, pendingCount = 0, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex items-center gap-3 rounded-lg border border-border-light bg-white px-4 py-2 text-left shadow-sm transition-colors hover:border-secondary/60 hover:bg-secondary/10"
+  >
+    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
+      <UsersRound size={18} />
+    </span>
+    <span>
+      <span className="block text-sm font-bold text-primary">
+        {count} {count === 1 ? "Connection" : "Connections"}
+      </span>
+      <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+        <Bell size={13} />
+        {pendingCount > 0
+          ? `${pendingCount} new ${pendingCount === 1 ? "request" : "requests"}`
+          : "No new requests"}
+      </span>
+    </span>
+  </button>
+);
+
+export const ProfileHeader = ({
+  user,
+  isOwnProfile = true,
+  isConnected = false,
+  isConnecting = false,
+  isRequestPending = false,
+  isRequestDeclined = false,
+  isIncomingRequest = false,
+  isAccepting = false,
+  onConnect,
+  onAcceptConnection,
+  onDeclineConnection,
+  connectionSummary,
+}) => {
   const initialValues = useMemo(() => ({ avatar: null }), []);
   const buildPayload = useCallback((draft) => {
     if (!draft.avatar) {
@@ -126,12 +177,47 @@ export const ProfileHeader = ({ user, isOwnProfile = true }) => {
     }
   };
 
+  const connectionButtonDisabled =
+    isConnecting || isAccepting || isConnected || isRequestPending || isRequestDeclined;
+  const connectionButtonLabel = isAccepting
+    ? "Accepting..."
+    : isIncomingRequest
+      ? "Accept Request"
+      : isRequestDeclined
+        ? "Declined"
+      : isConnecting
+        ? "Sending..."
+        : isConnected
+          ? "Connected"
+          : isRequestPending
+            ? "Pending"
+            : "Connect";
+  const ConnectionButtonIcon = isConnected
+    ? UserCheck
+    : isIncomingRequest
+      ? UserCheck
+      : isRequestDeclined
+        ? X
+      : isRequestPending
+      ? Clock
+      : UserRoundPlus;
+  const connectionButtonClass = isConnected
+    ? "bg-emerald-600 text-white cursor-default"
+    : isRequestDeclined
+      ? "bg-slate-200 text-slate-600 cursor-default"
+    : isRequestPending
+      ? "bg-slate-200 text-slate-600 cursor-default"
+      : isIncomingRequest
+        ? "bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        : "bg-secondary/90 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed";
+
   return (
     <>
       <ImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         imgSrc={avatar}
+        name={`${user.firstName} ${user.lastName}`}
         onUpload={handleUploadClick}
       />
 
@@ -148,14 +234,14 @@ export const ProfileHeader = ({ user, isOwnProfile = true }) => {
                 }`}
                 onClick={isOwnProfile ? handleImageClick : undefined}
               >
-                <img
-                  alt={`${user.firstName} ${user.lastName}`}
-                  className={`w-full h-full object-cover ${
+                <UserAvatar
+                  src={avatar}
+                  name={`${user.firstName} ${user.lastName}`}
+                  className={`w-full h-full object-cover text-4xl ${
                     isOwnProfile
                       ? "transition-opacity group-hover:opacity-90"
                       : ""
                   }`}
-                  src={avatar}
                 />
                 {isOwnProfile && (
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -210,17 +296,17 @@ export const ProfileHeader = ({ user, isOwnProfile = true }) => {
               <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
                 {user.firstName} {user.lastName}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-slate-500 mb-4">
-                <span className="flex items-center gap-1 text-sm sm:text-base">
-                  <MapPin size={16} /> {user.college}
-                </span>
-                <span className="hidden sm:inline text-slate-300">•</span>
-                <span className="flex items-center gap-1 text-sm sm:text-base">
-                  <Terminal size={16} /> {user.faculty}
-                </span>
-              </div>
-              <div className="inline-flex items-center px-4 py-1.5 bg-slate-100 rounded-full text-sm font-semibold text-primary border border-border-light">
-                GPA: {user.gpa ? user.gpa.toFixed(1) : "N/A"}
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                {isOwnProfile && connectionSummary && (
+                  <ConnectionsSummary
+                    count={connectionSummary.count}
+                    pendingCount={connectionSummary.pendingCount}
+                    onClick={connectionSummary.onClick}
+                  />
+                )}
+                <div className="inline-flex items-center px-4 py-1.5 bg-slate-100 rounded-full text-sm font-semibold text-primary border border-border-light">
+                  GPA: {user.gpa ? user.gpa.toFixed(1) : "N/A"}
+                </div>
               </div>
             </div>
           </div>
@@ -228,10 +314,35 @@ export const ProfileHeader = ({ user, isOwnProfile = true }) => {
           {/* Row 2: Action Buttons (full width on their own row) */}
           {!isOwnProfile && (
             <div className="flex flex-col sm:flex-row sm:justify-center  gap-3 w-full sm:w-auto">
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-secondary/90 text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
-                <UserRoundPlus></UserRoundPlus>
-                Connect
-              </button>
+              {isIncomingRequest && !isConnected && !isRequestDeclined ? (
+                <>
+                  <button
+                    onClick={onAcceptConnection}
+                    disabled={isAccepting}
+                    className="flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <UserCheck size={18} />
+                    {isAccepting ? "Confirming..." : "Confirm"}
+                  </button>
+                  <button
+                    onClick={onDeclineConnection}
+                    disabled={isAccepting}
+                    className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X size={18} />
+                    Decline
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={connectionButtonDisabled ? undefined : onConnect}
+                  disabled={connectionButtonDisabled}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${connectionButtonClass}`}
+                >
+                  <ConnectionButtonIcon size={18} />
+                  {connectionButtonLabel}
+                </button>
+              )}
               <button className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-700 text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
                 <MessagesSquare></MessagesSquare>
                 Message

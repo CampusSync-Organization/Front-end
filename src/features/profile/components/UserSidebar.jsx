@@ -1,5 +1,6 @@
 import React from "react";
 import { TagList } from "./TagList";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 
 export const UserSidebar = ({ user }) => {
   return (
@@ -7,10 +8,10 @@ export const UserSidebar = ({ user }) => {
       {/* Content Container - Centered Vertically */}
       <div className="w-full flex flex-col items-center gap-6">
         <div className="relative">
-          <img
+          <UserAvatar
             src={user.avatar}
-            alt={`${user.firstName} ${user.lastName}`}
-            className="w-32 h-32 rounded-full object-cover shadow-md border-4 border-white"
+            name={`${user.firstName} ${user.lastName}`}
+            className="w-32 h-32 rounded-full object-cover text-4xl shadow-md border-4 border-white"
           />
         </div>
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileAbout } from "../components/ProfileAbout";
 import { ProfileInfo } from "../components/ProfileInfo";
@@ -13,7 +14,12 @@ import {
   selectProfileError,
   selectProfileStatus,
 } from "../store/profileSlice";
-import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
+import {
+  fetchConnections,
+  fetchPendingConnectionRequests,
+  selectConnectedUserIds,
+  selectPendingRequesterIds,
+} from "../../../services/connections/store/connectionsSlice";
 
 const splitName = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -32,7 +38,7 @@ const mapProfileToUser = (profile) => {
     userId: profile.user_id,
     firstName,
     lastName,
-    avatar: resolveAvatarUrl(profile.avatar_url),
+    avatar: profile.avatar_url,
     college: "",
     faculty: "",
     gpa: profile.cgpa,
@@ -45,20 +51,51 @@ const mapProfileToUser = (profile) => {
 };
 
 const mapProjects = (projects = []) =>
-  projects.map((project, index) => ({
-    id: `${index}-${project}`,
-    title: project,
-    description: "No project details added yet.",
-    techStack: [],
-    featured: false,
-  }));
+  projects.map((project, index) => {
+    if (typeof project === "string") {
+      try {
+        const parsed = JSON.parse(project);
+        if (parsed && typeof parsed === "object") {
+          return {
+            id: `${index}-${parsed.title || project}`,
+            title: parsed.title || project,
+            description: parsed.description || "No project details added yet.",
+            image: parsed.image || parsed.image_path || null,
+            techStack: parsed.techStack || [],
+            featured: false,
+          };
+        }
+      } catch {
+        // Ignore invalid serialized project data and fall back to the raw title.
+      }
+      return {
+        id: `${index}-${project}`,
+        title: project,
+        description: "No project details added yet.",
+        image: null,
+        techStack: [],
+        featured: false,
+      };
+    }
+    return {
+      id: `${index}-${project.title || "Project"}`,
+      title: project.title || "Project",
+      description: project.description || "No project details added yet.",
+      image: project.image || project.image_url || project.image_path || null,
+      techStack: project.techStack || [],
+      featured: project.featured || false,
+    };
+  });
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const hasRequestedProfile = useRef(false);
   const profile = useSelector(selectMyProfile);
   const status = useSelector(selectProfileStatus);
   const error = useSelector(selectProfileError);
+  const connectedUserIds = useSelector(selectConnectedUserIds);
+  const pendingRequesterIds = useSelector(selectPendingRequesterIds);
 
   useEffect(() => {
     if (!hasRequestedProfile.current && !profile && status !== "loading") {
@@ -66,6 +103,11 @@ const ProfilePage = () => {
       dispatch(fetchMyProfile());
     }
   }, [dispatch, profile, status]);
+
+  useEffect(() => {
+    dispatch(fetchConnections());
+    dispatch(fetchPendingConnectionRequests());
+  }, [dispatch]);
 
   const handleRetry = () => {
     dispatch(fetchMyProfile());
@@ -123,10 +165,17 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-background-light p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <ProfileHeader user={user} />
+        <ProfileHeader
+          user={user}
+          connectionSummary={{
+            count: connectedUserIds.length,
+            pendingCount: pendingRequesterIds.length,
+            onClick: () => navigate("/profile/connections"),
+          }}
+        />
         <ProfileAbout user={user} />
         <ProfileInfo user={user} />
-        <ProfileAnnouncements user={user} announcements={[]} />
+        <ProfileAnnouncements />
         <UserProjects projects={projects} />
         <UserReviews reviews={[]} />
         <ProfileSecurity user={user} />

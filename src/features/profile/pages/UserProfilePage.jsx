@@ -15,15 +15,20 @@ import {
   selectViewedProfileStatus,
   selectViewedProfileError,
 } from "../store/profileSlice";
-import { API_BASE_URL } from "../../../services/api";
-
-const FALLBACK_AVATAR = "/campussync-icon.png";
-
-const resolveAvatarUrl = (avatarUrl) => {
-  if (!avatarUrl) return FALLBACK_AVATAR;
-  if (/^https?:\/\//i.test(avatarUrl)) return avatarUrl;
-  return `${API_BASE_URL}${avatarUrl.startsWith("/") ? "" : "/"}${avatarUrl}`;
-};
+import { toast } from "sonner";
+import {
+  acceptConnectionRequest,
+  dismissPendingConnectionRequest,
+  fetchConnections,
+  fetchPendingConnectionRequests,
+  addConnection,
+  selectDeclinedRequesterIds,
+  selectConnectedUserIds,
+  selectConnectionsAcceptStatus,
+  selectConnectionsCreateStatus,
+  selectPendingRequesterIds,
+  selectSentRequestUserIds,
+} from "../../../services/connections/store/connectionsSlice";
 
 const splitName = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -40,7 +45,7 @@ const mapProfileToUser = (profile) => {
     userId: profile.user_id,
     firstName,
     lastName,
-    avatar: resolveAvatarUrl(profile.avatar_url),
+    avatar: profile.avatar_url,
     college: "",
     faculty: "",
     gpa: profile.cgpa,
@@ -53,13 +58,41 @@ const mapProfileToUser = (profile) => {
 };
 
 const mapProjects = (projects = []) =>
-  projects.map((project, index) => ({
-    id: `${index}-${project}`,
-    title: project,
-    description: "No project details added yet.",
-    techStack: [],
-    featured: false,
-  }));
+  projects.map((project, index) => {
+    if (typeof project === "string") {
+      try {
+        const parsed = JSON.parse(project);
+        if (parsed && typeof parsed === "object") {
+          return {
+            id: `${index}-${parsed.title || project}`,
+            title: parsed.title || project,
+            description: parsed.description || "No project details added yet.",
+            image: parsed.image || parsed.image_path || null,
+            techStack: parsed.techStack || [],
+            featured: false,
+          };
+        }
+      } catch {
+        // Ignore invalid serialized project data and fall back to the raw title.
+      }
+      return {
+        id: `${index}-${project}`,
+        title: project,
+        description: "No project details added yet.",
+        image: null,
+        techStack: [],
+        featured: false,
+      };
+    }
+    return {
+      id: `${index}-${project.title || "Project"}`,
+      title: project.title || "Project",
+      description: project.description || "No project details added yet.",
+      image: project.image || project.image_url || project.image_path || null,
+      techStack: project.techStack || [],
+      featured: project.featured || false,
+    };
+  });
 
 const UserProfilePage = () => {
     const { id } = useParams();
@@ -67,6 +100,25 @@ const UserProfilePage = () => {
     const profile = useSelector(selectViewedProfile);
     const status = useSelector(selectViewedProfileStatus);
     const error = useSelector(selectViewedProfileError);
+
+    // Retrieve current logged-in user from auth state
+    const currentUser = useSelector((state) => state.auth?.user);
+    const currentUserId = currentUser?.id || currentUser?.userID;
+
+    // Retrieve connections state
+    const connectedUserIds = useSelector(selectConnectedUserIds);
+    const pendingRequesterIds = useSelector(selectPendingRequesterIds);
+    const declinedRequesterIds = useSelector(selectDeclinedRequesterIds);
+    const sentRequestUserIds = useSelector(selectSentRequestUserIds);
+    const createStatus = useSelector(selectConnectionsCreateStatus);
+    const acceptStatus = useSelector(selectConnectionsAcceptStatus);
+
+    const isConnected = profile && connectedUserIds.includes(profile.user_id);
+    const isRequestPending = profile && sentRequestUserIds.includes(profile.user_id);
+    const isRequestDeclined = profile && declinedRequesterIds.includes(profile.user_id);
+    const isIncomingRequest = profile && pendingRequesterIds.includes(profile.user_id);
+    const isConnecting = createStatus === "loading";
+    const isAccepting = acceptStatus === "loading";
 
     useEffect(() => {
         if (id) {
@@ -77,6 +129,43 @@ const UserProfilePage = () => {
             dispatch(resetViewedProfile());
         };
     }, [dispatch, id]);
+
+    useEffect(() => {
+        if (currentUserId) {
+            dispatch(fetchConnections());
+            dispatch(fetchPendingConnectionRequests());
+        }
+    }, [dispatch, currentUserId]);
+
+    const handleConnect = () => {
+        if (!profile?.user_id) return;
+        dispatch(addConnection(profile.user_id))
+            .unwrap()
+            .then(() => {
+                toast.success("Connection request sent");
+            })
+            .catch((err) => {
+                toast.error(err || "Failed to send connection request");
+            });
+    };
+
+    const handleAcceptConnection = () => {
+        if (!profile?.user_id) return;
+        dispatch(acceptConnectionRequest(profile.user_id))
+            .unwrap()
+            .then(() => {
+                toast.success("Connection request accepted");
+            })
+            .catch((err) => {
+                toast.error(err || "Failed to accept connection request");
+            });
+    };
+
+    const handleDeclineConnection = () => {
+        if (!profile?.user_id) return;
+        dispatch(dismissPendingConnectionRequest(profile.user_id));
+        toast.success("Connection request declined");
+    };
 
     if (status === "loading" || status === "idle") {
         return (
@@ -120,7 +209,19 @@ const UserProfilePage = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Content Column */}
                     <div className="lg:col-span-8 space-y-6">
-                        <ProfileHeader user={user} isOwnProfile={false} />
+                        <ProfileHeader
+                            user={user}
+                            isOwnProfile={false}
+                            isConnected={isConnected}
+                            isConnecting={isConnecting}
+                            isRequestPending={isRequestPending}
+                            isRequestDeclined={isRequestDeclined}
+                            isIncomingRequest={isIncomingRequest}
+                            isAccepting={isAccepting}
+                            onConnect={handleConnect}
+                            onAcceptConnection={handleAcceptConnection}
+                            onDeclineConnection={handleDeclineConnection}
+                        />
                         <ProfileAbout user={user} isOwnProfile={false} />
                         <ProfileInfo user={user} isOwnProfile={false} />
                         <ProfileAnnouncements
@@ -128,7 +229,7 @@ const UserProfilePage = () => {
                             announcements={[]}
                             isOwnProfile={false}
                         />
-                        <UserProjects projects={projects} />
+                        <UserProjects projects={projects} isOwnProfile={false} />
                         <UserReviews reviews={[]} />
                     </div>
 
