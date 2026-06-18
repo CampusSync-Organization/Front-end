@@ -1,96 +1,65 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bell,
-  Camera,
-  Clock,
-  UserCheck,
-  UserRoundPlus,
-  UsersRound,
-  X,
+  Camera, Bell, UsersRound, UserCheck, UserRoundPlus, Clock, X, GraduationCap, Loader2,
 } from "lucide-react";
 import StartDirectChatButton from "../../chat/components/StartDirectChatButton";
 import { useEditableSection } from "../hooks/useEditableSection";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import { UserAvatar } from "../../../shared/ui/UserAvatar";
 
-const ImageModal = ({ isOpen, onClose, imgSrc, name, onUpload }) => {
-  if (!isOpen) return null;
+/* ── Connection action button ───────────────────────────────────────── */
+const ConnectionBtn = ({
+  isConnected, isConnecting, isRequestPending, isRequestDeclined,
+  isIncomingRequest, isAccepting, onConnect, onAcceptConnection, onDeclineConnection,
+}) => {
+  if (isIncomingRequest && !isConnected && !isRequestDeclined) {
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={onAcceptConnection}
+          disabled={isAccepting}
+          className="flex items-center gap-2 px-5 py-2 bg-secondary text-primary font-bold rounded-xl text-sm hover:bg-secondary/90 transition-all disabled:opacity-50"
+        >
+          {isAccepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
+          {isAccepting ? "Confirming…" : "Confirm"}
+        </button>
+        <button
+          onClick={onDeclineConnection}
+          disabled={isAccepting}
+          className="flex items-center gap-2 px-5 py-2 bg-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/20 transition-all disabled:opacity-50"
+        >
+          <X className="w-4 h-4" /> Decline
+        </button>
+      </div>
+    );
+  }
 
-  const resolvedImgSrc = resolveAvatarUrl(imgSrc);
+  const label = isAccepting ? "Accepting…" : isConnected ? "Connected"
+    : isConnecting ? "Sending…" : isRequestPending ? "Pending"
+    : isRequestDeclined ? "Declined" : "Connect";
+
+  const Icon = isConnected ? UserCheck : isRequestPending ? Clock
+    : isRequestDeclined ? X : UserRoundPlus;
+
+  const cls = isConnected
+    ? "bg-emerald-500/90 text-white cursor-default"
+    : isRequestPending || isRequestDeclined
+    ? "bg-white/10 text-white/70 cursor-default"
+    : "bg-secondary text-primary hover:bg-secondary/90 disabled:opacity-50";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      onClick={onClose}
+    <button
+      onClick={isConnected || isRequestPending || isRequestDeclined ? undefined : onConnect}
+      disabled={isConnecting || isAccepting}
+      className={`flex items-center gap-2 px-5 py-2 font-bold rounded-xl text-sm transition-all ${cls}`}
     >
-      <div
-        className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
-        >
-          <span className="material-icons-outlined text-2xl">close</span>
-        </button>
-
-        {resolvedImgSrc ? (
-          <img
-            src={resolvedImgSrc}
-            alt="Profile Full Screen"
-            className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl mb-6"
-          />
-        ) : (
-          <UserAvatar
-            name={name}
-            className="mb-6 h-48 w-48 rounded-2xl text-5xl"
-            fallbackClassName="bg-secondary/10 text-secondary"
-          />
-        )}
-
-        <div className="flex gap-4">
-          <button
-            onClick={onUpload}
-            className="flex items-center gap-2 px-6 py-3 bg-secondary/90 text-card font-bold rounded-lg hover:bg-secondary/90 transition-colors shadow-lg"
-          >
-            <Camera size={20} />
-            Update Photo
-          </button>
-        </div>
-      </div>
-    </div>
+      <Icon className="w-4 h-4" />
+      {label}
+    </button>
   );
 };
 
-const ConnectionsSummary = ({ count = 0, pendingCount = 0, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="inline-flex items-center gap-3 rounded-lg border border-border-light bg-white px-4 py-2 text-left shadow-sm transition-colors hover:border-secondary/60 hover:bg-secondary/10"
-  >
-    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
-      <UsersRound size={18} />
-    </span>
-    <span>
-      <span className="block text-sm font-bold text-primary">
-        {count} {count === 1 ? "Connection" : "Connections"}
-      </span>
-      <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
-        <Bell size={13} />
-        {pendingCount > 0
-          ? `${pendingCount} new ${pendingCount === 1 ? "request" : "requests"}`
-          : "No new requests"}
-      </span>
-    </span>
-  </button>
-);
-
+/* ── Main ProfileHeader ─────────────────────────────────────────────── */
 export const ProfileHeader = ({
   user,
   isOwnProfile = true,
@@ -106,254 +75,152 @@ export const ProfileHeader = ({
   connectionSummary,
 }) => {
   const initialValues = useMemo(() => ({ avatar: null }), []);
-  const buildPayload = useCallback((draft) => {
-    if (!draft.avatar) {
-      return {};
-    }
+  const buildPayload = useCallback((draft) => draft.avatar ? { avatar: draft.avatar } : {}, []);
+  const { updateDraft, isEditing, startEdit, cancelEdit, save, isSaving, error } =
+    useEditableSection(initialValues, { buildPayload });
 
-    return { avatar: draft.avatar };
-  }, []);
-  const {
-    updateDraft,
-    isEditing,
-    startEdit,
-    cancelEdit,
-    save,
-    isSaving,
-    error,
-  } = useEditableSection(initialValues, { buildPayload });
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   const avatar = previewUrl || user.avatar;
+  const resolvedAvatar = resolveAvatarUrl(avatar);
+  const fullName = `${user.firstName} ${user.lastName}`.trim();
 
-  const handleImageClick = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setPreviewUrl((currentUrl) => {
-        if (currentUrl) {
-          URL.revokeObjectURL(currentUrl);
-        }
-        return imageUrl;
-      });
-      updateDraft({ avatar: file });
-      startEdit();
-      setIsModalOpen(false);
-    }
-  };
-
-  const handleCancelAvatar = () => {
-    cancelEdit();
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
+    updateDraft({ avatar: file });
+    startEdit();
   };
 
   const handleSaveAvatar = async () => {
-    const updatedProfile = await save();
-
-    if (updatedProfile && fileInputRef.current) {
-      fileInputRef.current.value = "";
-      setPreviewUrl(null);
-    }
+    const updated = await save();
+    if (updated) { setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
-  const connectionButtonDisabled =
-    isConnecting || isAccepting || isConnected || isRequestPending || isRequestDeclined;
-  const connectionButtonLabel = isAccepting
-    ? "Accepting..."
-    : isIncomingRequest
-      ? "Accept Request"
-      : isRequestDeclined
-        ? "Declined"
-      : isConnecting
-        ? "Sending..."
-        : isConnected
-          ? "Connected"
-          : isRequestPending
-            ? "Pending"
-            : "Connect";
-  const ConnectionButtonIcon = isConnected
-    ? UserCheck
-    : isIncomingRequest
-      ? UserCheck
-      : isRequestDeclined
-        ? X
-      : isRequestPending
-      ? Clock
-      : UserRoundPlus;
-  const connectionButtonClass = isConnected
-    ? "bg-emerald-600 text-white cursor-default"
-    : isRequestDeclined
-      ? "bg-slate-200 text-slate-600 cursor-default"
-    : isRequestPending
-      ? "bg-slate-200 text-slate-600 cursor-default"
-      : isIncomingRequest
-        ? "bg-primary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        : "bg-secondary/90 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed";
+  const handleCancelAvatar = () => {
+    cancelEdit(); setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
-    <>
-      <ImageModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        imgSrc={avatar}
-        name={`${user.firstName} ${user.lastName}`}
-        onUpload={handleUploadClick}
-      />
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-lg">
+      {/* Cover */}
+      <div
+        className="h-40 sm:h-52 w-full"
+        style={{ background: "linear-gradient(135deg, #14213D 0%, #1e3a5f 60%, #14213D 100%)" }}
+      >
+        {/* Subtle dot grid overlay */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: "radial-gradient(circle, #FCA311 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+        />
+      </div>
 
-      <section className="bg-card-light p-6 sm:p-8 rounded-xl shadow-sm border border-border-light w-full">
-        {/* Two-row layout for better responsiveness */}
-        <div className="flex flex-col gap-6">
-          {/* Row 1: Avatar + User Info */}
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            {/* Avatar Section */}
-            <div className="relative flex-shrink-0">
-              <div
-                className={`w-32 h-32 rounded-2xl bg-slate-200 flex items-center justify-center overflow-hidden ${
-                  isOwnProfile ? "cursor-pointer group" : ""
-                }`}
-                onClick={isOwnProfile ? handleImageClick : undefined}
-              >
-                <UserAvatar
-                  src={avatar}
-                  name={`${user.firstName} ${user.lastName}`}
-                  className={`w-full h-full object-cover text-4xl ${
-                    isOwnProfile
-                      ? "transition-opacity group-hover:opacity-90"
-                      : ""
-                  }`}
-                />
-                {isOwnProfile && (
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Camera className="text-white drop-shadow-md" size={32} />
-                  </div>
-                )}
-              </div>
+      {/* White card underneath */}
+      <div className="bg-white px-6 sm:px-8 pb-6">
+        {/* Avatar row — overlaps the cover */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 sm:-mt-16 mb-5">
+          {/* Avatar */}
+          <div className="relative shrink-0 self-start sm:self-auto">
+            <div
+              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden bg-slate-200 ${isOwnProfile ? "cursor-pointer group" : ""}`}
+              onClick={isOwnProfile ? () => fileInputRef.current?.click() : undefined}
+            >
+              {resolvedAvatar ? (
+                <img src={resolvedAvatar} alt={fullName} className="w-full h-full object-cover" />
+              ) : (
+                <UserAvatar name={fullName} className="w-full h-full text-4xl" />
+              )}
               {isOwnProfile && (
-                <>
-                  <button
-                    onClick={handleUploadClick}
-                    className="absolute -bottom-2 -right-2 bg-secondary text-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform"
-                  >
-                    <Camera size={16} />
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept="image/*"
-                  />
-                </>
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="text-white" size={22} />
+                </div>
               )}
             </div>
-              {isOwnProfile && isEditing && (
-                <div className="mt-3 flex flex-col gap-2">
-                  {error && (
-                    <p className="text-xs font-medium text-red-500">{error}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleCancelAvatar}
-                      disabled={isSaving}
-                      className="rounded-lg border border-border-light bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveAvatar}
-                      disabled={isSaving}
-                      className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSaving ? "Saving..." : "Save Photo"}
-                    </button>
-                  </div>
-                </div>
-              )}
+            {isOwnProfile && (
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            )}
+          </div>
 
-            {/* User Info Section */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
-                {user.firstName} {user.lastName}
-              </h1>
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                {isOwnProfile && connectionSummary && (
-                  <ConnectionsSummary
-                    count={connectionSummary.count}
-                    pendingCount={connectionSummary.pendingCount}
-                    onClick={connectionSummary.onClick}
-                  />
-                )}
-                <div className="inline-flex items-center px-4 py-1.5 bg-slate-100 rounded-full text-sm font-semibold text-primary border border-border-light">
-                  GPA: {user.gpa ? user.gpa.toFixed(1) : "N/A"}
-                </div>
-              </div>
+          {/* Name + meta — pushed to the right, aligned to bottom of cover */}
+          <div className="flex-1 min-w-0 pb-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight leading-tight">
+              {fullName || "Student"}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/8 text-primary rounded-full text-sm font-bold">
+                <GraduationCap className="w-3.5 h-3.5" />
+                GPA {user.gpa ? Number(user.gpa).toFixed(1) : "N/A"}
+              </span>
+              {isOwnProfile && connectionSummary && (
+                <button
+                  onClick={connectionSummary.onClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-surface-container-low border border-outline-variant/20 text-on-surface-variant rounded-full text-sm font-semibold hover:border-primary/30 hover:text-primary transition-colors"
+                >
+                  <UsersRound className="w-3.5 h-3.5" />
+                  {connectionSummary.count} {connectionSummary.count === 1 ? "Connection" : "Connections"}
+                  {connectionSummary.pendingCount > 0 && (
+                    <span className="ml-1 flex items-center gap-0.5 text-secondary font-bold">
+                      <Bell className="w-3 h-3" />
+                      {connectionSummary.pendingCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Row 2: Action Buttons (full width on their own row) */}
-          {!isOwnProfile && (
-            <div className="flex flex-col sm:flex-row sm:justify-center  gap-3 w-full sm:w-auto">
-              {isIncomingRequest && !isConnected && !isRequestDeclined ? (
-                <>
+          {/* Actions — own profile: save avatar; other profile: connect + message */}
+          <div className="shrink-0 flex items-center gap-2 pb-1">
+            {isOwnProfile && isEditing ? (
+              <div className="flex flex-col gap-1.5">
+                {error && <p className="text-xs text-red-500">{error}</p>}
+                <div className="flex gap-2">
                   <button
-                    onClick={onAcceptConnection}
-                    disabled={isAccepting}
-                    className="flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleCancelAvatar}
+                    disabled={isSaving}
+                    className="px-4 py-1.5 rounded-xl border border-outline-variant/20 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
                   >
-                    <UserCheck size={18} />
-                    {isAccepting ? "Confirming..." : "Confirm"}
+                    Cancel
                   </button>
                   <button
-                    onClick={onDeclineConnection}
-                    disabled={isAccepting}
-                    className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleSaveAvatar}
+                    disabled={isSaving}
+                    className="px-4 py-1.5 rounded-xl bg-secondary text-primary text-sm font-bold hover:bg-secondary/90 transition-colors disabled:opacity-50"
                   >
-                    <X size={18} />
-                    Decline
+                    {isSaving ? "Saving…" : "Save Photo"}
                   </button>
-                </>
-              ) : (
-                <button
-                  onClick={connectionButtonDisabled ? undefined : onConnect}
-                  disabled={connectionButtonDisabled}
-                  className={`flex-1 sm:flex-none px-6 py-2.5 font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap ${connectionButtonClass}`}
-                >
-                  <ConnectionButtonIcon size={18} />
-                  {connectionButtonLabel}
-                </button>
-              )}
-              {isConnected && (
-                <StartDirectChatButton
-                  userId={user.userId}
-                  userName={user.firstName}
-                  className="flex-1 sm:flex-none px-6 py-2.5 font-bold rounded-lg whitespace-nowrap justify-center"
+                </div>
+              </div>
+            ) : !isOwnProfile ? (
+              <div className="flex items-center gap-2">
+                <ConnectionBtn
+                  isConnected={isConnected}
+                  isConnecting={isConnecting}
+                  isRequestPending={isRequestPending}
+                  isRequestDeclined={isRequestDeclined}
+                  isIncomingRequest={isIncomingRequest}
+                  isAccepting={isAccepting}
+                  onConnect={onConnect}
+                  onAcceptConnection={onAcceptConnection}
+                  onDeclineConnection={onDeclineConnection}
                 />
-              )}
-            </div>
-          )}
+                {isConnected && (
+                  <StartDirectChatButton
+                    userId={user.userId}
+                    userName={user.firstName}
+                    className="px-5 py-2 font-bold rounded-xl text-sm"
+                  />
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 };
