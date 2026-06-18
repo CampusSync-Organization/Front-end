@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { toast } from "sonner";
 import { chatSocket } from "../services/chatSocket";
 import {
@@ -14,6 +15,7 @@ import {
   getTeam as apiGetTeam,
   leaveTeam as apiLeaveTeam,
 } from "../api/teamApi";
+import { getProfileByUserId } from "../../profile/api/profileApi";
 import { store } from "../../../app/store/index.js";
 
 function getCurrentUserId() {
@@ -37,7 +39,19 @@ function resolveDmName(members, currentUserId, fallback) {
   return name || fallback;
 }
 
-const useChatStore = create((set, get) => ({
+/** Look up a user's name from Redux connections/recommendations store by ID. */
+function resolveNameFromStore(userId) {
+  const state = store.getState();
+  const connections = state.connections?.hydratedConnections ?? [];
+  const recommendations = state.recommendations?.items ?? [];
+  const all = [...connections, ...recommendations];
+  const found = all.find((u) => Number(u.user_id ?? u.id) === Number(userId));
+  return found?.name ?? found?.full_name ?? null;
+}
+
+const useChatStore = create(
+  persist(
+    (set, get) => ({
   rooms: [],
   messages: {},
   activeRoomId: null,
@@ -64,35 +78,68 @@ const useChatStore = create((set, get) => ({
 
   /** Load all of the current user's existing direct chat rooms from the API. */
   async fetchRooms() {
+    if (get().isLoadingRooms) return;
     set({ isLoadingRooms: true });
     try {
       const data = await getUserChats();
       const rooms = Array.isArray(data) ? data : data?.chats ?? data?.rooms ?? [];
       const currentUserId = getCurrentUserId();
 
+      const roomEntries = [];
+
       rooms.forEach((room) => {
         const type = room.type ?? (room.is_direct ? "direct" : "direct");
-        const name =
-          type === "direct"
-            ? resolveDmName(room.members, currentUserId, `User ${room.id}`)
-            : room.name ?? `Room ${room.id}`;
-
         const members = room.members ?? [];
-        const peerId = members.find(
+        const peer = members.find(
           (m) => Number(m.id ?? m.user_id) !== Number(currentUserId)
-        )?.id ?? null;
+        );
+        const peerId = peer?.id ?? null;
 
-        get().addRoom({
+        let name;
+        let avatarUrl = peer?.avatar_url ?? null;
+        if (type === "direct") {
+          const resolved = peer?.name ?? peer?.full_name ?? (peerId ? resolveNameFromStore(peerId) : null);
+          name = resolved ?? null;
+        } else {
+          name = room.name ?? `Room ${room.id}`;
+        }
+
+        const roomEntry = {
           id: room.id,
           type,
-          name,
-          lastMessage: room.last_message?.content ?? room.lastMessage ?? "",
+          name: name ?? `User ${peerId ?? room.id}`,
+          lastMessage: room.last_message?.content ?? "",
+          avatarUrl,
           members,
           peerId: peerId ? Number(peerId) : null,
-        });
+        };
+        get().addRoom(roomEntry);
+        roomEntries.push({ roomEntry, name, peerId, type });
       });
-    } catch {
-      // Endpoint may not exist or user has no chats — silently ignore
+
+      // Batch-fetch last messages and resolve names in background
+      roomEntries.forEach(({ roomEntry, name, peerId, type }) => {
+        // Fetch real last message for each room
+        getRoomMessages(roomEntry.id).then((msgs) => {
+          if (msgs?.length) {
+            const last = msgs[msgs.length - 1];
+            get().addRoom({ ...roomEntry, lastMessage: last.content });
+          }
+        }).catch(() => {});
+
+        // Resolve name for direct chats if still unresolved
+        if (type === "direct" && !name && peerId) {
+          getProfileByUserId(peerId).then((profile) => {
+            const resolvedName = profile?.name ?? profile?.full_name ?? null;
+            const resolvedAvatar = profile?.avatar_url ?? null;
+            if (resolvedName) {
+              get().addRoom({ ...roomEntry, name: resolvedName, avatarUrl: resolvedAvatar });
+            }
+          }).catch(() => {});
+        }
+      });
+    } catch (err) {
+      console.error("[fetchRooms] failed:", err?.response?.status, err?.message);
     } finally {
       set({ isLoadingRooms: false });
     }
@@ -120,8 +167,14 @@ const useChatStore = create((set, get) => ({
     if (!roomId) return;
     try {
       const msgs = await getRoomMessages(roomId);
+      const lastMsg = msgs?.length ? msgs[msgs.length - 1] : null;
       set((state) => ({
         messages: { ...state.messages, [roomId]: msgs },
+        rooms: state.rooms.map((r) =>
+          r.id === roomId && lastMsg
+            ? { ...r, lastMessage: lastMsg.content }
+            : r
+        ),
       }));
     } catch {
       toast.error("Failed to load messages.");
@@ -306,6 +359,12 @@ const useChatStore = create((set, get) => ({
       toast.error("Failed to leave team.");
     }
   },
-}));
+    }),
+    {
+      name: "chat-rooms",
+      partialize: (state) => ({ rooms: state.rooms }),
+    }
+  )
+);
 
 export default useChatStore;

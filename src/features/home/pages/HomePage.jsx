@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useSearchParams, Outlet } from "react-router-dom";
-import WelcomeHeader from "../components/WelcomeHeader";
-import Sidebar from "../components/Sidebar";
+import LeftPanel from "../components/LeftPanel";
+import RightPanel from "../components/RightPanel";
 import FirstWelcomeOverlay from "../components/FirstWelcomeOverlay";
 
 export default function HomePage() {
@@ -18,18 +18,31 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
+    <div className="min-h-screen" style={{ background: "#f0f2f5" }}>
       {showWelcome && <FirstWelcomeOverlay name={firstName} onDismiss={handleDismiss} />}
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-8">
-            <WelcomeHeader />
+      <div className="max-w-[1100px] mx-auto px-4 py-6">
+        <div className="grid grid-cols-12 gap-5">
+
+          {/* Left panel */}
+          <div className="hidden lg:block col-span-3">
+            <div className="sticky top-6">
+              <LeftPanel />
+            </div>
+          </div>
+
+          {/* Center feed */}
+          <div className="col-span-12 lg:col-span-6">
             <Outlet />
           </div>
-          <div className="hidden lg:block lg:col-span-4">
-            <Sidebar />
+
+          {/* Right panel */}
+          <div className="hidden lg:block col-span-3">
+            <div className="sticky top-6">
+              <RightPanel />
+            </div>
           </div>
+
         </div>
       </div>
     </div>

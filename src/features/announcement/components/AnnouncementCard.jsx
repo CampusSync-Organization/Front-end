@@ -1,57 +1,45 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Clock,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  X,
-  Check,
-  Plus,
+  Heart, MessageCircle, Bookmark, MoreHorizontal,
+  Edit, Trash2, X, Check, Users, CalendarDays, BookOpen,
 } from "lucide-react";
-import { UserAvatar } from "../../../shared/ui/UserAvatar";
-import {
-  deleteAnnouncement,
-  updateAnnouncement,
-} from "../store/announcementSlice";
+import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
+import { deleteAnnouncement, updateAnnouncement } from "../store/announcementSlice";
 import { getErrorMessage } from "../../auth/utils/getErrorMessage";
 
-function getCategoryLabel(type) {
-  switch (type) {
-    case "project-announcement":
-      return "Project Announcement";
-    case "connection-update":
-      return "Connection Update";
-    default:
-      return type;
-  }
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} days ago`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getCategoryColor(type) {
-  switch (type) {
-    case "project-announcement":
-      return "bg-secondary/15 text-secondary";
-    case "connection-update":
-      return "bg-purple-100 text-purple-600";
-    default:
-      return "bg-slate-100 text-slate-600";
+function Avatar({ src, name, size = 40 }) {
+  const [broken, setBroken] = React.useState(false);
+  const resolved = resolveAvatarUrl(src);
+  const ini = (name ?? "?").split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
+  let h = 0;
+  for (let i = 0; i < (name?.length ?? 0); i++) h = (h * 31 + (name?.charCodeAt(i) ?? 0)) & 0xfffff;
+  const hue = (h % 280) + 30;
+  if (resolved && !broken) {
+    return <img src={resolved} alt={name} onError={() => setBroken(true)} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
   }
+  return (
+    <div className="rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+      style={{ width: size, height: size, background: `hsl(${hue},45%,90%)`, color: `hsl(${hue},45%,30%)` }}>
+      {ini}
+    </div>
+  );
 }
 
-export default function AnnouncementCard({ post, isOwner = false }) {
+function EditForm({ post, onCancel }) {
   const dispatch = useDispatch();
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const menuRef = useRef(null);
-
-  const [editData, setEditData] = useState({
+  const [data, setData] = useState({
     announcement_type: post.announcement_type,
     course_name: post.course_name || "",
     project_name: post.project_name || "",
@@ -61,356 +49,224 @@ export default function AnnouncementCard({ post, isOwner = false }) {
     content: post.content || "",
   });
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
+  const inp = "w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] focus:outline-none focus:border-gray-300 transition-colors";
+
+  const handleSave = async () => {
+    if (!data.course_name.trim()) { toast.error("Course name is required"); return; }
+    if (data.announcement_type === "project-announcement" && (!data.num_members || +data.num_members < 1)) {
+      toast.error("Members needed must be at least 1"); return;
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleLike = () => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this announcement?")) {
-      await dispatch(deleteAnnouncement(post.id));
-    }
-  };
-
-  const validate = () => {
-    if (!editData.course_name.trim()) {
-      toast.error("Course name is mandatory");
-      return false;
-    }
-
-    if (editData.announcement_type === "project-announcement") {
-      if (!editData.num_members || parseInt(editData.num_members) < 1) {
-        toast.error("Members needed must be at least 1");
-        return false;
-      }
-
-      if (editData.start_date && editData.deadline) {
-        const start = new Date(editData.start_date);
-        const end = new Date(editData.deadline);
-        if (end <= start) {
-          toast.error("Deadline must be after start date");
-          return false;
-        }
-      }
-
-      if (editData.start_date) {
-        const start = new Date(editData.start_date);
-        const now = new Date();
-        const tenDaysAgo = new Date();
-        tenDaysAgo.setDate(now.getDate() - 10);
-        
-        start.setHours(0, 0, 0, 0);
-        tenDaysAgo.setHours(0, 0, 0, 0);
-
-        if (start < tenDaysAgo) {
-          toast.error("Start date cannot be more than 10 days in the past");
-          return false;
-        }
-      }
-    } else if (editData.announcement_type === "connection-update") {
-        if (!editData.content.trim()) {
-          toast.error("Please provide some content for your update");
-          return false;
-        }
-    }
-
-    return true;
-  };
-
-  const handleUpdate = async () => {
-    if (!validate()) return;
-
     try {
-      const dataToSend = { ...editData };
-
-      if (editData.announcement_type === "connection-update") {
-        delete dataToSend.project_name;
-        delete dataToSend.start_date;
-        delete dataToSend.deadline;
-        delete dataToSend.num_members;
-      } else {
-        dataToSend.num_members = parseInt(dataToSend.num_members);
-      }
-
-      await dispatch(updateAnnouncement({ id: post.id, updates: dataToSend })).unwrap();
-      toast.success("Announcement updated successfully!");
-      setIsEditing(false);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to update announcement"));
-    }
+      const payload = { ...data };
+      if (data.announcement_type === "connection-update") {
+        delete payload.project_name; delete payload.start_date;
+        delete payload.deadline; delete payload.num_members;
+      } else { payload.num_members = parseInt(payload.num_members); }
+      await dispatch(updateAnnouncement({ id: post.id, updates: payload })).unwrap();
+      toast.success("Updated!"); onCancel();
+    } catch (e) { toast.error(getErrorMessage(e, "Failed to update")); }
   };
-
-  if (isEditing) {
-    return (
-      <article className="bg-card-light border border-secondary/30 rounded-xl shadow-md overflow-hidden p-6 transition-all">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-lg text-primary">Edit Announcement</h3>
-          <button
-            onClick={() => setIsEditing(false)}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-slate-400" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3">
-            <div className="relative">
-              <select
-                className="w-full p-3 bg-slate-50 border border-border-light rounded-lg text-sm appearance-none focus:ring-2 focus:ring-secondary outline-none transition-all text-foreground cursor-pointer font-medium"
-                value={editData.announcement_type}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    announcement_type: e.target.value,
-                  })
-                }
-              >
-                <option value="project-announcement">
-                  Project Announcement
-                </option>
-                <option value="connection-update">Connection Update</option>
-              </select>
-            </div>
-
-            <input
-              type="text"
-              placeholder="Course Name (Required)"
-              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm font-bold"
-              value={editData.course_name}
-              onChange={(e) =>
-                setEditData({ ...editData, course_name: e.target.value })
-              }
-            />
-
-            <input
-              type="text"
-              placeholder="Title / Project Name (Optional)"
-              className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-              value={editData.project_name}
-              onChange={(e) =>
-                setEditData({ ...editData, project_name: e.target.value })
-              }
-            />
-          </div>
-
-          {editData.announcement_type === "project-announcement" && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-                    value={editData.start_date}
-                    onChange={(e) =>
-                      setEditData({ ...editData, start_date: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 mb-1 block ml-1">
-                    Deadline
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-                    value={editData.deadline}
-                    onChange={(e) =>
-                      setEditData({ ...editData, deadline: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <input
-                type="number"
-                placeholder="Members Needed (Minimum 1)"
-                className="w-full p-3 bg-slate-50 rounded-lg border border-border-light text-foreground placeholder-slate-400 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm"
-                value={editData.num_members}
-                onChange={(e) =>
-                  setEditData({ ...editData, num_members: e.target.value })
-                }
-              />
-            </>
-          )}
-
-          <textarea
-            className="w-full h-32 p-4 bg-slate-50 border border-border-light rounded-xl text-sm focus:ring-2 focus:ring-secondary focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400 text-foreground"
-            placeholder="Description, requirements, and extra notes (Optional)..."
-            value={editData.content}
-            onChange={(e) =>
-              setEditData({ ...editData, content: e.target.value })
-            }
-          ></textarea>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => setIsEditing(false)}
-              className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdate}
-              className="flex-[2] bg-secondary text-primary font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary/90 transition-colors shadow-lg shadow-secondary/20"
-            >
-              <Check size={20} />
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </article>
-    );
-  }
 
   return (
-    <article className="bg-card-light border border-border-light rounded-xl shadow-sm overflow-hidden p-6 transition-all hover:shadow-md">
-      <div className="flex items-start justify-between mb-4">
-        <Link
-          to={`/user-profile/${post.user_id}`}
-          className="flex items-center gap-4 group"
-        >
-          <UserAvatar
-            src={post.avatar_url}
-            name={post.name}
-            className="w-12 h-12 rounded-lg object-cover text-lg overflow-hidden flex-shrink-0"
-          />
+    <div className="p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[14px] font-bold text-gray-900">Edit Post</p>
+        <button onClick={onCancel} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+          <X className="w-4 h-4 text-gray-400" />
+        </button>
+      </div>
+      <div className="flex gap-2">
+        {[["project-announcement", "Project"], ["connection-update", "Update"]].map(([val, label]) => (
+          <button key={val} onClick={() => setData({ ...data, announcement_type: val })}
+            className={`flex-1 py-2 rounded-xl text-[13px] font-semibold border transition-all ${data.announcement_type === val ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-gray-50 text-gray-500"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <input className={inp} placeholder="Course name *" value={data.course_name} onChange={(e) => setData({ ...data, course_name: e.target.value })} />
+      <input className={inp} placeholder="Project title (optional)" value={data.project_name} onChange={(e) => setData({ ...data, project_name: e.target.value })} />
+      {data.announcement_type === "project-announcement" && (
+        <div className="grid grid-cols-2 gap-2">
+          <input type="date" className={inp} value={data.start_date} onChange={(e) => setData({ ...data, start_date: e.target.value })} />
+          <input type="date" className={inp} value={data.deadline} onChange={(e) => setData({ ...data, deadline: e.target.value })} />
+          <input type="number" className={inp + " col-span-2"} placeholder="Members needed" value={data.num_members} onChange={(e) => setData({ ...data, num_members: e.target.value })} />
+        </div>
+      )}
+      <textarea rows={3} className={inp + " resize-none"} placeholder="Description (optional)" value={data.content} onChange={(e) => setData({ ...data, content: e.target.value })} />
+      <div className="flex justify-end gap-2">
+        <button onClick={onCancel} className="px-4 py-2 text-[13px] font-semibold text-gray-400 hover:text-gray-700 transition-colors">Cancel</button>
+        <button onClick={handleSave} className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: "#14213D" }}>
+          <Check className="w-3.5 h-3.5" /> Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AnnouncementCard({ post, announcement, isOwner = false }) {
+  const item = post ?? announcement;
+  const dispatch = useDispatch();
+  const currentUser = useSelector((s) => s.auth.user);
+  const [liked, setLiked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  if (!item) return null;
+
+  const isProject = item.announcement_type === "project-announcement";
+  const fillPct = isProject && item.num_members ? Math.min(100, ((item.current_members ?? 0) / item.num_members) * 100) : 0;
+
+  if (editing) return (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <EditForm post={item} onCancel={() => setEditing(false)} />
+    </div>
+  );
+
+  return (
+    <article className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-start justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-3">
+          <Link to={`/user-profile/${item.user_id}`}>
+            <Avatar src={item.avatar_url} name={item.name} size={42} />
+          </Link>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
-                {post.name}
-              </h3>
-              <span
-                className={`px-2 py-0.5 text-[11px] font-bold rounded uppercase tracking-wider ${getCategoryColor(
-                  post.announcement_type,
-                )}`}
-              >
-                {getCategoryLabel(post.announcement_type)}
-              </span>
+            <Link to={`/user-profile/${item.user_id}`}
+              className="text-[14px] font-bold text-gray-900 hover:underline block leading-tight">
+              {item.name || "Unknown"}
+            </Link>
+            <p className="text-[12px] text-gray-400">{timeAgo(item.created_at)}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setMenuOpen(!menuOpen)}
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl border border-gray-100 shadow-xl z-20 py-1 overflow-hidden">
+                  <button onClick={() => { setEditing(true); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                    <Edit className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button onClick={() => { if (window.confirm("Delete this post?")) dispatch(deleteAnnouncement(item.id)); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-              <Clock size={14} />{" "}
-              {new Date(post.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        </Link>
+          )}
+        </div>
+      </div>
 
-        {isOwner && (
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-slate-400 hover:text-primary transition-colors p-1 rounded-full hover:bg-slate-100"
-            >
-              <MoreHorizontal size={20} />
-            </button>
-
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-border-light rounded-xl shadow-xl py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                <button
-                  onClick={() => {
-                    setIsEditing(true);
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
-                >
-                  <Edit size={16} />
-                  Edit Announcement
-                </button>
-                <button
-                  onClick={() => {
-                    handleDelete();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={16} />
-                  Delete Announcement
-                </button>
-              </div>
-            )}
-          </div>
+      {/* Content */}
+      <div className="px-5 pb-3">
+        {(item.project_name || item.course_name) && (
+          <p className="text-[14.5px] font-semibold text-gray-900 mb-1">
+            {isProject ? (item.project_name || item.course_name) : item.course_name}
+          </p>
+        )}
+        {item.content && item.content.trim() !== "..." && (
+          <p className="text-[14px] text-gray-600 leading-relaxed">{item.content}</p>
         )}
       </div>
 
-      <p className="text-slate-700 mb-6 leading-relaxed">
-        {post.announcement_type === "connection-update"
-          ? post.content
-          : post.project_name}
-      </p>
-
-      {post.announcement_type === "project-announcement" && (
-        <div className="bg-secondary/5 rounded-xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 border border-secondary/10 mb-6">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
-              Course
-            </p>
-            <p className="font-medium text-sm text-foreground">
-              {post.course_name}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
-              Deadline
-            </p>
-            <p className="font-medium text-sm text-foreground">
-              {new Date(post.deadline).toLocaleDateString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
-              Team Size
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm text-foreground">
-                {post.current_members}/{post.num_members} members
-              </span>
-              <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="bg-secondary h-full rounded-full"
-                  style={{
-                    width: `${
-                      (post.current_members / post.num_members) * 100
-                    }%`,
-                  }}
-                ></div>
+      {/* Project meta */}
+      {isProject && (
+        <div className="mx-5 mb-4 rounded-xl overflow-hidden border border-gray-100">
+          <div className="grid grid-cols-3 divide-x divide-gray-100">
+            <div className="bg-gray-50 px-3 py-3">
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                <BookOpen className="w-3 h-3" /> Course
+              </p>
+              <p className="text-[12.5px] font-bold text-gray-800 truncate">{item.course_name || "—"}</p>
+            </div>
+            <div className="bg-gray-50 px-3 py-3">
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                <CalendarDays className="w-3 h-3" /> Deadline
+              </p>
+              <p className="text-[12.5px] font-bold text-gray-800">
+                {item.deadline ? new Date(item.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 px-3 py-3">
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                <Users className="w-3 h-3" /> Team
+              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[12.5px] font-bold text-gray-800">{item.current_members ?? 0}/{item.num_members}</p>
+                <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${fillPct}%`, background: "#FCA311" }} />
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-border-light">
-        <div className="flex items-center gap-6">
+      {/* Actions row */}
+      <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-5">
           <button
-            onClick={toggleLike}
-            className={`flex items-center gap-2 transition-colors ${
-              liked
-                ? "text-secondary/70"
-                : "text-slate-500 hover:text-secondary/80"
-            }`}
+            onClick={() => { setLiked(!liked); setLikes(liked ? likes - 1 : likes + 1); }}
+            className="flex items-center gap-1.5 text-[13px] font-medium transition-colors"
+            style={{ color: liked ? "#ef4444" : "#9ca3af" }}
           >
-            <Heart size={20} fill={liked ? "currentColor" : "none"} />
-            <span className="text-sm font-medium">{likesCount}</span>
+            <Heart className="w-[18px] h-[18px]" fill={liked ? "currentColor" : "none"} />
+            {likes > 0 ? likes : ""}
+          </button>
+          <button className="flex items-center gap-1.5 text-[13px] font-medium text-gray-400 hover:text-gray-600 transition-colors">
+            <MessageCircle className="w-[18px] h-[18px]" />
+            Reply
           </button>
         </div>
-        {post.announcement_type === "project-announcement" && !isOwner && (
-          <button className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all shadow-md shadow-primary/10">
-            Request to Join
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSaved(!saved)}
+            className="transition-colors"
+            style={{ color: saved ? "#14213D" : "#d1d5db" }}
+          >
+            <Bookmark className="w-[18px] h-[18px]" fill={saved ? "currentColor" : "none"} />
           </button>
+          {isProject && !isOwner && (
+            <button
+              className="px-4 py-1.5 rounded-xl text-[12.5px] font-bold text-white transition-colors hover:opacity-90"
+              style={{ background: "#14213D" }}
+            >
+              Request to Join
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Comment input */}
+      <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-3">
+        {currentUser && (
+          <Avatar
+            src={currentUser.avatar_url}
+            name={currentUser.name ?? ""}
+            size={30}
+          />
         )}
+        <input
+          type="text"
+          placeholder="Write your comment..."
+          className="flex-1 bg-gray-50 rounded-full px-4 py-2 text-[13px] text-gray-600 placeholder:text-gray-400 border border-gray-100 focus:outline-none focus:border-gray-300 transition-colors"
+        />
       </div>
     </article>
   );

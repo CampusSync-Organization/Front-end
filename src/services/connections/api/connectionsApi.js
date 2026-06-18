@@ -20,8 +20,6 @@ export async function createConnection(connectedUserId) {
     connected_user_id: connectedUserId,
   });
 
-  throwIfApiError(data);
-
   return data;
 }
 
