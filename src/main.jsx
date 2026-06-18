@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { store } from "./app/store";
 import { router } from "./app/router/router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { TransitionProvider } from "./shared/context/TransitionContext";
 import "./index.css";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -13,28 +14,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={clientId}>
       <Provider store={store}>
-        <RouterProvider router={router} />
-        <Toaster richColors position="top-right" />
+        <TransitionProvider>
+          <RouterProvider router={router} />
+          <Toaster richColors position="top-right" />
+        </TransitionProvider>
       </Provider>
     </GoogleOAuthProvider>
   </React.StrictMode>,
 );
-
-// #region agent log
-fetch("http://127.0.0.1:7242/ingest/161409ee-1922-461a-a388-f32e495f9bb2", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    sessionId: "debug-session",
-    runId: "pre-fix-1",
-    hypothesisId: "H2",
-    location: "src/main.jsx:12",
-    message: "App boot and CSS import",
-    data: {
-      hasRoot: !!document.getElementById("root"),
-      styleSheetsCount: document.styleSheets?.length ?? 0,
-    },
-    timestamp: Date.now(),
-  }),
-}).catch(() => {});
-// #endregion

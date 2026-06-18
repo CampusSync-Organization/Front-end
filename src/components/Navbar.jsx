@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { clearUser } from "../features/auth/store/authSlice";
+import { usePageTransition } from "../shared/context/TransitionContext";
 import {
   fetchMyProfile,
   selectMyProfile,
@@ -24,6 +25,15 @@ const NOTIFICATION_COUNT = 3;
 export default function Navbar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { fadeOut, fadeIn } = usePageTransition();
+
+  const handleLogout = async () => {
+    await fadeOut();
+    dispatch(clearUser());
+    navigate("/", { replace: true });
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    fadeIn();
+  };
   const location = useLocation();
   const authUser = useSelector((state) => state.auth?.user);
   const profile = useSelector(selectMyProfile);
@@ -267,9 +277,8 @@ export default function Navbar() {
                     type="button"
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     onClick={() => {
-                      dispatch(clearUser());
                       setUserMenuOpen(false);
-                      navigate("/", { replace: true });
+                      handleLogout();
                     }}
                   >
                     <LogOut className="h-4 w-4" strokeWidth={1.75} />
@@ -338,9 +347,8 @@ export default function Navbar() {
               type="button"
               className="w-full mt-3 text-[15px] font-medium text-red-600 py-3.5 rounded-xl border border-red-100 hover:bg-red-50 transition-colors"
               onClick={() => {
-                dispatch(clearUser());
                 setMobileOpen(false);
-                navigate("/", { replace: true });
+                handleLogout();
               }}
             >
               Logout
