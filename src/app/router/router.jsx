@@ -7,7 +7,9 @@ import SignUpPage from "../../features/auth/pages/SignUpPage.jsx";
 import AssessmentPage from "../../features/assessment/pages/AssessmentPage.jsx";
 import HomePage from "../../features/home/pages/HomePage.jsx";
 import AnnouncementFeed from "../../features/announcement/components/AnnouncementFeed.jsx";
+import MyAnnouncementsPage from "../../features/announcement/pages/MyAnnouncementsPage.jsx";
 import ProfilePage from "../../features/profile/pages/ProfilePage.jsx";
+import ProfileConnectionsPage from "../../features/profile/pages/ProfileConnectionsPage.jsx";
 import UserProfilePage from "../../features/profile/pages/UserProfilePage.jsx";
 import ChatMainPage from "../../features/chat/pages/ChatMainPage.jsx";
 import RecommendationPage from "../../features/recommendation/pages/RecommendationPage.jsx";
@@ -58,7 +60,9 @@ export const router = createBrowserRouter([
           { path: "events/:eventId", element: <EventDetailsPage /> },
           { path: "my-events", element: <MyEventsPage /> },
           { path: "my-communities", element: <MyCommunitiesPage /> },
+          { path: "my-announcements", element: <MyAnnouncementsPage /> },
           { path: "profile", element: <ProfilePage /> },
+          { path: "profile/connections", element: <ProfileConnectionsPage /> },
           { path: "user-profile/:id", element: <UserProfilePage /> },
           { path: "Recommendation-Page", element: <RecommendationPage /> },
           { path: "Chat-Main-Page", element: <ChatMainPage /> },
