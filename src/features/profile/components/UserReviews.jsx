@@ -1,21 +1,15 @@
 import { Star, MessageSquare } from "lucide-react";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 
 const ReviewItem = ({ review }) => (
   <div className="w-full p-6 bg-slate-50 rounded-xl border border-border-light flex flex-col gap-4 hover:border-secondary transition-colors group">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        {/* Fallback avatar if none provided */}
-        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm overflow-hidden">
-          {review.avatar ? (
-            <img
-              src={review.avatar}
-              alt={review.author}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            review.author.charAt(0)
-          )}
-        </div>
+        <UserAvatar
+          src={review.avatar}
+          name={review.author}
+          className="w-10 h-10 rounded-full object-cover text-sm overflow-hidden"
+        />
         <div>
           <span className="text-primary text-sm font-bold block">
             {review.author}

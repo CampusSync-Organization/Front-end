@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import {
   Bell,
   Menu,
@@ -12,6 +12,12 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { clearUser } from "../features/auth/store/authSlice";
+import {
+  fetchMyProfile,
+  selectMyProfile,
+  selectProfileStatus,
+} from "../features/profile/store/profileSlice";
+import { UserAvatar } from "../shared/ui/UserAvatar";
 
 const NOTIFICATION_COUNT = 3;
 
@@ -20,8 +26,14 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const authUser = useSelector((state) => state.auth?.user);
+  const profile = useSelector(selectMyProfile);
+  const profileStatus = useSelector(selectProfileStatus);
   const user = authUser
-    ? { name: authUser.name ?? "User", role: authUser.role ?? "student" }
+    ? {
+        name: profile?.name ?? authUser.name ?? "User",
+        role: authUser.role ?? "student",
+        avatarUrl: profile?.avatar_url,
+      }
     : null;
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -33,8 +45,10 @@ export default function Navbar() {
   const userRef = useRef(null);
 
   useEffect(() => {
-    const id = setTimeout(() => setMobileOpen(false), 0);
-    setHoveredPath(location.pathname);
+    const id = setTimeout(() => {
+      setMobileOpen(false);
+      setHoveredPath(location.pathname);
+    }, 0);
     return () => clearTimeout(id);
   }, [location.pathname]);
 
@@ -43,6 +57,12 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (authUser && !profile && profileStatus === "idle") {
+      dispatch(fetchMyProfile());
+    }
+  }, [authUser, dispatch, profile, profileStatus]);
 
   useEffect(() => {
     const close = (e) => {
@@ -61,14 +81,6 @@ export default function Navbar() {
     { label: "Events & Communities", to: "/events-communities" },
     { label: "Chat", to: "/Chat-Main-Page" },
   ];
-
-  const getInitials = (name) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
 
   const navBarClass = `fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-out ${
     isScrolled
@@ -115,7 +127,7 @@ export default function Navbar() {
                 >
                   <span className="relative z-10">{link.label}</span>
                   {hoveredPath === link.to && (
-                    <motion.div
+                    <Motion.div
                       layoutId="navbar-pill"
                       className="absolute inset-0 bg-slate-100 rounded-xl z-0"
                       transition={{
@@ -205,9 +217,13 @@ export default function Navbar() {
                 className="flex items-center gap-2.5 rounded-xl pl-2 pr-3 py-2 text-slate-700 hover:bg-slate-100 transition-all duration-200"
                 aria-label="User menu"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#14213D] text-white text-sm font-semibold shadow-sm">
-                  {user ? getInitials(user.name) : "?"}
-                </span>
+                <UserAvatar
+                  src={user?.avatarUrl}
+                  name={user?.name}
+                  className="h-9 w-9 rounded-xl object-cover text-sm shadow-sm"
+                  fallbackClassName="bg-[#14213D] text-white"
+                  loading="eager"
+                />
                 <span className="text-sm font-medium text-slate-800 max-w-[120px] truncate hidden lg:block">
                   {user ? user.name.split(" ")[0] : ""}
                 </span>
@@ -302,9 +318,13 @@ export default function Navbar() {
               })}
             </div>
             <div className="flex items-center gap-3 pt-4 mt-3 border-t border-slate-100">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#14213D] text-white text-sm font-semibold shrink-0">
-                {user ? getInitials(user.name) : "?"}
-              </span>
+              <UserAvatar
+                src={user?.avatarUrl}
+                name={user?.name}
+                className="h-11 w-11 rounded-xl object-cover text-sm shrink-0"
+                fallbackClassName="bg-[#14213D] text-white"
+                loading="eager"
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900 truncate">
                   {user?.name}

@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ProfileCard from "../components/ProfileCard";
 import FilterBar from "../components/FilterBar";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import {
   fetchRecommendations,
@@ -13,6 +13,10 @@ import {
   selectActiveMode,
 } from "../store/recommendationSlice";
 import { useNavigate } from "react-router-dom";
+import {
+  fetchConnections,
+  fetchPendingConnectionRequests,
+} from "../../../services/connections/store/connectionsSlice";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -66,6 +70,11 @@ const RecommendationPage = () => {
     );
   }, [dispatch, activeFilter]);
 
+  useEffect(() => {
+    dispatch(fetchConnections());
+    dispatch(fetchPendingConnectionRequests());
+  }, [dispatch]);
+
   const handleFilterChange = (filterId) => {
     dispatch(setActiveMode(filterId));
   };
@@ -109,7 +118,7 @@ const RecommendationPage = () => {
           ) : (
             <AnimatePresence mode="wait">
               {/* key={activeFilter} ensures the animation triggers when switching */}
-              <motion.div
+              <Motion.div
                 key={activeFilter}
                 variants={containerVariants}
                 initial="hidden"
@@ -126,7 +135,7 @@ const RecommendationPage = () => {
                     />
                   ))
                 ) : (
-                  <motion.div
+                  <Motion.div
                     variants={cardVariants}
                     className="col-span-full py-20 text-center"
                   >
@@ -136,9 +145,9 @@ const RecommendationPage = () => {
                     <p className="text-muted-foreground text-lg font-medium">
                       No matches found for this category.
                     </p>
-                  </motion.div>
+                  </Motion.div>
                 )}
-              </motion.div>
+              </Motion.div>
             </AnimatePresence>
           )}
         </div>

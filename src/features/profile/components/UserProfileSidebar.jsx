@@ -1,5 +1,6 @@
 import React from "react";
 import { Users, LayoutGrid } from "lucide-react";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 
 export const UserProfileSidebar = () => {
     return (
@@ -35,13 +36,11 @@ export const UserProfileSidebar = () => {
                 </div>
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden">
-                            <img
-                                alt="Mutual 1"
-                                class="w-full h-full object-cover"
-                                src="https://placehold.co/40x40"
-                            />
-                        </div>
+                        <UserAvatar
+                            src="https://placehold.co/40x40"
+                            name="Omar Khalid"
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0 text-sm"
+                        />
                         <div className="flex-grow min-w-0">
                             <p className="text-sm font-bold truncate text-primary">
                                 Omar Khalid
@@ -50,13 +49,11 @@ export const UserProfileSidebar = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden">
-                            <img
-                                alt="Mutual 2"
-                                class="w-full h-full object-cover"
-                                src="https://placehold.co/40x40"
-                            />
-                        </div>
+                        <UserAvatar
+                            src="https://placehold.co/40x40"
+                            name="Sara Ahmed"
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0 text-sm"
+                        />
                         <div className="flex-grow min-w-0">
                             <p className="text-sm font-bold truncate text-primary">
                                 Sara Ahmed

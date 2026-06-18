@@ -4,6 +4,7 @@ import profileReducer from "../../features/profile/store/profileSlice";
 import dashboardReducer from "../../features/dashboard/store/dashboardSlice";
 import announcementReducer from "../../features/announcement/store/announcementSlice";
 import recommendationReducer from "../../features/recommendation/store/recommendationSlice";
+import connectionsReducer from "../../services/connections/store/connectionsSlice";
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -11,6 +12,7 @@ const appReducer = combineReducers({
   dashboard: dashboardReducer,
   announcements: announcementReducer,
   recommendations: recommendationReducer,
+  connections: connectionsReducer,
 });
 
 const rootReducer = (state, action) => {

@@ -14,7 +14,7 @@ import {
   Check,
   Plus,
 } from "lucide-react";
-import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
+import { UserAvatar } from "../../../shared/ui/UserAvatar";
 import {
   deleteAnnouncement,
   updateAnnouncement,
@@ -283,17 +283,11 @@ export default function AnnouncementCard({ post, isOwner = false }) {
           to={`/user-profile/${post.user_id}`}
           className="flex items-center gap-4 group"
         >
-          <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-lg flex items-center justify-center font-bold text-lg overflow-hidden flex-shrink-0">
-            {post.avatar_url ? (
-              <img
-                src={resolveAvatarUrl(post.avatar_url)}
-                alt={post.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              post.name.charAt(0)
-            )}
-          </div>
+          <UserAvatar
+            src={post.avatar_url}
+            name={post.name}
+            className="w-12 h-12 rounded-lg object-cover text-lg overflow-hidden flex-shrink-0"
+          />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
