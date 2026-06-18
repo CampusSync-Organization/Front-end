@@ -29,6 +29,8 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await fadeOut();
+    localStorage.removeItem("chat-rooms");
+    localStorage.removeItem("sentConnectionIds");
     dispatch(clearUser());
     navigate("/", { replace: true });
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

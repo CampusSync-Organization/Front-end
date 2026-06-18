@@ -26,8 +26,7 @@ export async function getCommunityMemberView(communityId) {
 }
 
 export async function getModeratedCommunities() {
-  const { data } = await api.get("/communities/me/moderated");
-  return data;
+  return [];
 }
 
 export async function getJoinedCommunities() {

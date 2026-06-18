@@ -361,7 +361,7 @@ const useChatStore = create(
   },
     }),
     {
-      name: "chat-rooms",
+      name: `chat-rooms-${store.getState().auth?.user?.userID ?? store.getState().auth?.user?.id ?? "guest"}`,
       partialize: (state) => ({ rooms: state.rooms }),
     }
   )
