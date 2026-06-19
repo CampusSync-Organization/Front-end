@@ -18,7 +18,7 @@ export default function TeamsPage() {
 
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [requestingIds, setRequestingIds] = useState(new Set());
+  const [requestedIds, setRequestedIds] = useState(new Set());
 
   useEffect(() => {
     fetchTeams();
@@ -30,11 +30,13 @@ export default function TeamsPage() {
 
   const handleRequestJoin = async (e, teamId) => {
     e.stopPropagation();
-    setRequestingIds((prev) => new Set(prev).add(teamId));
+    // Optimistic: flip to "Requested" immediately
+    setRequestedIds((prev) => new Set(prev).add(teamId));
     try {
       await requestJoinTeam(teamId);
-    } finally {
-      setRequestingIds((prev) => {
+    } catch {
+      // Revert on failure — toast already shown inside requestJoinTeam
+      setRequestedIds((prev) => {
         const next = new Set(prev);
         next.delete(teamId);
         return next;
@@ -104,7 +106,7 @@ export default function TeamsPage() {
             {filtered.map((team) => {
               const isOwner =
                 team.owner_id != null && Number(team.owner_id) === Number(currentUserId);
-              const hasRequested = team.join_request_status === "pending";
+              const hasRequested = team.join_request_status === "pending" || requestedIds.has(team.id);
               // Find the team chat room in the store (exists after first member is approved)
               const teamRoom = rooms.find(
                 (r) => r.type === "team" && Number(r.teamId) === Number(team.id)
@@ -196,10 +198,9 @@ export default function TeamsPage() {
                         ) : (
                           <button
                             onClick={(e) => handleRequestJoin(e, team.id)}
-                            disabled={requestingIds.has(team.id)}
-                            className="bg-primary text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="bg-primary text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 transition-all"
                           >
-                            {requestingIds.has(team.id) ? "Sending..." : "Request to Join"}
+                            Request to Join
                           </button>
                         )}
                       </div>

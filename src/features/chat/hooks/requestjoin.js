@@ -7,12 +7,17 @@ export function useJoinRequest(teamId) {
   const currentUserId = currentUser?.userID ?? currentUser?.id ?? null;
   const requestKey = currentUserId ? `${currentUserId}:${teamId}` : String(teamId);
   const requestJoinTeam = useChatStore((s) => s.requestJoinTeam);
-  const joinStatus = useChatStore(
+  const joinStatusFromStore = useChatStore(
     (s) => s.joinRequestStatus[requestKey] ?? "idle",
   );
   const joinError = useChatStore(
     (s) => s.joinRequestError[requestKey] ?? null,
   );
+  // If the backend already flagged this team as having a pending request (survives refresh)
+  const hasPendingFromBackend = useChatStore(
+    (s) => s.teams.find((t) => String(t.id) === String(teamId))?.join_request_status === "pending",
+  );
+  const joinStatus = joinStatusFromStore !== "idle" ? joinStatusFromStore : hasPendingFromBackend ? "sent" : "idle";
 
   const handleJoinRequest = async () => {
     if (!teamId) {
@@ -21,7 +26,6 @@ export function useJoinRequest(teamId) {
     }
     try {
       await requestJoinTeam(teamId, currentUserId);
-      toast.success("Join request sent!");
     } catch (err) {
       const message =
         err.response?.data?.detail ??

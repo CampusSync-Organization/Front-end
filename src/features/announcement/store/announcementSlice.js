@@ -69,7 +69,15 @@ const announcementSlice = createSlice({
     myStatus: "idle", // ← add this
     error: null,
   },
-  reducers: {},
+  reducers: {
+    // Silent background refresh — replaces items without touching status/loading state
+    silentRefreshAnnouncements: (state, action) => {
+      state.items = action.payload;
+    },
+    silentRefreshMyAnnouncements: (state, action) => {
+      state.myItems = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAnnouncements.pending, (state) => {
@@ -122,6 +130,7 @@ const announcementSlice = createSlice({
   },
 });
 
+export const { silentRefreshAnnouncements, silentRefreshMyAnnouncements } = announcementSlice.actions;
 export const selectAllAnnouncements = (state) => state.announcements.items;
 export const selectAnnouncementStatus = (state) => state.announcements.status;
 export const selectAnnouncementError = (state) => state.announcements.error;

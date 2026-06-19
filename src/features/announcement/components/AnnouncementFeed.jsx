@@ -17,11 +17,14 @@ import {
   fetchAnnouncements,
   fetchMyAnnouncements,
   createAnnouncement,
+  silentRefreshAnnouncements,
+  silentRefreshMyAnnouncements,
   selectAllAnnouncements,
   selectAnnouncementStatus,
   selectMyAnnouncements,
   selectMyAnnouncementStatus,
 } from "../store/announcementSlice";
+import { announcementApi } from "../api/announcementApi";
 import { getErrorMessage } from "../../auth/utils/getErrorMessage";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import useChatStore from "../../chat/store/useChatStore";
@@ -262,6 +265,26 @@ export default function AnnouncementFeed() {
 
     dispatch(fetchAnnouncements(filters));
   }, [dispatch, fetchIncomingJoinRequests, filters, isMyFeed]);
+
+  // Poll for new join requests and announcements every 10 seconds (silent — no loading flash)
+  useEffect(() => {
+    const poll = async () => {
+      fetchIncomingJoinRequests();
+      try {
+        if (isMyFeed) {
+          const data = await announcementApi.getMyAnnouncements(filters);
+          dispatch(silentRefreshMyAnnouncements(data));
+        } else {
+          const data = await announcementApi.getGlobalFeed(filters);
+          dispatch(silentRefreshAnnouncements(data));
+        }
+      } catch {
+        // silently ignore poll errors
+      }
+    };
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [fetchIncomingJoinRequests, dispatch, filters, isMyFeed]);
 
   const pendingJoinRequests = incomingJoinRequests.filter(
     (request) => request && !request.approved,

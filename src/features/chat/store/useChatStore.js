@@ -365,9 +365,12 @@ const useChatStore = create(
         setTimeout(doReconnect, 4000);
       }
 
-      // Also check moderation via HTTP even when WS succeeds (WS doesn't return
-      // MESSAGE_FLAGGED, only the HTTP endpoint does).
-      if (!override) {
+      // Only check moderation via HTTP for direct chats. For group rooms (team /
+      // community) the WS backend already persists the message, so a second HTTP
+      // POST would create a duplicate DB record that gets broadcast again → two
+      // identical messages in the UI.
+      const roomType = get().rooms.find((r) => r.id === roomId)?.type;
+      if (!override && roomType === "direct") {
         console.log("[sendMessage] WS send OK, calling postMessage for moderation check", { roomId, content });
         postMessage(roomId, content)
           .then((msg) => {
@@ -610,17 +613,19 @@ const useChatStore = create(
     try {
       await apiRequestJoinTeam(teamId);
       set((state) => ({
-        joinRequestStatus: { ...state.joinRequestStatus, [key]: "fulfilled" },
+        joinRequestStatus: { ...state.joinRequestStatus, [key]: "sent" },
         teams: state.teams.map((t) =>
-          t.id === teamId ? { ...t, join_request_status: "pending" } : t
+          Number(t.id) === Number(teamId) ? { ...t, join_request_status: "pending" } : t
         ),
       }));
+      toast.success("Join request sent!");
     } catch (err) {
       const msg = err?.response?.data?.detail ?? "Failed to send join request.";
       set((state) => ({
         joinRequestStatus: { ...state.joinRequestStatus, [key]: "rejected" },
         joinRequestError: { ...state.joinRequestError, [key]: msg },
       }));
+      toast.error(msg);
       throw err;
     }
   },
