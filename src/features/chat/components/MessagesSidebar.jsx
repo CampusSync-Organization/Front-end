@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Plus, MessageSquare, Users, Users2, Loader2, Compass } from "lucide-react";
+import { Search, Plus, MessageSquare, Users, Users2, Loader2, Compass, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
@@ -57,11 +57,6 @@ function Avatar({ name, avatarUrl, type, size = 11 }) {
   );
 }
 
-const SECTION_EMPTY = {
-  communities: { icon: Users,  title: "No community chats", hint: "Join a community to see its chat here." },
-  teams:       { icon: Users2, title: "No team chats",      hint: "Join or create a team to chat." },
-};
-
 export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "messages", connections = [], connectionsLoading = false }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,8 +69,7 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
   const openDirectChat = useChatStore((s) => s.openDirectChat);
   const addRoom = useChatStore((s) => s.addRoom);
 
-  // Build merged list for messages tab:
-  // connections enriched with existing room data if DM already exists
+  // ── Messages tab ──────────────────────────────────────────────────────────────
   const mergedItems = useMemo(() => {
     if (activeSection !== "messages") return [];
 
@@ -83,7 +77,6 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
     rooms.filter((r) => r.type === "direct").forEach((room) => {
       if (room.peerId) roomByUserId.set(room.peerId, room);
     });
-
     return connections.map((profile) => {
       const userId = Number(profile.user_id ?? profile.id);
       const name = resolveName(profile) || `User ${userId}`;
@@ -92,16 +85,14 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
     });
   }, [activeSection, rooms, connections]);
 
-  const q = searchQuery.toLowerCase();
+  // ── Teams tab ─────────────────────────────────────────────────────────────────
+  // Only rooms from GET /chats — already scoped to the current user's teams
+  const teamRooms = rooms.filter((r) => r.type === "team");
 
-  const displayItems = useMemo(() => {
-    if (activeSection === "messages") {
-      return mergedItems.filter((item) => item.name.toLowerCase().includes(q));
-    }
-    return rooms
-      .filter(activeSection === "communities" ? (r) => r.type === "community" : (r) => r.type === "team")
-      .filter((r) => r.name.toLowerCase().includes(q));
-  }, [activeSection, mergedItems, rooms, q]);
+  // ── Communities tab ───────────────────────────────────────────────────────────
+  const communityRooms = rooms.filter((r) => r.type === "community");
+
+  const q = searchQuery.toLowerCase();
 
   const handleSelectRoom = (room) => {
     if (activeRoomId === room.id) return;
@@ -111,7 +102,6 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
   const handleSelectConnection = async (item) => {
     if (openingId) return;
     if (item.room) {
-      // Patch the stored room name with the real profile name in case it was "User {id}"
       addRoom({ ...item.room, name: item.name });
       handleSelectRoom(item.room);
       return;
@@ -128,8 +118,8 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
   };
 
   const isLoading = activeSection === "messages" ? connectionsLoading || isLoadingRooms : isLoadingRooms;
-  const empty = SECTION_EMPTY[activeSection];
 
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="w-[300px] shrink-0 h-full flex flex-col bg-white border-r border-outline-variant/20">
       {/* Header */}
@@ -138,15 +128,26 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
           <h2 className="text-[17px] font-bold text-primary tracking-tight capitalize">
             {activeSection === "messages" ? "Messages" : activeSection === "communities" ? "Communities" : "Teams"}
           </h2>
-          {activeSection !== "communities" && (
-            <button
-              onClick={onOpenCreateGroup}
-              title="New group"
-              className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {activeSection === "teams" && (
+              <button
+                onClick={() => navigate("/teams")}
+                title="Browse all teams"
+                className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {activeSection !== "communities" && (
+              <button
+                onClick={onOpenCreateGroup}
+                title={activeSection === "teams" ? "Create new team" : "New group"}
+                className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="relative">
@@ -155,7 +156,7 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={activeSection === "messages" ? "Search connections…" : "Search…"}
+            placeholder={activeSection === "messages" ? "Search connections…" : activeSection === "teams" ? "Search teams…" : "Search…"}
             className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl focus:outline-none focus:border-outline-variant/50 text-sm font-medium placeholder:text-on-surface-variant/40 text-on-surface transition-colors"
           />
         </div>
@@ -168,8 +169,10 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
             <Loader2 className="w-5 h-5 animate-spin" />
             <span className="text-xs font-medium">Loading…</span>
           </div>
+
         ) : activeSection === "messages" ? (
-          displayItems.length === 0 ? (
+          /* ── Messages list ── */
+          mergedItems.filter((i) => i.name.toLowerCase().includes(q)).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-6">
               <MessageSquare className="w-8 h-8 text-on-surface-variant/30 mb-3" />
               <p className="text-sm font-semibold text-on-surface-variant/60">No connections yet</p>
@@ -179,73 +182,132 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
             </div>
           ) : (
             <div className="space-y-0.5">
-              {displayItems.map((item) => {
-                const isActive = item.room && activeRoomId === item.room.id;
-                const isOpening = openingId === item.userId;
-                return (
-                  <button
-                    key={item.userId}
-                    onClick={() => handleSelectConnection(item)}
-                    disabled={!!openingId}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left disabled:opacity-60 ${
-                      isActive
-                        ? "bg-primary/8 border border-primary/15 shadow-sm"
-                        : "hover:bg-surface-container-low"
-                    }`}
-                  >
-                    <div className="relative">
-                      <Avatar name={item.name} avatarUrl={item.avatarUrl} type="direct" />
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
-                        {item.name}
-                      </span>
-                      <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
-                        {item.room?.lastMessage || (item.major ?? "Tap to message")}
-                      </p>
-                    </div>
-
-                    {isOpening && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
-                  </button>
-                );
-              })}
+              {mergedItems
+                .filter((i) => i.name.toLowerCase().includes(q))
+                .map((item) => {
+                  const isActive = item.room && activeRoomId === item.room.id;
+                  const isOpening = openingId === item.userId;
+                  return (
+                    <button
+                      key={item.userId}
+                      onClick={() => handleSelectConnection(item)}
+                      disabled={!!openingId}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left disabled:opacity-60 ${
+                        isActive
+                          ? "bg-primary/8 border border-primary/15 shadow-sm"
+                          : "hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <div className="relative">
+                        <Avatar name={item.name} avatarUrl={item.avatarUrl} type="direct" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
+                          {item.name}
+                        </span>
+                        <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
+                          {item.room?.lastMessage || (item.major ?? "Tap to message")}
+                        </p>
+                      </div>
+                      {isOpening && <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />}
+                    </button>
+                  );
+                })}
             </div>
           )
-        ) : displayItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-center px-6">
-            <empty.icon className="w-8 h-8 text-on-surface-variant/30 mb-3" />
-            <p className="text-sm font-semibold text-on-surface-variant/60">{empty.title}</p>
-            <p className="text-xs text-on-surface-variant/40 mt-1 leading-relaxed">{empty.hint}</p>
-          </div>
+
+        ) : activeSection === "teams" ? (
+          /* ── Teams list ── */
+          teamRooms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+              <Users2 className="w-8 h-8 text-on-surface-variant/30 mb-3" />
+              <p className="text-sm font-semibold text-on-surface-variant/60">No team chats yet</p>
+              <p className="text-xs text-on-surface-variant/40 mt-1 leading-relaxed">
+                Create a team or join one to start chatting.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {/* Active team chat rooms */}
+              {teamRooms
+                .filter((r) => r.name.toLowerCase().includes(q))
+                .map((room) => {
+                  const isActive = activeRoomId === room.id;
+                  const memberCount = Array.isArray(room.members) ? room.members.length : 0;
+                  return (
+                    <button
+                      key={room.id}
+                      onClick={() => handleSelectRoom(room)}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left ${
+                        isActive
+                          ? "bg-primary/8 border border-primary/15 shadow-sm"
+                          : "hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <div className="relative">
+                        <Avatar name={room.name} type="team" />
+                        {memberCount > 0 && (
+                          <span className="absolute -bottom-0.5 -right-0.5 min-w-[16px] h-4 bg-[#14213D] text-white text-[9px] font-bold rounded-full border-2 border-white flex items-center justify-center px-0.5">
+                            {memberCount > 99 ? "99+" : memberCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
+                          {room.name}
+                        </span>
+                        <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
+                          {room.lastMessage || "No messages yet"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+
+            </div>
+          )
+
         ) : (
-          <div className="space-y-0.5">
-            {displayItems.map((room) => {
-              const isActive = activeRoomId === room.id;
-              return (
-                <button
-                  key={room.id}
-                  onClick={() => handleSelectRoom(room)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left ${
-                    isActive
-                      ? "bg-primary/8 border border-primary/15 shadow-sm"
-                      : "hover:bg-surface-container-low"
-                  }`}
-                >
-                  <Avatar name={room.name} type={room.type} />
-                  <div className="flex-1 min-w-0">
-                    <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
-                      {room.name}
-                    </span>
-                    <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
-                      {room.lastMessage || (room.type === "community" ? "Community chat" : "Team channel")}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          /* ── Communities list ── */
+          communityRooms.filter((r) => r.name.toLowerCase().includes(q)).length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-center px-6">
+              <Users className="w-8 h-8 text-on-surface-variant/30 mb-3" />
+              <p className="text-sm font-semibold text-on-surface-variant/60">No community chats</p>
+              <p className="text-xs text-on-surface-variant/40 mt-1 leading-relaxed">
+                Join a community to see its chat here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {communityRooms
+                .filter((r) => r.name.toLowerCase().includes(q))
+                .map((room) => {
+                  const isActive = activeRoomId === room.id;
+                  return (
+                    <button
+                      key={room.id}
+                      onClick={() => handleSelectRoom(room)}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left ${
+                        isActive
+                          ? "bg-primary/8 border border-primary/15 shadow-sm"
+                          : "hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <Avatar name={room.name} type="community" />
+                      <div className="flex-1 min-w-0">
+                        <span className={`font-semibold text-[13.5px] truncate block ${isActive ? "text-primary" : "text-on-surface"}`}>
+                          {room.name}
+                        </span>
+                        <p className="text-xs text-on-surface-variant/55 truncate mt-0.5 font-medium">
+                          {room.lastMessage || "Community chat"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          )
         )}
 
         {activeSection === "teams" && (

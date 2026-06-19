@@ -8,6 +8,7 @@ import {
   LogOut,
   CheckCircle,
   Clock,
+  MessageSquare,
 } from "lucide-react";
 import useChatStore from "../store/useChatStore";
 
@@ -18,10 +19,10 @@ export default function TeamDetailPage() {
   const currentUserId = authUser?.userID ?? authUser?.id ?? null;
 
   const teams = useChatStore((s) => s.teams);
+  const rooms = useChatStore((s) => s.rooms);
   const fetchTeam = useChatStore((s) => s.fetchTeam);
   const approveJoinRequest = useChatStore((s) => s.approveJoinRequest);
   const leaveTeam = useChatStore((s) => s.leaveTeam);
-  const addRoom = useChatStore((s) => s.addRoom);
   const setActiveRoom = useChatStore((s) => s.setActiveRoom);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -49,23 +50,23 @@ export default function TeamDetailPage() {
       (m) => Number(m.user_id ?? m.id ?? m.userID) === Number(currentUserId)
     );
 
+  // Find the team's group chat room if it already exists in the store
+  const teamRoom = rooms.find(
+    (r) => r.type === "team" && Number(r.teamId) === Number(teamId)
+  );
+
+  const handleOpenChat = () => {
+    if (!teamRoom) return;
+    setActiveRoom(teamRoom.id);
+    navigate("/Chat-Main-Page");
+  };
+
   const handleApprove = async (requestId) => {
     setApprovingIds((prev) => new Set(prev).add(requestId));
     try {
-      const result = await approveJoinRequest(teamId, requestId);
-      // Refresh team data
+      await approveJoinRequest(teamId, requestId);
       await fetchTeam(teamId);
-
-      if (result?.chat_room_id) {
-        addRoom({
-          id: result.chat_room_id,
-          type: "team",
-          name: team.name,
-          lastMessage: "",
-          members: [],
-        });
-        setActiveRoom(result.chat_room_id);
-      }
+      // approveJoinRequest already sets activeRoomId in the store
       navigate("/Chat-Main-Page");
     } catch {
       // error already toasted in store
@@ -113,7 +114,9 @@ export default function TeamDetailPage() {
     );
   }
 
-  const joinRequests = Array.isArray(team.join_requests) ? team.join_requests : [];
+  const joinRequests = Array.isArray(team.join_requests)
+    ? team.join_requests.filter((r) => !r.approved)
+    : [];
   const members = Array.isArray(team.members) ? team.members : [];
 
   return (
@@ -139,16 +142,25 @@ export default function TeamDetailPage() {
                 {team.owner_name && (
                   <p className="text-sm text-muted-foreground mt-1">Owned by {team.owner_name}</p>
                 )}
-                {team.member_count != null && (
+                {members.length > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    {team.member_count} member{team.member_count !== 1 ? "s" : ""}
+                    {members.length} member{members.length !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {teamRoom && (
+                <button
+                  onClick={handleOpenChat}
+                  className="flex items-center gap-2 bg-[#FCA311] text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-[#FCA311]/90 transition-all shadow-sm"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Open Team Chat
+                </button>
+              )}
               {isMember && (
                 <button
                   onClick={handleLeave}
@@ -175,6 +187,21 @@ export default function TeamDetailPage() {
           <section className="bg-white rounded-2xl border border-border shadow-sm p-6">
             <h2 className="text-lg font-semibold text-foreground mb-3">About</h2>
             <p className="text-muted-foreground leading-relaxed">{team.description}</p>
+          </section>
+        )}
+
+        {/* Team Chat CTA — shown when no room exists yet and user is owner */}
+        {isOwner && !teamRoom && (
+          <section className="bg-white rounded-2xl border border-dashed border-[#FCA311]/40 shadow-sm p-6 flex flex-col items-center text-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-[#FCA311]/10 flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-[#FCA311]" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-foreground">No team chat yet</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Approve a join request below to create the team group chat automatically.
+              </p>
+            </div>
           </section>
         )}
 

@@ -10,6 +10,7 @@ import {
 } from "../api/chatApi";
 import {
   createTeam as apiCreateTeam,
+  getAllTeams as apiGetAllTeams,
   requestJoinTeam as apiRequestJoinTeam,
   approveJoinRequest as apiApproveJoinRequest,
   getIncomingJoinRequests as apiGetIncomingJoinRequests,
@@ -161,7 +162,7 @@ const useChatStore = create(
       const newRooms = [];
 
       rooms.forEach((room) => {
-        const type = room.type ?? (room.is_direct ? "direct" : "direct");
+        const type = room.type ?? (room.is_direct ? "direct" : "group");
         const members = room.members ?? [];
         const peer = members.find(
           (m) => Number(m.id ?? m.user_id) !== Number(currentUserId)
@@ -191,12 +192,20 @@ const useChatStore = create(
           avatarUrl,
           members,
           peerId: resolvedPeerId ? Number(resolvedPeerId) : null,
+          teamId: room.team_id ?? null,
         };
         newRooms.push(roomEntry);
         roomEntries.push({ roomEntry, name, peerId: resolvedPeerId, type });
       });
 
-      // Batch set all rooms at once instead of calling addRoom per room
+      // Discard any rooms not returned by the API — removes stale rooms from
+      // old sessions or localStorage that the current user is no longer a member of.
+      const freshIds = new Set(newRooms.map((r) => r.id));
+      set((state) => ({
+        rooms: state.rooms.filter((r) => freshIds.has(r.id)),
+      }));
+
+      // Batch set all rooms, merging with existing state
       set((state) => {
         const merged = [...state.rooms];
         newRooms.forEach((entry) => {
@@ -508,25 +517,43 @@ const useChatStore = create(
   async createTeam(name, description) {
     try {
       const team = await apiCreateTeam(name, description);
-      const roomEntry = {
-        id: team.id,
-        type: "team",
-        name: team.name,
-        lastMessage: "",
-        members: [],
-      };
-      get().addRoom(roomEntry);
-      set({ activeRoomId: team.id });
       set((state) => ({
         teams: [...state.teams.filter((t) => t.id !== team.id), team],
       }));
+
+      // If the backend returns a chat_room_id (created at team creation time),
+      // add it to the store immediately so the owner can chat right away.
+      const chatRoomId = team.chat_room_id;
+      if (chatRoomId) {
+        get().addRoom({
+          id: chatRoomId,
+          type: "team",
+          name: team.name,
+          lastMessage: "",
+          members: [],
+          teamId: Number(team.id),
+        });
+        set({ activeRoomId: chatRoomId });
+        chatSocket.softReconnect();
+      }
+
+      toast.success("Team created!");
+      // Sync with backend so the pruning logic in fetchRooms keeps the new room
+      get().fetchRooms().catch(() => {});
+      return team;
     } catch {
       toast.error("Failed to create team.");
     }
   },
 
   async fetchTeams() {
-    // GET /teams not implemented by backend — no-op
+    try {
+      const data = await apiGetAllTeams();
+      const teams = Array.isArray(data) ? data : Array.isArray(data?.teams) ? data.teams : [];
+      set({ teams });
+    } catch {
+      // silently ignore — non-critical
+    }
   },
 
   async fetchIncomingJoinRequests() {
@@ -583,7 +610,7 @@ const useChatStore = create(
     try {
       await apiRequestJoinTeam(teamId);
       set((state) => ({
-        joinRequestStatus: { ...state.joinRequestStatus, [key]: "sent" },
+        joinRequestStatus: { ...state.joinRequestStatus, [key]: "fulfilled" },
         teams: state.teams.map((t) =>
           t.id === teamId ? { ...t, join_request_status: "pending" } : t
         ),
@@ -591,7 +618,7 @@ const useChatStore = create(
     } catch (err) {
       const msg = err?.response?.data?.detail ?? "Failed to send join request.";
       set((state) => ({
-        joinRequestStatus: { ...state.joinRequestStatus, [key]: "error" },
+        joinRequestStatus: { ...state.joinRequestStatus, [key]: "rejected" },
         joinRequestError: { ...state.joinRequestError, [key]: msg },
       }));
       throw err;
@@ -602,12 +629,29 @@ const useChatStore = create(
     try {
       const result = await apiApproveJoinRequest(teamId, requestId);
       set((state) => ({
-        incomingJoinRequests: state.incomingJoinRequests.map((request) =>
-          Number(request.request_id ?? request.id) === Number(requestId)
-            ? { ...request, approved: true }
-            : request,
+        incomingJoinRequests: state.incomingJoinRequests.filter(
+          (r) => (r.request_id ?? r.id) !== requestId
         ),
       }));
+
+      const chatRoomId = result?.chat_room_id;
+      if (chatRoomId) {
+        const team = get().teams.find((t) => String(t.id) === String(teamId));
+        get().addRoom({
+          id: chatRoomId,
+          type: "team",
+          name: team?.name ?? `Team ${teamId}`,
+          lastMessage: "",
+          members: [],
+          teamId: Number(teamId),
+        });
+        set({ activeRoomId: chatRoomId });
+        get().fetchMessages(chatRoomId).catch(() => {});
+        // Soft-reconnect so the WS session includes the newly created room
+        chatSocket.softReconnect();
+      }
+
+      await get().fetchRooms();
       toast.success("Join request approved!");
       return result;
     } catch {

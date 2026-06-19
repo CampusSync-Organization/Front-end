@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Users2, Search, Plus, UserCheck, Settings } from "lucide-react";
+import { Users2, Search, Plus, UserCheck, Settings, MessageSquare } from "lucide-react";
 import useChatStore from "../store/useChatStore";
 import CreateGroupModal from "../components/CreateGroupModal";
 
@@ -11,8 +11,10 @@ export default function TeamsPage() {
   const currentUserId = authUser?.userID ?? authUser?.id ?? null;
 
   const teams = useChatStore((s) => s.teams);
+  const rooms = useChatStore((s) => s.rooms);
   const fetchTeams = useChatStore((s) => s.fetchTeams);
   const requestJoinTeam = useChatStore((s) => s.requestJoinTeam);
+  const setActiveRoom = useChatStore((s) => s.setActiveRoom);
 
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +40,12 @@ export default function TeamsPage() {
         return next;
       });
     }
+  };
+
+  const handleOpenChat = (e, teamRoom) => {
+    e.stopPropagation();
+    setActiveRoom(teamRoom.id);
+    navigate("/Chat-Main-Page");
   };
 
   return (
@@ -97,6 +105,10 @@ export default function TeamsPage() {
               const isOwner =
                 team.owner_id != null && Number(team.owner_id) === Number(currentUserId);
               const hasRequested = team.join_request_status === "pending";
+              // Find the team chat room in the store (exists after first member is approved)
+              const teamRoom = rooms.find(
+                (r) => r.type === "team" && Number(r.teamId) === Number(team.id)
+              );
 
               return (
                 <div
@@ -113,10 +125,18 @@ export default function TeamsPage() {
                       <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                         <Users2 className="w-5 h-5 text-primary" />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-foreground text-base leading-tight group-hover:text-primary transition-colors truncate">
-                          {team.name}
-                        </h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-foreground text-base leading-tight group-hover:text-primary transition-colors truncate">
+                            {team.name}
+                          </h3>
+                          {teamRoom && (
+                            <span className="shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-[#FCA311]/10 text-[#FCA311] px-1.5 py-0.5 rounded-full">
+                              <MessageSquare className="w-2.5 h-2.5" />
+                              Chat
+                            </span>
+                          )}
+                        </div>
                         {team.member_count != null && (
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {team.member_count} member{team.member_count !== 1 ? "s" : ""}
@@ -135,43 +155,54 @@ export default function TeamsPage() {
                     <div className="flex-1" />
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto">
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40 mt-auto gap-2">
                       {team.owner_name ? (
-                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                           by {team.owner_name}
                         </span>
                       ) : (
                         <span />
                       )}
 
-                      {isOwner ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/teams/${team.id}`);
-                          }}
-                          className="flex items-center gap-1.5 border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-all"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                          Manage
-                        </button>
-                      ) : hasRequested ? (
-                        <button
-                          disabled
-                          className="flex items-center gap-1.5 border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted cursor-not-allowed"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" />
-                          Requested
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => handleRequestJoin(e, team.id)}
-                          disabled={requestingIds.has(team.id)}
-                          className="bg-primary text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {requestingIds.has(team.id) ? "Sending..." : "Request to Join"}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {teamRoom && (
+                          <button
+                            onClick={(e) => handleOpenChat(e, teamRoom)}
+                            className="flex items-center gap-1 bg-[#FCA311] text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-[#FCA311]/90 transition-all"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            Open Chat
+                          </button>
+                        )}
+                        {isOwner ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/teams/${team.id}`);
+                            }}
+                            className="flex items-center gap-1.5 border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-all"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                            Manage
+                          </button>
+                        ) : hasRequested ? (
+                          <button
+                            disabled
+                            className="flex items-center gap-1.5 border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted cursor-not-allowed"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            Requested
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleRequestJoin(e, team.id)}
+                            disabled={requestingIds.has(team.id)}
+                            className="bg-primary text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {requestingIds.has(team.id) ? "Sending..." : "Request to Join"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

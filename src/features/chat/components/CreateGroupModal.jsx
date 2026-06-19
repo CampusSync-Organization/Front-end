@@ -1,11 +1,13 @@
 import { X } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
 
 const CreateGroupModal = ({ isOpen, onClose }) => {
   const [teamName, setTeamName] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const { createTeam } = useChatStore();
 
@@ -15,10 +17,15 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
     if (!teamName.trim()) return;
     setIsSubmitting(true);
     try {
-      await createTeam(teamName.trim(), description.trim() || undefined);
+      const team = await createTeam(teamName.trim(), description.trim() || undefined);
       setTeamName("");
       setDescription("");
       onClose();
+      // If the backend returned a chat_room_id, the store already set activeRoomId —
+      // navigate to the chat so the owner lands in the new team room immediately.
+      if (team?.chat_room_id) {
+        navigate("/Chat-Main-Page");
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -18,6 +18,7 @@ const ChatLayout = () => {
   const connectSocket = useChatStore((s) => s.connectSocket);
   const disconnectSocket = useChatStore((s) => s.disconnectSocket);
   const fetchRooms = useChatStore((s) => s.fetchRooms);
+  const fetchTeams = useChatStore((s) => s.fetchTeams);
   const activeRoomId = useChatStore((s) => s.activeRoomId);
   const rooms = useChatStore((s) => s.rooms);
   const { fetchCommunities } = useEventStore();
@@ -27,6 +28,7 @@ const ChatLayout = () => {
   useEffect(() => {
     connectSocket();
     fetchRooms();
+    fetchTeams();
     fetchCommunities();
     if (connectionsStatus === "idle") {
       dispatch(fetchConnectionsWithHydration());
