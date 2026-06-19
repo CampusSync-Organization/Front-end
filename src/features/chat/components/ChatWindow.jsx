@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb } from "lucide-react";
 import useChatStore from "../store/useChatStore";
 import { chatSocket } from "../services/chatSocket";
+
+const NO_ROOM_MESSAGES = [];
 
 function formatTime(dateStr) {
   if (!dateStr) return "";
@@ -128,19 +130,29 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   const currentUser = useSelector((state) => state.auth?.user);
   const currentUserId = currentUser?.userID ?? currentUser?.id;
 
-  const { activeRoomId, messages, sendMessage, fetchMessages } = useChatStore();
+  const activeRoomId = useChatStore((s) => s.activeRoomId);
+  const roomMessages = useChatStore((s) => {
+    const rid = s.activeRoomId;
+    return rid ? (s.messages[rid] ?? []) : NO_ROOM_MESSAGES;
+  });
+  const sendMessage = useChatStore((s) => s.sendMessage);
+  const fetchMessages = useChatStore((s) => s.fetchMessages);
   const lastSentRef = useRef(null);
 
-  const roomMessages = messages[activeRoomId] ?? [];
+  useEffect(() => {
+    if (activeRoomId) {
+      fetchMessages(activeRoomId);
+    }
+  }, [activeRoomId, fetchMessages]);
 
-  const memberNameMap = (() => {
+  const memberNameMap = useMemo(() => {
     if (!activeChat?.members) return {};
     const map = {};
     activeChat.members.forEach((m) => {
       if (m?.id != null) map[Number(m.id)] = m.name ?? m.full_name;
     });
     return map;
-  })();
+  }, [activeChat?.members]);
 
   const isGroup = activeChat?.type === "community" || activeChat?.type === "team";
 
@@ -152,6 +164,7 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
     if (moderationSubscribed.current) return;
     moderationSubscribed.current = true;
     const unsubscribe = chatSocket.onModeration(({ explanation, suggestion }) => {
+      console.log("[ChatWindow] moderation handler fired, showing banner", { explanation, suggestion });
       setModerationFeedback({ explanation, suggestion });
     });
     return () => {

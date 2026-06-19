@@ -79,11 +79,14 @@ const useChatStore = create(
   activeRoomId: null,
   isConnected: false,
   isLoadingRooms: false,
+  isLoadingIncomingJoinRequests: false,
+  incomingJoinRequestsError: null,
   teams: [],
   pendingOptimistic: null,
   incomingJoinRequests: [],
   joinRequestStatus: {},
   joinRequestError: {},
+  _fetchingMessages: null,
 
   // ── Socket ───────────────────────────────────────────────────────────────────
 
@@ -93,18 +96,48 @@ const useChatStore = create(
     chatSocket.connect(token);
     set({ isConnected: true });
     chatSocket.onMessage((msg) => get().receiveMessage(msg));
-    chatSocket.onModeration(() => {
+    chatSocket.onModeration((data) => {
       const pending = get().pendingOptimistic;
-      if (!pending) return;
-      set((state) => ({
-        pendingOptimistic: null,
-        messages: {
-          ...state.messages,
-          [pending.roomId]: (state.messages[pending.roomId] ?? []).filter(
-            (m) => m.id !== pending.id
-          ),
-        },
-      }));
+      if (pending) {
+        console.log("[moderation] pendingOptimistic found, removing optimistic message", { pending, data });
+        set((state) => ({
+          pendingOptimistic: null,
+          messages: {
+            ...state.messages,
+            [pending.roomId]: (state.messages[pending.roomId] ?? []).filter(
+              (m) => m.id !== pending.id
+            ),
+          },
+        }));
+        return;
+      }
+      console.log("[moderation] pendingOptimistic already null, trying fallback removal", { data });
+      // Fallback: if moderation_feedback arrives after receiveMessage already
+      // cleared pendingOptimistic, try to remove the message by sender + content.
+      if (data?.content || data?.room_id) {
+        const currentUserIdInner = getCurrentUserId();
+        console.log("[moderation] fallback removal by sender_id + content", {
+          currentUserId: currentUserIdInner,
+          content: data.content,
+          room_id: data.room_id,
+        });
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [data.room_id ?? state.activeRoomId]: (
+              state.messages[data.room_id ?? state.activeRoomId] ?? []
+            ).filter(
+              (m) =>
+                !(
+                  Number(m.sender_id) === Number(currentUserIdInner) &&
+                  m.content === (data.content ?? state.pendingOptimistic?.content)
+                ),
+            ),
+          },
+        }));
+      } else {
+        console.log("[moderation] cannot remove message — no content or room_id in data");
+      }
     });
   },
 
@@ -125,6 +158,7 @@ const useChatStore = create(
       const currentUserId = getCurrentUserId();
 
       const roomEntries = [];
+      const newRooms = [];
 
       rooms.forEach((room) => {
         const type = room.type ?? (room.is_direct ? "direct" : "direct");
@@ -140,7 +174,6 @@ const useChatStore = create(
         if (type === "direct") {
           const resolved = peer?.name ?? peer?.full_name ?? (peerId ? resolveNameFromStore(peerId) : null) ?? room.name ?? null;
           name = resolved ?? null;
-          // Try to get avatar + userId from connections/recommendations store by name
           if (!avatarUrl && name) {
             const fromStore = resolvePeerFromStore(name);
             avatarUrl = fromStore.avatarUrl;
@@ -159,35 +192,76 @@ const useChatStore = create(
           members,
           peerId: resolvedPeerId ? Number(resolvedPeerId) : null,
         };
-        get().addRoom(roomEntry);
+        newRooms.push(roomEntry);
         roomEntries.push({ roomEntry, name, peerId: resolvedPeerId, type });
       });
 
-      // Batch-fetch last messages and resolve names in background
-      roomEntries.forEach(({ roomEntry, peerId, type }) => {
-        // Fetch real last message for each room (only update lastMessage field)
-        getRoomMessages(roomEntry.id).then((msgs) => {
-          if (msgs?.length) {
-            const last = msgs[msgs.length - 1];
-            get().addRoom({ id: roomEntry.id, lastMessage: last.content });
+      // Batch set all rooms at once instead of calling addRoom per room
+      set((state) => {
+        const merged = [...state.rooms];
+        newRooms.forEach((entry) => {
+          const idx = merged.findIndex((r) => r.id === entry.id);
+          if (idx !== -1) {
+            merged[idx] = { ...merged[idx], ...entry };
+          } else {
+            merged.push(entry);
           }
-        }).catch(() => {});
-
-        // Fetch profile for direct chats to resolve name and avatar (only update changed fields)
-        if (type === "direct" && peerId) {
-          getProfileByUserId(peerId).then((profile) => {
-            const resolvedName = profile?.name ?? profile?.full_name ?? null;
-            const resolvedAvatar = profile?.avatar_url ?? null;
-            if (resolvedName || resolvedAvatar) {
-              get().addRoom({
-                id: roomEntry.id,
-                ...(resolvedName ? { name: resolvedName } : {}),
-                ...(resolvedAvatar ? { avatarUrl: resolvedAvatar } : {}),
-              });
-            }
-          }).catch(() => {});
-        }
+        });
+        return { rooms: merged };
       });
+
+      // Batch-fetch last messages and resolve names in background
+      const pendingUpdates = roomEntries.flatMap(({ roomEntry, peerId, type }) => {
+        const jobs = [];
+
+        jobs.push(
+          getRoomMessages(roomEntry.id).then((msgs) => {
+            if (msgs?.length) {
+              const last = msgs[msgs.length - 1];
+              return { id: roomEntry.id, lastMessage: last.content };
+            }
+            return null;
+          }).catch(() => null)
+        );
+
+        if (type === "direct" && peerId) {
+          jobs.push(
+            getProfileByUserId(peerId).then((profile) => {
+              const resolvedName = profile?.name ?? profile?.full_name ?? null;
+              const resolvedAvatar = profile?.avatar_url ?? null;
+              if (resolvedName || resolvedAvatar) {
+                return {
+                  id: roomEntry.id,
+                  ...(resolvedName ? { name: resolvedName } : {}),
+                  ...(resolvedAvatar ? { avatarUrl: resolvedAvatar } : {}),
+                };
+              }
+              return null;
+            }).catch(() => null)
+          );
+        }
+
+        return jobs;
+      });
+
+      // Apply all background updates in a single batch
+      (async () => {
+        const results = await Promise.allSettled(pendingUpdates);
+        const patches = [];
+        results.forEach((r) => {
+          if (r.status === "fulfilled" && r.value) patches.push(r.value);
+        });
+        if (patches.length) {
+          set((state) => {
+            const rooms = [...state.rooms];
+            patches.forEach((patch) => {
+              const idx = rooms.findIndex((r) => r.id === patch.id);
+              if (idx !== -1) rooms[idx] = { ...rooms[idx], ...patch };
+            });
+            return { rooms };
+          });
+        }
+      })();
     } catch (err) {
       console.error("[fetchRooms] failed:", err?.response?.status, err?.message);
     } finally {
@@ -222,20 +296,20 @@ const useChatStore = create(
 
   // ── Messages ─────────────────────────────────────────────────────────────────
 
+  _fetchingMessages: null,
+
   async fetchMessages(roomId) {
     if (!roomId) return;
+    if (get()._fetchingMessages === roomId) return;
+    set({ _fetchingMessages: roomId });
     try {
       const msgs = await getRoomMessages(roomId);
-      const lastMsg = msgs?.length ? msgs[msgs.length - 1] : null;
       set((state) => ({
+        _fetchingMessages: null,
         messages: { ...state.messages, [roomId]: msgs },
-        rooms: state.rooms.map((r) =>
-          r.id === roomId && lastMsg
-            ? { ...r, lastMessage: lastMsg.content }
-            : r
-        ),
       }));
     } catch {
+      set({ _fetchingMessages: null });
       toast.error("Failed to load messages.");
     }
   },
@@ -281,6 +355,57 @@ const useChatStore = create(
         });
         setTimeout(doReconnect, 4000);
       }
+
+      // Also check moderation via HTTP even when WS succeeds (WS doesn't return
+      // MESSAGE_FLAGGED, only the HTTP endpoint does).
+      if (!override) {
+        console.log("[sendMessage] WS send OK, calling postMessage for moderation check", { roomId, content });
+        postMessage(roomId, content)
+          .then((msg) => {
+            console.log("[sendMessage] postMessage SUCCESS — message accepted by moderator, updating tmp id", { msgId: msg.id });
+            set((state) => ({
+              pendingOptimistic: null,
+              messages: {
+                ...state.messages,
+                [roomId]: (state.messages[roomId] ?? []).map((m) =>
+                  String(m.id).startsWith("tmp-") && m.content === content
+                    ? { ...m, id: msg.id }
+                    : m,
+                ),
+              },
+            }));
+          })
+          .catch((modErr) => {
+            const detail = modErr?.response?.data?.detail;
+            if (detail?.code === "MESSAGE_FLAGGED") {
+              console.log("[sendMessage] postMessage MESSAGE_FLAGGED — removing message, showing banner", { roomId, content, explanation: detail.explanation, suggestion: detail.suggestion });
+              set((state) => {
+                const currentUserIdInner = getCurrentUserId();
+                return {
+                  pendingOptimistic: null,
+                  messages: {
+                    ...state.messages,
+                    [roomId]: (state.messages[roomId] ?? []).filter(
+                      (m) =>
+                        !(
+                          Number(m.sender_id) === Number(currentUserIdInner) &&
+                          m.content === content
+                        ),
+                    ),
+                  },
+                };
+              });
+              chatSocket.moderationHandlers.forEach((h) =>
+                h({
+                  explanation: detail.explanation,
+                  suggestion: detail.suggestion ?? null,
+                }),
+              );
+            } else {
+              console.log("[sendMessage] postMessage error (non-moderation)", modErr?.response?.status, detail);
+            }
+          });
+      }
     } catch {
       set((state) => ({
         messages: {
@@ -301,10 +426,12 @@ const useChatStore = create(
       } catch (err) {
         const detail = err?.response?.data?.detail;
         if (detail?.code === "MESSAGE_FLAGGED") {
+          console.log("[sendMessage] WS failed — HTTP fallback got MESSAGE_FLAGGED", { roomId, content, explanation: detail.explanation });
           chatSocket.moderationHandlers.forEach((h) =>
             h({ explanation: detail.explanation, suggestion: detail.suggestion ?? null })
           );
         } else {
+          console.log("[sendMessage] WS failed — HTTP fallback error (non-moderation)", err?.response?.status, detail ?? err.message);
           toast.error("Failed to send message.");
         }
       }
@@ -312,12 +439,19 @@ const useChatStore = create(
   },
 
   receiveMessage(msg) {
+    console.log("[receiveMessage] processing WS message", { msgId: msg.id, room_id: msg.room_id, sender_id: msg.sender_id, content: msg.content?.substring(0, 40) });
     set((state) => {
       const existing = state.messages[msg.room_id] ?? [];
-      if (existing.some((m) => m.id === msg.id)) return {};
+      if (existing.some((m) => m.id === msg.id)) {
+        console.log("[receiveMessage] duplicate message id, skipping", msg.id);
+        return {};
+      }
       const currentUserId = getCurrentUserId();
       const isMine = Number(msg.sender_id) === Number(currentUserId);
       const pending = state.pendingOptimistic;
+      if (pending && isMine) {
+        console.log("[receiveMessage] clearing pendingOptimistic (race: moderation_feedback may arrive after this)", { pendingMsgId: pending.id, confirmedMsgId: msg.id });
+      }
       const filtered = isMine
         ? existing.filter((m) => {
             if (!String(m.id).startsWith("tmp-")) return true;
@@ -396,7 +530,33 @@ const useChatStore = create(
   },
 
   async fetchIncomingJoinRequests() {
-    // no-op until backend endpoint is available
+    if (get().isLoadingIncomingJoinRequests) {
+      return get().incomingJoinRequests;
+    }
+
+    set({
+      isLoadingIncomingJoinRequests: true,
+      incomingJoinRequestsError: null,
+    });
+
+    try {
+      const data = await apiGetIncomingJoinRequests();
+      const incomingJoinRequests = Array.isArray(data) ? data : [];
+      set({
+        incomingJoinRequests,
+        incomingJoinRequestsError: null,
+      });
+      return incomingJoinRequests;
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      const message = Array.isArray(detail)
+        ? detail.map((d) => d.msg).join(", ")
+        : detail ?? err.response?.data?.message ?? "Failed to load join requests.";
+      set({ incomingJoinRequestsError: message });
+      toast.error(message);
+    } finally {
+      set({ isLoadingIncomingJoinRequests: false });
+    }
   },
 
   async fetchTeam(teamId) {
@@ -441,6 +601,13 @@ const useChatStore = create(
   async approveJoinRequest(teamId, requestId) {
     try {
       const result = await apiApproveJoinRequest(teamId, requestId);
+      set((state) => ({
+        incomingJoinRequests: state.incomingJoinRequests.map((request) =>
+          Number(request.request_id ?? request.id) === Number(requestId)
+            ? { ...request, approved: true }
+            : request,
+        ),
+      }));
       toast.success("Join request approved!");
       return result;
     } catch {

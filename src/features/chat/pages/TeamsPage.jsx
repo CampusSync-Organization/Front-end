@@ -10,7 +10,9 @@ export default function TeamsPage() {
   const authUser = useSelector((state) => state.auth?.user);
   const currentUserId = authUser?.userID ?? authUser?.id ?? null;
 
-  const { teams, fetchTeams, requestJoinTeam } = useChatStore();
+  const teams = useChatStore((s) => s.teams);
+  const fetchTeams = useChatStore((s) => s.fetchTeams);
+  const requestJoinTeam = useChatStore((s) => s.requestJoinTeam);
 
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);

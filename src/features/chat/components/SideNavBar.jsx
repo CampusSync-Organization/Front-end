@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 const NAV_ITEMS = [
   { key: "messages", ICON: MessageSquare, label: "Messages", path: null },
   { key: "communities", ICON: Users, label: "Communities", path: null },
-  { key: "teams", ICON: Users2, label: "Teams", path: "/teams" },
+  { key: "teams", ICON: Users2, label: "Teams", path: null },
 ];
 
 export default function SideNavBar({ activeSection, onSectionChange }) {

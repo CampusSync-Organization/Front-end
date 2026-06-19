@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import SideNavBar from "./SideNavBar";
 import MessagesSidebar from "./MessagesSidebar";
@@ -15,7 +15,11 @@ const ChatLayout = () => {
   const [activeSection, setActiveSection] = useState("messages");
 
   const dispatch = useDispatch();
-  const { connectSocket, disconnectSocket, fetchRooms, activeRoomId, rooms } = useChatStore();
+  const connectSocket = useChatStore((s) => s.connectSocket);
+  const disconnectSocket = useChatStore((s) => s.disconnectSocket);
+  const fetchRooms = useChatStore((s) => s.fetchRooms);
+  const activeRoomId = useChatStore((s) => s.activeRoomId);
+  const rooms = useChatStore((s) => s.rooms);
   const { fetchCommunities } = useEventStore();
   const hydratedConnections = useSelector(selectHydratedConnections);
   const connectionsStatus = useSelector(selectConnectionsStatus);
@@ -30,7 +34,10 @@ const ChatLayout = () => {
     return () => disconnectSocket();
   }, []);
 
-  const activeChat = rooms.find((r) => r.id === activeRoomId) ?? null;
+  const activeChat = useMemo(
+    () => rooms.find((r) => r.id === activeRoomId) ?? null,
+    [rooms, activeRoomId]
+  );
 
   const toggleRightPanel = (panel) => {
     setRightPanel((prev) => (prev === panel ? "none" : panel));
