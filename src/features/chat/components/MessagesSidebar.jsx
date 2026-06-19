@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Plus, MessageSquare, Users, Users2, Loader2, Compass, ExternalLink } from "lucide-react";
+import { Search, Plus, MessageSquare, Users, Users2, Loader2, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
@@ -310,17 +310,6 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
           )
         )}
 
-        {activeSection === "teams" && (
-          <div className="px-2 pt-3 pb-2 border-t border-outline-variant/10 mt-2">
-            <button
-              onClick={() => navigate("/teams")}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-container-low text-[13px] font-bold text-primary hover:bg-primary/10 transition-colors"
-            >
-              <Compass className="w-4 h-4" />
-              Discover teams
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

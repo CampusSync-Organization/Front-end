@@ -41,6 +41,14 @@ const ChatLayout = () => {
     [rooms, activeRoomId]
   );
 
+  // Auto-switch sidebar tab to match the active room's type
+  useEffect(() => {
+    if (!activeChat) return;
+    if (activeChat.type === "team") setActiveSection("teams");
+    else if (activeChat.type === "community") setActiveSection("communities");
+    else if (activeChat.type === "direct") setActiveSection("messages");
+  }, [activeChat?.id]);
+
   const toggleRightPanel = (panel) => {
     setRightPanel((prev) => (prev === panel ? "none" : panel));
   };

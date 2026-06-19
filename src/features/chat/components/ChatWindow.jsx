@@ -133,10 +133,11 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   const activeRoomId = useChatStore((s) => s.activeRoomId);
   const roomMessages = useChatStore((s) => {
     const rid = s.activeRoomId;
-    return rid ? (s.messages[rid] ?? []) : NO_ROOM_MESSAGES;
+    return rid ? (s.messages[rid] ?? NO_ROOM_MESSAGES) : NO_ROOM_MESSAGES;
   });
   const sendMessage = useChatStore((s) => s.sendMessage);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
+  const teams = useChatStore((s) => s.teams);
   const lastSentRef = useRef(null);
 
   useEffect(() => {
@@ -146,13 +147,24 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   }, [activeRoomId, fetchMessages]);
 
   const memberNameMap = useMemo(() => {
-    if (!activeChat?.members) return {};
     const map = {};
-    activeChat.members.forEach((m) => {
-      if (m?.id != null) map[Number(m.id)] = m.name ?? m.full_name;
+    // For team chats use the teams store which has full member data from fetchTeam
+    if (activeChat?.type === "team" && activeChat.teamId) {
+      const team = teams.find((t) => Number(t.id) === Number(activeChat.teamId));
+      (team?.members ?? []).forEach((m) => {
+        const id = m.user_id ?? m.id ?? m.userID;
+        const name = m.name ?? m.username ?? m.full_name ?? null;
+        if (id != null && name) map[Number(id)] = name;
+      });
+    }
+    // Also merge in room-level members (covers DM / community rooms)
+    (activeChat?.members ?? []).forEach((m) => {
+      if (m?.id != null && !map[Number(m.id)]) {
+        map[Number(m.id)] = m.name ?? m.full_name ?? null;
+      }
     });
     return map;
-  }, [activeChat?.members]);
+  }, [activeChat?.members, activeChat?.teamId, activeChat?.type, teams]);
 
   const isGroup = activeChat?.type === "community" || activeChat?.type === "team";
 
