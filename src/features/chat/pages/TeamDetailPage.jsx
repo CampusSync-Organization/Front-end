@@ -17,7 +17,12 @@ export default function TeamDetailPage() {
   const authUser = useSelector((state) => state.auth?.user);
   const currentUserId = authUser?.userID ?? authUser?.id ?? null;
 
-  const { teams, fetchTeam, approveJoinRequest, leaveTeam } = useChatStore();
+  const teams = useChatStore((s) => s.teams);
+  const fetchTeam = useChatStore((s) => s.fetchTeam);
+  const approveJoinRequest = useChatStore((s) => s.approveJoinRequest);
+  const leaveTeam = useChatStore((s) => s.leaveTeam);
+  const addRoom = useChatStore((s) => s.addRoom);
+  const setActiveRoom = useChatStore((s) => s.setActiveRoom);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,9 +52,20 @@ export default function TeamDetailPage() {
   const handleApprove = async (requestId) => {
     setApprovingIds((prev) => new Set(prev).add(requestId));
     try {
-      await approveJoinRequest(teamId, requestId);
+      const result = await approveJoinRequest(teamId, requestId);
       // Refresh team data
       await fetchTeam(teamId);
+
+      if (result?.chat_room_id) {
+        addRoom({
+          id: result.chat_room_id,
+          type: "team",
+          name: team.name,
+          lastMessage: "",
+          members: [],
+        });
+        setActiveRoom(result.chat_room_id);
+      }
       navigate("/Chat-Main-Page");
     } catch {
       // error already toasted in store

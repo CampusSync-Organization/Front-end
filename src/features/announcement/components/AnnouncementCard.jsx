@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { useJoinRequest } from "../../chat/hooks/requestjoin";
@@ -215,13 +215,15 @@ export default function AnnouncementCard({
   isOwner = false,
   joinRequests = [],
 }) {
+  const navigate = useNavigate();
   const item = post ?? announcement;
   const dispatch = useDispatch();
   const currentUser = useSelector((s) => s.auth.user);
   const currentUserId = currentUser?.userID ?? currentUser?.id ?? null;
   const approveJoinRequest = useChatStore((s) => s.approveJoinRequest);
-  const teams = useChatStore((s) => s.teams);
   const fetchTeam = useChatStore((s) => s.fetchTeam);
+  const addRoom = useChatStore((s) => s.addRoom);
+  const setActiveRoom = useChatStore((s) => s.setActiveRoom);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -229,15 +231,19 @@ export default function AnnouncementCard({
   const [editing, setEditing] = useState(false);
   const [approvingRequestIds, setApprovingRequestIds] = useState(new Set());
   const [showAllRequests, setShowAllRequests] = useState(false);
+  const [localTeam, setLocalTeam] = useState(null);
   const menuRef = useRef(null);
   const { handleJoinRequest, joinStatus } = useJoinRequest(item.team_id);
 
   useEffect(() => {
+    let cancelled = false;
     if (item.team_id) {
-      const alreadyLoaded = teams.some((t) => t.id === item.team_id);
-      if (!alreadyLoaded) fetchTeam(item.team_id);
+      fetchTeam(item.team_id).then((team) => {
+        if (!cancelled) setLocalTeam(team);
+      }).catch(() => {});
     }
-  }, [item.team_id, fetchTeam, teams]);
+    return () => { cancelled = true; };
+  }, [item.team_id, fetchTeam]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -250,9 +256,8 @@ export default function AnnouncementCard({
 
   if (!item) return null;
 
-  const team = teams.find((t) => t.id === item.team_id);
   const isJoined =
-    team?.members?.some(
+    localTeam?.members?.some(
       (m) => Number(m.id ?? m.user_id) === Number(currentUserId),
     ) ?? false;
 
@@ -276,13 +281,26 @@ export default function AnnouncementCard({
 
     setApprovingRequestIds((prev) => new Set(prev).add(requestId));
     try {
-      await approveJoinRequest(teamId, requestId);
+      const result = await approveJoinRequest(teamId, requestId);
       dispatch(
         updateAnnouncement({
           id: item.id,
           updates: { current_members: (item.current_members ?? 0) + 1 },
         }),
       );
+
+      if (result?.chat_room_id) {
+        const roomName = item.project_name || item.course_name || `Team ${teamId}`;
+        addRoom({
+          id: result.chat_room_id,
+          type: "team",
+          name: roomName,
+          lastMessage: "",
+          members: [],
+        });
+        setActiveRoom(result.chat_room_id);
+        navigate("/Chat-Main-Page");
+      }
     } catch {
       // Store already shows an error toast.
     } finally {
@@ -606,28 +624,31 @@ export default function AnnouncementCard({
               <Check size={16} />
               Joined
             </button>
+          ) : isProject && !isOwner && joinStatus === "sent" ? (
+            <button
+              disabled
+              className="px-6 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2 bg-green-100 text-green-700 shadow-green-100 cursor-default"
+            >
+              <Check size={16} />
+              Request Sent
+            </button>
           ) : isProject && !isOwner && !isFull ? (
             <button
               onClick={handleJoinRequest}
-              disabled={joinStatus === "pending" || joinStatus === "fulfilled"}
+              disabled={joinStatus === "pending"}
               className={`px-6 py-2 rounded-lg text-sm font-bold transition-all shadow-md flex items-center gap-2
       ${
-        joinStatus === "fulfilled"
-          ? "bg-green-100 text-green-700 shadow-green-100 cursor-default"
-          : joinStatus === "rejected"
-            ? "bg-red-100 text-red-600 shadow-red-100 hover:bg-red-200"
-            : "bg-primary text-white hover:bg-slate-800 shadow-primary/10"
+        joinStatus === "error"
+          ? "bg-red-100 text-red-600 shadow-red-100 hover:bg-red-200"
+          : "bg-primary text-white hover:bg-slate-800 shadow-primary/10"
       }`}
             >
               {joinStatus === "pending" && (
                 <Loader2 size={16} className="animate-spin" />
               )}
-              {joinStatus === "fulfilled" && <Check size={16} />}
-
               {joinStatus === "idle" && "Request to Join"}
               {joinStatus === "pending" && "Sending..."}
-              {joinStatus === "fulfilled" && "Request Sent"}
-              {joinStatus === "rejected" && "Retry"}
+              {joinStatus === "error" && "Retry"}
             </button>
           ) : null}
         </div>

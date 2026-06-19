@@ -36,6 +36,7 @@ class ChatSocket {
         if (parsed.type === "message" && parsed.data) {
           this.handlers.forEach((handler) => handler(parsed.data));
         } else if (parsed.type === "moderation_feedback" && parsed.data) {
+          console.log("[WS moderation_feedback] received", parsed.data);
 this.moderationHandlers.forEach((handler) => handler(parsed.data));
         }
       } catch {

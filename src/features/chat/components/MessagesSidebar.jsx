@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Plus, MessageSquare, Users, Users2, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Plus, MessageSquare, Users, Users2, Loader2, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useChatStore from "../store/useChatStore";
 import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
@@ -67,14 +67,18 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
   const [searchQuery, setSearchQuery] = useState("");
   const [openingId, setOpeningId] = useState(null);
 
-  const { rooms, activeRoomId, setActiveRoom, isLoadingRooms, fetchMessages, openDirectChat, addRoom } = useChatStore();
+  const rooms = useChatStore((s) => s.rooms);
+  const activeRoomId = useChatStore((s) => s.activeRoomId);
+  const setActiveRoom = useChatStore((s) => s.setActiveRoom);
+  const isLoadingRooms = useChatStore((s) => s.isLoadingRooms);
+  const openDirectChat = useChatStore((s) => s.openDirectChat);
+  const addRoom = useChatStore((s) => s.addRoom);
 
   // Build merged list for messages tab:
   // connections enriched with existing room data if DM already exists
-  const mergedItems = (() => {
+  const mergedItems = useMemo(() => {
     if (activeSection !== "messages") return [];
 
-    // Map existing DM rooms by the other user's ID (peerId stored on room)
     const roomByUserId = new Map();
     rooms.filter((r) => r.type === "direct").forEach((room) => {
       if (room.peerId) roomByUserId.set(room.peerId, room);
@@ -84,26 +88,24 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
       const userId = Number(profile.user_id ?? profile.id);
       const name = resolveName(profile) || `User ${userId}`;
       const room = roomByUserId.get(userId) ?? null;
-      // Patch room with real name and avatar
-      const avatarUrl = resolveAvatarUrl(profile.avatar_url ?? null);
-      if (room && (room.name !== name || room.avatarUrl !== avatarUrl)) {
-        addRoom({ ...room, name, avatarUrl });
-      }
       return { userId, name, avatarUrl: profile.avatar_url ?? null, major: profile.major ?? null, room };
     });
-  })();
+  }, [activeSection, rooms, connections]);
 
   const q = searchQuery.toLowerCase();
 
-  const displayItems = activeSection === "messages"
-    ? mergedItems.filter((item) => item.name.toLowerCase().includes(q))
-    : rooms
-        .filter(activeSection === "communities" ? (r) => r.type === "community" : (r) => r.type === "team")
-        .filter((r) => r.name.toLowerCase().includes(q));
+  const displayItems = useMemo(() => {
+    if (activeSection === "messages") {
+      return mergedItems.filter((item) => item.name.toLowerCase().includes(q));
+    }
+    return rooms
+      .filter(activeSection === "communities" ? (r) => r.type === "community" : (r) => r.type === "team")
+      .filter((r) => r.name.toLowerCase().includes(q));
+  }, [activeSection, mergedItems, rooms, q]);
 
   const handleSelectRoom = (room) => {
+    if (activeRoomId === room.id) return;
     setActiveRoom(room.id);
-    fetchMessages(room.id);
   };
 
   const handleSelectConnection = async (item) => {
@@ -243,6 +245,18 @@ export default function MessagesSidebar({ onOpenCreateGroup, activeSection = "me
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {activeSection === "teams" && (
+          <div className="px-2 pt-3 pb-2 border-t border-outline-variant/10 mt-2">
+            <button
+              onClick={() => navigate("/teams")}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-container-low text-[13px] font-bold text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Compass className="w-4 h-4" />
+              Discover teams
+            </button>
           </div>
         )}
       </div>
