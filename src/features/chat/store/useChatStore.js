@@ -365,59 +365,10 @@ const useChatStore = create(
         setTimeout(doReconnect, 4000);
       }
 
-      // Only check moderation via HTTP for direct chats. For group rooms (team /
-      // community) the WS backend already persists the message, so a second HTTP
-      // POST would create a duplicate DB record that gets broadcast again → two
-      // identical messages in the UI.
-      const roomType = get().rooms.find((r) => r.id === roomId)?.type;
-      if (!override && roomType === "direct") {
-        console.log("[sendMessage] WS send OK, calling postMessage for moderation check", { roomId, content });
-        postMessage(roomId, content)
-          .then((msg) => {
-            console.log("[sendMessage] postMessage SUCCESS — message accepted by moderator, updating tmp id", { msgId: msg.id });
-            set((state) => ({
-              pendingOptimistic: null,
-              messages: {
-                ...state.messages,
-                [roomId]: (state.messages[roomId] ?? []).map((m) =>
-                  String(m.id).startsWith("tmp-") && m.content === content
-                    ? { ...m, id: msg.id }
-                    : m,
-                ),
-              },
-            }));
-          })
-          .catch((modErr) => {
-            const detail = modErr?.response?.data?.detail;
-            if (detail?.code === "MESSAGE_FLAGGED") {
-              console.log("[sendMessage] postMessage MESSAGE_FLAGGED — removing message, showing banner", { roomId, content, explanation: detail.explanation, suggestion: detail.suggestion });
-              set((state) => {
-                const currentUserIdInner = getCurrentUserId();
-                return {
-                  pendingOptimistic: null,
-                  messages: {
-                    ...state.messages,
-                    [roomId]: (state.messages[roomId] ?? []).filter(
-                      (m) =>
-                        !(
-                          Number(m.sender_id) === Number(currentUserIdInner) &&
-                          m.content === content
-                        ),
-                    ),
-                  },
-                };
-              });
-              chatSocket.moderationHandlers.forEach((h) =>
-                h({
-                  explanation: detail.explanation,
-                  suggestion: detail.suggestion ?? null,
-                }),
-              );
-            } else {
-              console.log("[sendMessage] postMessage error (non-moderation)", modErr?.response?.status, detail);
-            }
-          });
-      }
+      // The WebSocket backend persists the message for ALL room types (direct,
+      // team, community). Calling postMessage after a successful WS send creates
+      // a second DB record → second WS broadcast → duplicate message in the UI.
+      // Moderation is handled server-side by the WS handler.
     } catch {
       set((state) => ({
         messages: {
