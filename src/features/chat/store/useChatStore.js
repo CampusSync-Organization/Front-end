@@ -7,6 +7,7 @@ import {
   getOrCreateDirectChat,
   getRoomMessages,
   postMessage,
+  deleteMessage as apiDeleteMessage,
 } from "../api/chatApi";
 import {
   createTeam as apiCreateTeam,
@@ -321,16 +322,23 @@ const useChatStore = create(
       const currentUserId = getCurrentUserId();
       set((state) => {
         const existing = state.messages[roomId] ?? [];
+        const serverIds = new Set(msgs.map((m) => String(m.id)));
         const existingIds = new Set(existing.map((m) => String(m.id)));
-        const incoming = msgs.filter((m) => {
-          if (String(m.id).startsWith("tmp-")) return false;
+
+        const afterDeletions = existing.filter(
+          (m) => String(m.id).startsWith("tmp-") || serverIds.has(String(m.id))
+        );
+
+        const newFromOthers = msgs.filter((m) => {
           if (existingIds.has(String(m.id))) return false;
           const sid = m.sender_id ?? m.user_id ?? null;
           if (sid != null && Number(sid) === Number(currentUserId)) return false;
           return true;
         });
-        if (!incoming.length) return {};
-        const merged = [...existing, ...incoming].sort(
+
+        if (afterDeletions.length === existing.length && !newFromOthers.length) return {};
+
+        const merged = [...afterDeletions, ...newFromOthers].sort(
           (a, b) => new Date(a.created_at) - new Date(b.created_at)
         );
         return { messages: { ...state.messages, [roomId]: merged } };
@@ -439,6 +447,21 @@ const useChatStore = create(
         ),
       };
     });
+  },
+
+  async deleteMessage(roomId, messageId) {
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [roomId]: (state.messages[roomId] ?? []).filter((m) => m.id !== messageId),
+      },
+    }));
+    try {
+      await apiDeleteMessage(messageId);
+    } catch {
+      toast.error("Failed to delete message.");
+      get().fetchMessages(roomId);
+    }
   },
 
   // ── Direct Chat ──────────────────────────────────────────────────────────────

@@ -22,3 +22,8 @@ export async function postMessage(roomId, content) {
   });
   return response.data;
 }
+
+export async function deleteMessage(messageId) {
+  const response = await api.delete(`/messages/${messageId}`);
+  return response.data;
+}

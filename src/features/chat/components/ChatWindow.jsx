@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb } from "lucide-react";
+import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb, Trash2 } from "lucide-react";
 import useChatStore from "../store/useChatStore";
 import { chatSocket } from "../services/chatSocket";
+import { useEventStore } from "../../events-communities/store/useEventStore";
 
 const NO_ROOM_MESSAGES = [];
 
@@ -50,15 +51,30 @@ function RoomAvatar({ name = "", type, size = 10 }) {
   );
 }
 
-const ChatBubble = ({ message, currentUserId, memberNameMap = {}, isGroup = false }) => {
+const ChatBubble = ({ message, currentUserId, memberNameMap = {}, isGroup = false, onDelete, isRoomAdmin = false }) => {
+  const [hovered, setHovered] = useState(false);
   const isSent = Number(message.sender_id) === Number(currentUserId);
+  const isTemp = String(message.id).startsWith("tmp-");
+  const canDelete = !isTemp && (isSent || isRoomAdmin);
   const senderName =
     !isSent && isGroup
       ? (memberNameMap[Number(message.sender_id)] ?? message.sender_name ?? null)
       : null;
 
   return (
-    <div className={`flex gap-2 max-w-[75%] ${isSent ? "ml-auto flex-row-reverse" : ""}`}>
+    <div
+      className={`flex items-end gap-1.5 max-w-[75%] ${isSent ? "ml-auto flex-row-reverse" : ""}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {canDelete && (
+        <button
+          onClick={() => onDelete(message.id)}
+          className={`shrink-0 p-1 rounded-lg text-outline/40 hover:text-red-500 hover:bg-red-50 transition-all ${hovered ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       <div className={`flex flex-col gap-1 ${isSent ? "items-end" : "items-start"}`}>
         {senderName && (
           <span className="text-[11px] font-semibold text-primary/70 px-1">{senderName}</span>
@@ -136,10 +152,25 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
     return rid ? (s.messages[rid] ?? NO_ROOM_MESSAGES) : NO_ROOM_MESSAGES;
   });
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const deleteMessage = useChatStore((s) => s.deleteMessage);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
   const pollMessages = useChatStore((s) => s.pollMessages);
   const teams = useChatStore((s) => s.teams);
+  const communities = useEventStore((s) => s.communities);
   const lastSentRef = useRef(null);
+
+  const isRoomAdmin = useMemo(() => {
+    if (!currentUserId || !activeChat) return false;
+    if (activeChat.type === "team") {
+      const team = teams.find((t) => Number(t.id) === Number(activeChat.teamId));
+      return team ? Number(team.owner_id) === Number(currentUserId) : false;
+    }
+    if (activeChat.type === "community") {
+      const community = communities.find((c) => c.roomId === activeChat.id);
+      return community ? Number(community.moderatorId) === Number(currentUserId) : false;
+    }
+    return false;
+  }, [activeChat, teams, communities, currentUserId]);
 
   useEffect(() => {
     if (activeRoomId) {
@@ -280,6 +311,8 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
               currentUserId={currentUserId}
               memberNameMap={memberNameMap}
               isGroup={isGroup}
+              isRoomAdmin={isRoomAdmin}
+              onDelete={(id) => deleteMessage(activeRoomId, id)}
             />
           )
         )}
