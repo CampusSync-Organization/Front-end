@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb, Trash2 } from "lucide-react";
+import { Send, ArrowLeft, MessageSquare, Users, Users2, ShieldAlert, X, Lightbulb, Trash2, Check } from "lucide-react";
 import useChatStore from "../store/useChatStore";
 import { chatSocket } from "../services/chatSocket";
 import { useEventStore } from "../../events-communities/store/useEventStore";
@@ -53,6 +53,7 @@ function RoomAvatar({ name = "", type, size = 10 }) {
 
 const ChatBubble = ({ message, currentUserId, memberNameMap = {}, isGroup = false, onDelete, isRoomAdmin = false }) => {
   const [hovered, setHovered] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const isSent = Number(message.sender_id) === Number(currentUserId);
   const isTemp = String(message.id).startsWith("tmp-");
   const canDelete = !isTemp && (isSent || isRoomAdmin);
@@ -61,19 +62,63 @@ const ChatBubble = ({ message, currentUserId, memberNameMap = {}, isGroup = fals
       ? (memberNameMap[Number(message.sender_id)] ?? message.sender_name ?? null)
       : null;
 
+  const handleMouseLeave = () => {
+    setHovered(false);
+    setConfirming(false);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    setConfirming(true);
+  };
+
+  const handleConfirm = (e) => {
+    e.stopPropagation();
+    setConfirming(false);
+    onDelete(message.id);
+  };
+
+  const handleCancel = (e) => {
+    e.stopPropagation();
+    setConfirming(false);
+  };
+
   return (
     <div
-      className={`flex items-end gap-1.5 max-w-[75%] ${isSent ? "ml-auto flex-row-reverse" : ""}`}
+      className={`flex items-end gap-2 max-w-[75%] ${isSent ? "ml-auto flex-row-reverse" : ""}`}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={handleMouseLeave}
     >
       {canDelete && (
-        <button
-          onClick={() => onDelete(message.id)}
-          className={`shrink-0 p-1 rounded-lg text-outline/40 hover:text-red-500 hover:bg-red-50 transition-all ${hovered ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className={`shrink-0 transition-all duration-150 ${(hovered || confirming) ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          {confirming ? (
+            <div className="flex items-center gap-1 bg-white border border-red-200 rounded-xl shadow-sm px-2 py-1">
+              <span className="text-[11px] font-semibold text-red-600 whitespace-nowrap">Delete?</span>
+              <button
+                onClick={handleConfirm}
+                className="p-0.5 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                title="Confirm"
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleCancel}
+                className="p-0.5 rounded-md text-outline/50 hover:bg-surface-container hover:text-on-surface transition-colors"
+                title="Cancel"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleDeleteClick}
+              className="p-1.5 rounded-xl text-outline/30 hover:text-red-500 hover:bg-red-50 transition-all"
+              title="Delete message"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       )}
       <div className={`flex flex-col gap-1 ${isSent ? "items-end" : "items-start"}`}>
         {senderName && (
