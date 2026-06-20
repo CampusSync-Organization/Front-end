@@ -556,6 +556,17 @@ const AnnouncementsSection = ({ announcements, status }) => {
 };
 
 /* Settings ──────────────────────────────────────────────────────────── */
+const SettingsField = ({ label, field, isEditing, draft, updateDraft }) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">{label}</label>
+    {isEditing
+      ? <InlineInput value={draft[field]} onChange={(v) => updateDraft({ [field]: v })} placeholder={label} />
+      : <div className="px-4 py-3 bg-[#f5f6fa] border border-outline-variant/15 rounded-xl text-[14px] text-on-surface font-medium">
+          {draft[field] || <span className="text-on-surface-variant/40 italic">Not set</span>}
+        </div>}
+  </div>
+);
+
 const SettingsSection = ({ profile, firstName, lastName }) => {
   const init = useMemo(() => ({
     firstName, lastName, gpa: profile.cgpa ?? "",
@@ -572,20 +583,8 @@ const SettingsSection = ({ profile, firstName, lastName }) => {
 
   const { draft, updateDraft, isEditing, startEdit, cancelEdit, save, isSaving, error } = useEditableSection(init, { buildPayload });
 
-  // Password state
   const [changingPw, setChangingPw] = useState(false);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
-
-  const Field = ({ label, field, type = "text" }) => (
-    <div className="space-y-1.5">
-      <label className="text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">{label}</label>
-      {isEditing
-        ? <InlineInput value={draft[field]} onChange={(v) => updateDraft({ [field]: v })} placeholder={label} />
-        : <div className="px-4 py-3 bg-[#f5f6fa] border border-outline-variant/15 rounded-xl text-[14px] text-on-surface font-medium">
-            {draft[field] || <span className="text-on-surface-variant/40 italic">Not set</span>}
-          </div>}
-    </div>
-  );
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -604,9 +603,9 @@ const SettingsSection = ({ profile, firstName, lastName }) => {
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="First Name" field="firstName" />
-          <Field label="Last Name" field="lastName" />
-          <Field label="GPA" field="gpa" type="number" />
+          <SettingsField label="First Name" field="firstName" isEditing={isEditing} draft={draft} updateDraft={updateDraft} />
+          <SettingsField label="Last Name" field="lastName" isEditing={isEditing} draft={draft} updateDraft={updateDraft} />
+          <SettingsField label="GPA" field="gpa" isEditing={isEditing} draft={draft} updateDraft={updateDraft} />
         </div>
         {isEditing && <SaveRow onSave={save} onCancel={cancelEdit} isSaving={isSaving} error={error} />}
       </SectionCard>
