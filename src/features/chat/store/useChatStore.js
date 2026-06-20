@@ -328,6 +328,29 @@ const useChatStore = create(
     }
   },
 
+  // Silent poll: merges new messages from the API without replacing WS-received ones.
+  // Used as a fallback when the WS doesn't deliver incoming messages from others.
+  async pollMessages(roomId) {
+    if (!roomId) return;
+    try {
+      const msgs = await getRoomMessages(roomId);
+      set((state) => {
+        const existing = state.messages[roomId] ?? [];
+        const existingIds = new Set(existing.map((m) => String(m.id)));
+        const incoming = msgs.filter(
+          (m) => !String(m.id).startsWith("tmp-") && !existingIds.has(String(m.id))
+        );
+        if (!incoming.length) return {};
+        const merged = [...existing, ...incoming].sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+        return { messages: { ...state.messages, [roomId]: merged } };
+      });
+    } catch {
+      // silently ignore poll errors
+    }
+  },
+
   async sendMessage(roomId, content, override = false) {
     if (!roomId || !content) return;
     const currentUserId = getCurrentUserId();
@@ -407,26 +430,38 @@ const useChatStore = create(
   },
 
   receiveMessage(msg) {
-    console.log("[receiveMessage] processing WS message", { msgId: msg.id, room_id: msg.room_id, sender_id: msg.sender_id, content: msg.content?.substring(0, 40) });
+    // Backend may use sender_id or user_id depending on room type
+    const senderId = msg.sender_id ?? msg.user_id ?? null;
+    console.log("[receiveMessage] processing WS message", { msgId: msg.id, room_id: msg.room_id, senderId, content: msg.content?.substring(0, 40) });
     set((state) => {
       const existing = state.messages[msg.room_id] ?? [];
-      if (existing.some((m) => m.id === msg.id)) {
+
+      // Dedup by message ID
+      if (msg.id != null && existing.some((m) => m.id === msg.id)) {
         console.log("[receiveMessage] duplicate message id, skipping", msg.id);
         return {};
       }
+
       const currentUserId = getCurrentUserId();
-      const isMine = Number(msg.sender_id) === Number(currentUserId);
+      const isMine = senderId != null && Number(senderId) === Number(currentUserId);
       const pending = state.pendingOptimistic;
+
       if (pending && isMine) {
-        console.log("[receiveMessage] clearing pendingOptimistic (race: moderation_feedback may arrive after this)", { pendingMsgId: pending.id, confirmedMsgId: msg.id });
+        console.log("[receiveMessage] clearing pendingOptimistic", { pendingMsgId: pending.id, confirmedMsgId: msg.id });
       }
-      const filtered = isMine
-        ? existing.filter((m) => {
-            if (!String(m.id).startsWith("tmp-")) return true;
-            if (pending && m.id === pending.id) return false;
-            return m.content !== msg.content;
-          })
-        : existing;
+
+      // Remove optimistic (tmp-) messages that this real message confirms.
+      // All tmp messages are authored by currentUserId (see sendMessage), so matching
+      // by content is safe. We don't gate this on isMine because the backend may use
+      // a different sender field for different room types (e.g. user_id vs sender_id),
+      // which would leave the optimistic stranded and cause a visible duplicate.
+      const filtered = existing.filter((m) => {
+        if (!String(m.id).startsWith("tmp-")) return true;
+        if (pending && m.id === pending.id) return false;
+        if (m.content === msg.content) return false;
+        return true;
+      });
+
       return {
         pendingOptimistic: null,
         messages: {
@@ -464,6 +499,10 @@ const useChatStore = create(
       };
       get().addRoom(roomEntry);
       set({ activeRoomId: room.id });
+      // Reconnect so the backend registers this room in the current WS session.
+      // Without this, messages sent by the other participant won't arrive in real-time
+      // if the room was created (or first opened) after the initial WS handshake.
+      chatSocket.softReconnect();
       await get().fetchMessages(room.id);
     } catch (err) {
       toast.error("Failed to open direct chat.");

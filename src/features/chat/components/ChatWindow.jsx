@@ -137,6 +137,7 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
   });
   const sendMessage = useChatStore((s) => s.sendMessage);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
+  const pollMessages = useChatStore((s) => s.pollMessages);
   const teams = useChatStore((s) => s.teams);
   const lastSentRef = useRef(null);
 
@@ -145,6 +146,14 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
       fetchMessages(activeRoomId);
     }
   }, [activeRoomId, fetchMessages]);
+
+  // Fallback poll: silently merges new messages from the API every 4 seconds.
+  // Handles the case where the WS doesn't deliver incoming messages in real-time.
+  useEffect(() => {
+    if (!activeRoomId) return;
+    const id = setInterval(() => pollMessages(activeRoomId), 4000);
+    return () => clearInterval(id);
+  }, [activeRoomId, pollMessages]);
 
   const memberNameMap = useMemo(() => {
     const map = {};
