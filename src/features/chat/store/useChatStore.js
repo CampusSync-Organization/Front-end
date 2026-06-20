@@ -96,6 +96,11 @@ const useChatStore = create(
     if (!token) return;
     chatSocket.connect(token);
     set({ isConnected: true });
+    // Clear any previously registered handlers before re-registering.
+    // Without this, every connectSocket() call pushes another handler into the
+    // array, causing receiveMessage to fire N times per WS message → duplicates.
+    chatSocket.handlers = [];
+    chatSocket.moderationHandlers = [];
     chatSocket.onMessage((msg) => get().receiveMessage(msg));
     chatSocket.onModeration((data) => {
       const pending = get().pendingOptimistic;
