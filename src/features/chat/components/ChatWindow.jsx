@@ -147,8 +147,6 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
     }
   }, [activeRoomId, fetchMessages]);
 
-  // Fallback poll: silently merges new messages from the API every 4 seconds.
-  // Handles the case where the WS doesn't deliver incoming messages in real-time.
   useEffect(() => {
     if (!activeRoomId) return;
     const id = setInterval(() => pollMessages(activeRoomId), 4000);
@@ -157,7 +155,6 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
 
   const memberNameMap = useMemo(() => {
     const map = {};
-    // For team chats use the teams store which has full member data from fetchTeam
     if (activeChat?.type === "team" && activeChat.teamId) {
       const team = teams.find((t) => Number(t.id) === Number(activeChat.teamId));
       (team?.members ?? []).forEach((m) => {
@@ -166,7 +163,6 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
         if (id != null && name) map[Number(id)] = name;
       });
     }
-    // Also merge in room-level members (covers DM / community rooms)
     (activeChat?.members ?? []).forEach((m) => {
       if (m?.id != null && !map[Number(m.id)]) {
         map[Number(m.id)] = m.name ?? m.full_name ?? null;

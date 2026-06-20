@@ -72,6 +72,8 @@ function resolvePeerFromStore(name) {
   };
 }
 
+let _modUnsub = null;
+
 const useChatStore = create(
   persist(
     (set, get) => ({
@@ -79,6 +81,7 @@ const useChatStore = create(
   messages: {},
   activeRoomId: null,
   isConnected: false,
+  lastConfirmedMessage: null,
   isLoadingRooms: false,
   isLoadingIncomingJoinRequests: false,
   incomingJoinRequestsError: null,
@@ -96,18 +99,15 @@ const useChatStore = create(
     if (!token) return;
     chatSocket.connect(token);
     set({ isConnected: true });
-    // Clear any previously registered handlers before re-registering.
-    // Without this, every connectSocket() call pushes another handler into the
-    // array, causing receiveMessage to fire N times per WS message → duplicates.
     chatSocket.handlers = [];
-    chatSocket.moderationHandlers = [];
     chatSocket.onMessage((msg) => get().receiveMessage(msg));
-    chatSocket.onModeration((data) => {
+    if (_modUnsub) { _modUnsub(); _modUnsub = null; }
+    _modUnsub = chatSocket.onModeration((data) => {
       const pending = get().pendingOptimistic;
       if (pending) {
-        console.log("[moderation] pendingOptimistic found, removing optimistic message", { pending, data });
         set((state) => ({
           pendingOptimistic: null,
+          lastConfirmedMessage: null,
           messages: {
             ...state.messages,
             [pending.roomId]: (state.messages[pending.roomId] ?? []).filter(
@@ -117,32 +117,17 @@ const useChatStore = create(
         }));
         return;
       }
-      console.log("[moderation] pendingOptimistic already null, trying fallback removal", { data });
-      // Fallback: if moderation_feedback arrives after receiveMessage already
-      // cleared pendingOptimistic, try to remove the message by sender + content.
-      if (data?.content || data?.room_id) {
-        const currentUserIdInner = getCurrentUserId();
-        console.log("[moderation] fallback removal by sender_id + content", {
-          currentUserId: currentUserIdInner,
-          content: data.content,
-          room_id: data.room_id,
-        });
+      const lastConfirmed = get().lastConfirmedMessage;
+      if (lastConfirmed && Date.now() - lastConfirmed.addedAt < 10000) {
         set((state) => ({
+          lastConfirmedMessage: null,
           messages: {
             ...state.messages,
-            [data.room_id ?? state.activeRoomId]: (
-              state.messages[data.room_id ?? state.activeRoomId] ?? []
-            ).filter(
-              (m) =>
-                !(
-                  Number(m.sender_id) === Number(currentUserIdInner) &&
-                  m.content === (data.content ?? state.pendingOptimistic?.content)
-                ),
+            [lastConfirmed.roomId]: (state.messages[lastConfirmed.roomId] ?? []).filter(
+              (m) => m.id !== lastConfirmed.id
             ),
           },
         }));
-      } else {
-        console.log("[moderation] cannot remove message — no content or room_id in data");
       }
     });
   },
@@ -328,27 +313,29 @@ const useChatStore = create(
     }
   },
 
-  // Silent poll: merges new messages from the API without replacing WS-received ones.
-  // Used as a fallback when the WS doesn't deliver incoming messages from others.
   async pollMessages(roomId) {
     if (!roomId) return;
+    if (get().pendingOptimistic?.roomId === roomId) return;
     try {
       const msgs = await getRoomMessages(roomId);
+      const currentUserId = getCurrentUserId();
       set((state) => {
         const existing = state.messages[roomId] ?? [];
         const existingIds = new Set(existing.map((m) => String(m.id)));
-        const incoming = msgs.filter(
-          (m) => !String(m.id).startsWith("tmp-") && !existingIds.has(String(m.id))
-        );
+        const incoming = msgs.filter((m) => {
+          if (String(m.id).startsWith("tmp-")) return false;
+          if (existingIds.has(String(m.id))) return false;
+          const sid = m.sender_id ?? m.user_id ?? null;
+          if (sid != null && Number(sid) === Number(currentUserId)) return false;
+          return true;
+        });
         if (!incoming.length) return {};
         const merged = [...existing, ...incoming].sort(
           (a, b) => new Date(a.created_at) - new Date(b.created_at)
         );
         return { messages: { ...state.messages, [roomId]: merged } };
       });
-    } catch {
-      // silently ignore poll errors
-    }
+    } catch {}
   },
 
   async sendMessage(roomId, content, override = false) {
@@ -372,8 +359,6 @@ const useChatStore = create(
     try {
       chatSocket.send(roomId, content, override);
       if (override) {
-        // Once backend confirms the overridden message, reconnect to reset the
-        // backend's per-connection override flag so future messages are moderated.
         let done = false;
         let unsubConfirm;
         const doReconnect = () => {
@@ -392,11 +377,6 @@ const useChatStore = create(
         });
         setTimeout(doReconnect, 4000);
       }
-
-      // The WebSocket backend persists the message for ALL room types (direct,
-      // team, community). Calling postMessage after a successful WS send creates
-      // a second DB record → second WS broadcast → duplicate message in the UI.
-      // Moderation is handled server-side by the WS handler.
     } catch {
       set((state) => ({
         messages: {
@@ -417,12 +397,10 @@ const useChatStore = create(
       } catch (err) {
         const detail = err?.response?.data?.detail;
         if (detail?.code === "MESSAGE_FLAGGED") {
-          console.log("[sendMessage] WS failed — HTTP fallback got MESSAGE_FLAGGED", { roomId, content, explanation: detail.explanation });
           chatSocket.moderationHandlers.forEach((h) =>
             h({ explanation: detail.explanation, suggestion: detail.suggestion ?? null })
           );
         } else {
-          console.log("[sendMessage] WS failed — HTTP fallback error (non-moderation)", err?.response?.status, detail ?? err.message);
           toast.error("Failed to send message.");
         }
       }
@@ -430,31 +408,16 @@ const useChatStore = create(
   },
 
   receiveMessage(msg) {
-    // Backend may use sender_id or user_id depending on room type
     const senderId = msg.sender_id ?? msg.user_id ?? null;
-    console.log("[receiveMessage] processing WS message", { msgId: msg.id, room_id: msg.room_id, senderId, content: msg.content?.substring(0, 40) });
     set((state) => {
       const existing = state.messages[msg.room_id] ?? [];
 
-      // Dedup by message ID
-      if (msg.id != null && existing.some((m) => m.id === msg.id)) {
-        console.log("[receiveMessage] duplicate message id, skipping", msg.id);
-        return {};
-      }
+      if (msg.id != null && existing.some((m) => m.id === msg.id)) return {};
 
       const currentUserId = getCurrentUserId();
       const isMine = senderId != null && Number(senderId) === Number(currentUserId);
       const pending = state.pendingOptimistic;
 
-      if (pending && isMine) {
-        console.log("[receiveMessage] clearing pendingOptimistic", { pendingMsgId: pending.id, confirmedMsgId: msg.id });
-      }
-
-      // Remove optimistic (tmp-) messages that this real message confirms.
-      // All tmp messages are authored by currentUserId (see sendMessage), so matching
-      // by content is safe. We don't gate this on isMine because the backend may use
-      // a different sender field for different room types (e.g. user_id vs sender_id),
-      // which would leave the optimistic stranded and cause a visible duplicate.
       const filtered = existing.filter((m) => {
         if (!String(m.id).startsWith("tmp-")) return true;
         if (pending && m.id === pending.id) return false;
@@ -464,6 +427,9 @@ const useChatStore = create(
 
       return {
         pendingOptimistic: null,
+        lastConfirmedMessage: isMine
+          ? { id: msg.id, roomId: msg.room_id, addedAt: Date.now() }
+          : state.lastConfirmedMessage,
         messages: {
           ...state.messages,
           [msg.room_id]: [...filtered, msg],
@@ -482,7 +448,6 @@ const useChatStore = create(
       const room = await getOrCreateDirectChat(userId);
       const currentUserId = getCurrentUserId();
 
-      // Best-effort name resolution: members array > passed name > fallback
       const roomName =
         resolveDmName(room.members, currentUserId, null) ??
         name ??
@@ -499,9 +464,6 @@ const useChatStore = create(
       };
       get().addRoom(roomEntry);
       set({ activeRoomId: room.id });
-      // Reconnect so the backend registers this room in the current WS session.
-      // Without this, messages sent by the other participant won't arrive in real-time
-      // if the room was created (or first opened) after the initial WS handshake.
       chatSocket.softReconnect();
       await get().fetchMessages(room.id);
     } catch (err) {

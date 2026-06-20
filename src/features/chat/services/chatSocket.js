@@ -74,6 +74,7 @@ this.moderationHandlers.forEach((handler) => handler(parsed.data));
   // Close and reopen the socket without clearing handlers — resets backend session state
   softReconnect() {
     if (this.socket) {
+      if (this.socket.readyState === WebSocket.CONNECTING) return;
       this.socket.onclose = null;
       this.socket.onerror = null;
       this.socket.close();
