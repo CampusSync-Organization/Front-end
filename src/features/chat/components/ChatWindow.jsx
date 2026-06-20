@@ -166,7 +166,11 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
       return team ? Number(team.owner_id) === Number(currentUserId) : false;
     }
     if (activeChat.type === "community") {
-      const community = communities.find((c) => c.roomId === activeChat.id);
+      const community = communities.find(
+        (c) =>
+          (c.roomId != null && Number(c.roomId) === Number(activeChat.id)) ||
+          (c.id != null && activeChat.communityId != null && Number(c.id) === Number(activeChat.communityId))
+      );
       return community ? Number(community.moderatorId) === Number(currentUserId) : false;
     }
     return false;
