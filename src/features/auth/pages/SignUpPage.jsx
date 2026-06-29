@@ -5,9 +5,9 @@ import { handleGoogleSuccess } from "../handlers/handleGoogleSuccess";
 import { ArrowRight, Loader2, User, Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { registerUser, loginUser } from "../store/authSlice";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { usePageTransition } from "../../../shared/context/TransitionContext";
-import { GoogleButton, AuthDivider, TermsLinks } from "../componenets";
+import { GoogleButton, AuthDivider, TermsLinks, AuthAside } from "../componenets";
 
 // ---------- field ----------
 function Field({ label, id, name, type = "text", placeholder, icon: Icon, autoComplete, required, minLength }) {
@@ -72,66 +72,6 @@ function StepPills({ active }) {
   );
 }
 
-// ---------- left panel ----------
-function LeftPanel() {
-  const features = [
-    "AI-powered peer matching",
-    "Study groups & project teams",
-    "Campus events & communities",
-    "Personalized recommendations",
-  ];
-  return (
-    <div className="hidden lg:flex lg:w-[52%] bg-[#14213D] relative overflow-hidden shrink-0 flex-col">
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#FCA311]/8 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[-15%] w-[400px] h-[400px] rounded-full bg-[#FCA311]/5 blur-[80px] pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
-
-      <div className="relative z-10 flex flex-col h-full px-12 xl:px-16 py-10">
-        <Link to="/" className="inline-flex items-center gap-3 text-white/80 hover:text-white transition-colors">
-          <img src="/campussync-icon.png" alt="CampusSync" className="h-9 w-auto object-contain" />
-          <span className="text-base font-semibold tracking-tight">CampusSync</span>
-        </Link>
-
-        <div className="flex-1 flex flex-col justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <p className="text-[#FCA311] text-sm font-semibold tracking-widest uppercase mb-4">Welcome to CampusSync</p>
-            <h2 className="text-[clamp(30px,3.2vw,44px)] font-bold text-white leading-[1.15] tracking-tight mb-5">
-              Find your people.<br />
-              <span className="text-[#FCA311]">Build your future.</span>
-            </h2>
-            <p className="text-white/45 text-[15px] leading-relaxed max-w-xs mb-10">
-              Join thousands of students building meaningful connections, forming study groups, and thriving on campus.
-            </p>
-
-            <ul className="space-y-3">
-              {features.map((f, i) => (
-                <motion.li key={f}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
-                  className="flex items-center gap-3 text-white/65 text-[13px]"
-                >
-                  <div className="w-5 h-5 rounded-full bg-[#FCA311]/15 border border-[#FCA311]/25 flex items-center justify-center shrink-0">
-                    <Check className="w-2.5 h-2.5 text-[#FCA311]" strokeWidth={3} />
-                  </div>
-                  {f}
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
-
-        <p className="text-[12px] text-white/20">© {new Date().getFullYear()} CampusSync · Privacy · Terms</p>
-      </div>
-    </div>
-  );
-}
-
 // ---------- page ----------
 export default function SignUpPage() {
   const dispatch = useDispatch();
@@ -180,9 +120,13 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen flex bg-[#fafafa] overflow-hidden">
-      <LeftPanel />
+      <AuthAside
+        eyebrow="Welcome to CampusSync"
+        title={<>Find your people.<br /><span className="text-[#FCA311]">Build your future.</span></>}
+        subtitle="Create your account and we'll match you with students who share your goals."
+      />
 
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, x: 24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -231,7 +175,7 @@ export default function SignUpPage() {
           </p>
           <TermsLinks className="mt-4 text-[11px]" />
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 }
