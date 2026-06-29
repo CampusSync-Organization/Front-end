@@ -2,14 +2,28 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useEventStore } from "../store/useEventStore";
+import { getEventAttendees } from "../api/eventApi";
 import { motion } from "framer-motion";
 import {
   Calendar, Clock, MapPin, ArrowLeft,
-  Share2, AlertCircle, User, Edit2, Trash2,
+  Share2, AlertCircle, Users, Edit2, Trash2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import EditEventDialog from "../components/EditEventDialog";
+
+function AttendeeAvatar({ name, id }) {
+  const label = name ? name.charAt(0).toUpperCase() : "?";
+  const displayName = name ?? `User ${id ?? "?"}`;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <span className="text-xs font-bold text-primary">{label}</span>
+      </div>
+      <span className="text-sm font-medium text-foreground">{displayName}</span>
+    </div>
+  );
+}
 
 export default function EventDetailsPage() {
   const { eventId } = useParams();
@@ -26,34 +40,42 @@ export default function EventDetailsPage() {
     cancelRsvpEvent,
     updateEvent,
     deleteEvent,
-    isLoadingEvents,
   } = useEventStore();
 
   const [localEvent, setLocalEvent] = useState(null);
   const [isFetching, setIsFetching] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [attendees, setAttendees] = useState(null);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     const load = async () => {
       setIsFetching(true);
-      // Try fetching fresh from API first
       const fresh = await fetchEventById(eventId);
       if (fresh) {
         setLocalEvent(fresh);
       } else {
-        // Fall back to store
         if (events.length === 0) await fetchEvents();
         const found = events.find((e) => String(e.id) === String(eventId));
         setLocalEvent(found ?? null);
       }
       setIsFetching(false);
+
+      setLoadingAttendees(true);
+      try {
+        const data = await getEventAttendees(eventId);
+        setAttendees(Array.isArray(data) ? data : data?.attendees ?? null);
+      } catch {
+        setAttendees(null);
+      } finally {
+        setLoadingAttendees(false);
+      }
     };
     load();
   }, [eventId]);
 
-  // Keep local state in sync when store updates (e.g. after RSVP)
   useEffect(() => {
     const storeEvent = events.find((e) => String(e.id) === String(eventId));
     if (storeEvent) setLocalEvent(storeEvent);
@@ -63,9 +85,12 @@ export default function EventDetailsPage() {
   const isAttending = event?.isAttending ?? false;
   const isFull = event?.maxParticipants ? event.currentParticipants >= event.maxParticipants : false;
   const capacityPercentage = event?.maxParticipants
-    ? (event.currentParticipants / event.maxParticipants) * 100
+    ? Math.min((event.currentParticipants / event.maxParticipants) * 100, 100)
     : 0;
   const isOrganizer = event && (isModerator || Number(event.organizerId) === Number(currentUserId));
+
+  const displayAttendees = attendees ?? (Array.isArray(event?.attendees) && event.attendees.some((a) => a?.name) ? event.attendees : null);
+  const attendeeCount = attendees?.length ?? event?.currentParticipants ?? 0;
 
   if (isFetching) {
     return (
@@ -109,6 +134,15 @@ export default function EventDetailsPage() {
     await updateEvent(event.id, data);
     setIsEditOpen(false);
   };
+
+  const formattedDate = event.eventDate
+    ? new Date(event.eventDate).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -162,8 +196,8 @@ export default function EventDetailsPage() {
 
       <div className="max-w-[1000px] mx-auto px-6 py-10 lg:py-16">
         {/* Title & Meta */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-          <div className="flex flex-wrap gap-2 mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="flex flex-wrap gap-2 mb-5">
             <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0 rounded-lg px-3 py-1 font-medium shadow-none">
               EVENT
             </Badge>
@@ -172,6 +206,11 @@ export default function EventDetailsPage() {
                 {event.club}
               </Badge>
             )}
+            {event.tags?.map((tag) => (
+              <Badge key={tag} className="bg-muted text-muted-foreground border-0 rounded-lg px-3 py-1 font-medium shadow-none">
+                {tag}
+              </Badge>
+            ))}
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 leading-[1.1]">
@@ -179,18 +218,12 @@ export default function EventDetailsPage() {
           </h1>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 text-muted-foreground font-medium text-[15px]">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              <span>
-                {event.eventDate
-                  ? new Date(event.eventDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "—"}
-              </span>
-            </div>
+            {formattedDate && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span>{formattedDate}</span>
+              </div>
+            )}
             {event.eventTime && (
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
@@ -207,24 +240,52 @@ export default function EventDetailsPage() {
         </motion.div>
 
         {/* Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           {/* Main Content */}
-          <div className="lg:col-span-8 space-y-12">
+          <div className="lg:col-span-8 space-y-10">
+            {/* Banner image */}
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
-              className="w-full aspect-[16/9] bg-gradient-to-br from-muted/50 to-muted rounded-[32px] overflow-hidden flex flex-col items-center justify-center border border-border/50 shadow-sm"
+              className="w-full aspect-[16/9] rounded-[28px] overflow-hidden border border-border/50 shadow-sm bg-muted"
             >
-              <Calendar className="h-24 w-24 text-muted-foreground/20" />
+              {event.imageUrl ? (
+                <img
+                  src={event.imageUrl}
+                  alt={event.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/8 to-secondary/10">
+                  <Calendar className="h-16 w-16 text-primary/20 mb-3" />
+                  {formattedDate && (
+                    <span className="text-sm font-semibold text-muted-foreground/60">{formattedDate}</span>
+                  )}
+                </div>
+              )}
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <h2 className="text-2xl font-semibold mb-6 text-foreground">About This Event</h2>
-              <p className="text-lg leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                {event.description}
-              </p>
-            </motion.div>
+            {/* Description */}
+            {event.description && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <h2 className="text-2xl font-semibold mb-4 text-foreground">About This Event</h2>
+                <p className="text-[16px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                  {event.description}
+                </p>
+              </motion.div>
+            )}
+
+            {/* Location detail */}
+            {event.location && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                <h2 className="text-2xl font-semibold mb-4 text-foreground">Location</h2>
+                <div className="flex items-start gap-3 p-4 bg-white rounded-2xl border border-border/50">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <span className="text-[15px] text-foreground font-medium">{event.location}</span>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -232,14 +293,14 @@ export default function EventDetailsPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-4 space-y-6 lg:sticky lg:top-28"
+            className="lg:col-span-4 space-y-5 lg:sticky lg:top-28"
           >
             {/* RSVP Card */}
-            <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-black/5 border border-border/50">
+            <div className="bg-white rounded-[28px] p-6 shadow-xl shadow-black/5 border border-border/50">
               {event.maxParticipants && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-end mb-3">
-                    <span className="text-[15px] font-semibold text-foreground">Capacity</span>
+                <div className="mb-5">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[14px] font-semibold text-foreground">Spots</span>
                     <span className="text-sm font-medium text-muted-foreground">
                       {event.currentParticipants} / {event.maxParticipants}
                     </span>
@@ -252,15 +313,18 @@ export default function EventDetailsPage() {
                       className={`h-full rounded-full ${capacityPercentage >= 95 ? "bg-red-500" : "bg-primary"}`}
                     />
                   </div>
+                  {isFull && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5">This event is full</p>
+                  )}
                 </div>
               )}
 
-              {!isOrganizer && (
+              {!isOrganizer ? (
                 <Button
                   onClick={handleRsvpClick}
                   disabled={!isAttending && isFull}
                   variant={isAttending ? "outline" : "default"}
-                  className={`w-full h-14 text-base font-semibold rounded-2xl transition-all ${
+                  className={`w-full h-13 text-base font-semibold rounded-2xl transition-all ${
                     isAttending
                       ? "border-border text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                       : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
@@ -268,12 +332,10 @@ export default function EventDetailsPage() {
                 >
                   {isAttending ? "Cancel RSVP" : isFull ? "Event Full" : "RSVP Now"}
                 </Button>
-              )}
-
-              {isOrganizer && (
+              ) : (
                 <Button
                   onClick={() => setIsEditOpen(true)}
-                  className="w-full h-14 text-base font-semibold rounded-2xl bg-secondary hover:bg-secondary/90 text-primary"
+                  className="w-full h-13 text-base font-semibold rounded-2xl bg-secondary hover:bg-secondary/90 text-primary"
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit Event
@@ -282,64 +344,53 @@ export default function EventDetailsPage() {
             </div>
 
             {/* Organizer */}
-            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-border/50 flex items-center gap-4">
-              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-xl font-bold text-primary">
-                  {event.organizerName?.charAt(0) ?? "?"}
-                </span>
+            <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border/50 flex items-center gap-4">
+              <div className="h-13 w-13 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xl font-bold text-primary">
+                {(event.organizerName ?? "?").charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Organized by</p>
-                <p className="text-base font-semibold text-foreground">{event.organizerName}</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-0.5 uppercase tracking-wide">Organized by</p>
+                <p className="text-[15px] font-bold text-foreground">{event.organizerName}</p>
                 {event.club && <p className="text-sm text-primary font-medium">{event.club}</p>}
               </div>
             </div>
 
             {/* Attendees */}
-            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-border/50">
+            <div className="bg-white rounded-[28px] p-5 shadow-sm border border-border/50">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground">Attendees</h3>
-                <span className="text-sm font-medium border border-border rounded-full px-3 py-1 bg-muted/30">
-                  {event.currentParticipants}
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">Attendees</h3>
+                </div>
+                <span className="text-sm font-semibold bg-primary/8 text-primary rounded-full px-3 py-0.5">
+                  {attendeeCount}
                 </span>
               </div>
 
-              {Array.isArray(event.attendees) && event.attendees.length > 0 ? (
-                <div className="space-y-2">
-                  {event.attendees.slice(0, 8).map((a, i) => (
-                    <div key={a.id ?? i} className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">
-                          {(a.name ?? "?").charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium text-foreground">{a.name ?? `User ${a.id}`}</span>
+              {loadingAttendees ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 animate-pulse">
+                      <div className="h-9 w-9 rounded-full bg-muted shrink-0" />
+                      <div className="h-4 w-28 bg-muted rounded" />
                     </div>
                   ))}
-                  {event.attendees.length > 8 && (
-                    <p className="text-xs text-muted-foreground pt-1">
-                      +{event.attendees.length - 8} more
+                </div>
+              ) : displayAttendees && displayAttendees.length > 0 ? (
+                <div className="space-y-2.5">
+                  {displayAttendees.slice(0, 8).map((a, i) => (
+                    <AttendeeAvatar key={a.id ?? i} name={a.name ?? a.full_name ?? a.username} id={a.id} />
+                  ))}
+                  {displayAttendees.length > 8 && (
+                    <p className="text-xs text-muted-foreground pt-1 font-medium">
+                      +{displayAttendees.length - 8} more attendees
                     </p>
                   )}
                 </div>
-              ) : event.currentParticipants > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {Array.from({ length: Math.min(event.currentParticipants, 14) }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-10 w-10 rounded-full border-2 border-white bg-muted flex items-center justify-center shadow-sm"
-                    >
-                      <User className="h-4 w-4 text-muted-foreground/50" />
-                    </div>
-                  ))}
-                  {event.currentParticipants > 14 && (
-                    <div className="h-10 w-10 rounded-full border-2 border-white bg-background flex items-center justify-center shadow-sm border-dashed">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        +{event.currentParticipants - 14}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              ) : attendeeCount > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {attendeeCount} {attendeeCount === 1 ? "person" : "people"} attending
+                </p>
               ) : (
                 <p className="text-sm text-muted-foreground">Be the first to RSVP!</p>
               )}

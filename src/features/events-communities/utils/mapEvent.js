@@ -1,4 +1,9 @@
 export function mapEvent(api, { isAttending = false } = {}) {
+  const rawAttendees = Array.isArray(api.attendees) ? api.attendees : [];
+  const attendees = rawAttendees.map((a) =>
+    typeof a === "object" && a !== null ? a : { id: a }
+  );
+
   return {
     id: api.id,
     type: "event",
@@ -14,13 +19,14 @@ export function mapEvent(api, { isAttending = false } = {}) {
     organizerId: api.organizer_id,
     organizerName: api.organizer_name ?? "Unknown",
     communityId: api.community_id ?? null,
-    attendees: Array.isArray(api.attendees) ? api.attendees : [],
+    attendees,
     community: api.community ?? null,
     organizer: api.organizer ?? null,
+    imageUrl: api.image_url ?? api.image ?? null,
     createdAt: api.created_at,
     updatedAt: api.updated_at,
     isAttending,
-    tags: [],
+    tags: api.tags ?? [],
     club: api.community?.name ?? null,
   };
 }

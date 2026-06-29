@@ -6,3 +6,54 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Animated yellow conic border button */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-spin {
+  from { --gradient-angle: 0deg; }
+  to   { --gradient-angle: 360deg; }
+}
+.shiny-cta {
+  --gradient-angle: 0deg;
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 1rem 2rem;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#0b0b0b, #0b0b0b) padding-box,
+    conic-gradient(from var(--gradient-angle),
+      transparent 0%, #FCA311 5%, #FFB733 15%, #FCA311 30%, transparent 40%, transparent 100%) border-box;
+  /* Guaranteed dark fill in case the layered background-clip is unsupported */
+  background-color: #0b0b0b;
+  animation: border-spin 2.5s linear infinite;
+}
+.shiny-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, white 0.5px, transparent 0);
+  background-size: 4px 4px;
+  opacity: 0.08;
+  z-index: 0;
+}
+
+/* Hero CTA entrance — CSS so the buttons can never be left hidden by JS */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-cta-row {
+  opacity: 0;
+  animation: hero-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.85s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-cta { animation-duration: 0.01ms !important; }
+  .hero-cta-row { opacity: 1 !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}

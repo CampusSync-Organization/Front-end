@@ -59,3 +59,8 @@ export async function checkAttendance(eventId) {
   const { data } = await api.get(`/events/${eventId}/attending`);
   return data;
 }
+
+export async function getEventAttendees(eventId) {
+  const { data } = await api.get(`/events/${eventId}/attendees`);
+  return data;
+}
