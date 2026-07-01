@@ -5,10 +5,8 @@ export async function getRecommendations(mode) {
 
   try {
     const response = await api.get("/recommendations", { params }); // ✅ no API_BASE needed, axios instance handles it
-    console.log("recommendations data:", response.data);
-    return response.data; // ✅ returns { recommendations: [...] }
+    return response.data;
   } catch (err) {
-    console.error("recommendations error:", err.response?.data);
-    throw err; // ✅ rethrow so rejectWithValue in the thunk catches it
+    throw err;
   }
 }

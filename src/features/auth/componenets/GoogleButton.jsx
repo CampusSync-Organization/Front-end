@@ -33,7 +33,6 @@ export default function GoogleButton({ onSuccess, onError, className = "" }) {
             }
           }}
           onError={() => {
-            console.error("Google sign-in failed");
             onError?.();
           }}
           theme="outline"

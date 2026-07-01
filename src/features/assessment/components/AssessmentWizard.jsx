@@ -47,7 +47,6 @@ export default function AssessmentWizard() {
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
       const payload = getFinalPayload();
-      console.log("CampusSync Assessment – Final payload:", payload);
       nextStep();
       return;
     }

@@ -36,11 +36,8 @@ export async function googleLogin({ credential }) {
     const response = await api.post("/auth/google", {
       id_token: credential,
     });
-    console.log("Response:", response);
     return response.data;
   } catch (error) {
-    console.error("Error details:", error.response?.data);
-    console.error("Request that was sent:", error.config?.data);
     throw error;
   }
 }

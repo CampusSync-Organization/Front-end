@@ -18,7 +18,6 @@ export const ProfileSecurity = () => {
       alert("New passwords do not match!");
       return;
     }
-    console.log("Password changed");
     setIsChanging(false);
     setPasswords({ current: "", new: "", confirm: "" });
   };

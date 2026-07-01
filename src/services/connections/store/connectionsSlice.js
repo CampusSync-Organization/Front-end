@@ -28,7 +28,6 @@ const hydrateProfiles = async (ids) =>
       try {
         return await getProfileByUserId(id);
       } catch (profileErr) {
-        console.error(`Failed to fetch profile for user ID ${id}:`, profileErr);
         return getFallbackProfile(id);
       }
     })

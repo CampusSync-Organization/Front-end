@@ -261,7 +261,6 @@ export default function ChatWindow({ activeChat, onOpenAi, onOpenContact }) {
     if (moderationSubscribed.current) return;
     moderationSubscribed.current = true;
     const unsubscribe = chatSocket.onModeration(({ explanation, suggestion }) => {
-      console.log("[ChatWindow] moderation handler fired, showing banner", { explanation, suggestion });
       setModerationFeedback({ explanation, suggestion });
     });
     return () => {

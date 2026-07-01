@@ -44,8 +44,7 @@ export default function AssessmentDeck() {
         setIsFinishing(true);
         setTimeout(() => {
           const payload = getFinalPayload();
-          console.log("Deck payload:", payload);
-          nextStep(); // Push to Complete View
+          nextStep();
         }, 800);
       } else {
         nextStep();

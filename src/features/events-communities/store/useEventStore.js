@@ -155,7 +155,6 @@ export const useEventStore = create((set, get) => ({
       });
       set({ events: mapped, isLoadingEvents: false });
     } catch (err) {
-      console.error("[fetchEvents] error:", err?.response?.status, err?.response?.data);
       set({ isLoadingEvents: false });
       toast.error("Failed to load events.");
     }
@@ -280,7 +279,6 @@ export const useEventStore = create((set, get) => ({
       toast.success("Event updated successfully");
       return mapped;
     } catch (err) {
-      console.error("[updateEvent] error:", err?.response?.status, err?.response?.data);
       toast.error("Failed to update event.");
       throw err;
     }
@@ -310,7 +308,6 @@ export const useEventStore = create((set, get) => ({
       toast.success("Event created successfully");
       return mapped;
     } catch (err) {
-      console.error("[createEvent] error:", err?.response?.status, err?.response?.data);
       toast.error("Failed to create event.");
     }
   },

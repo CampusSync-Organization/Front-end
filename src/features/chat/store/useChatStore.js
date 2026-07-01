@@ -263,7 +263,6 @@ const useChatStore = create(
         }
       })();
     } catch (err) {
-      console.error("[fetchRooms] failed:", err?.response?.status, err?.message);
     } finally {
       set({ isLoadingRooms: false });
     }

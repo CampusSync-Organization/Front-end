@@ -103,7 +103,6 @@ export const useAssessmentStore = create(
       const nullFields = Object.entries(responses)
         .filter(([, v]) => v == null)
         .map(([k]) => k);
-      if (nullFields.length) console.warn("Unanswered fields:", nullFields);
       return {
         completedAt: new Date().toISOString(),
         responses,
@@ -112,8 +111,6 @@ export const useAssessmentStore = create(
     },
     getApiPayload: () => {
       const { responses } = get();
-      console.log("payload before normalization:", responses);
-
       // ── Normalization maps: raw UI option → compact API value ──
       const GPA_MAP = {
         "4.0 – 3.5": "3.5–4.0",

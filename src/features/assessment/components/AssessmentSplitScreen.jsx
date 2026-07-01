@@ -251,12 +251,9 @@ export default function AssessmentSplitScreen() {
       .map(([k]) => k);
 
     if (nullFields.length > 0) {
-      console.warn("Still null:", nullFields);
       toast.error("Some questions were not answered. Please try again.");
       return;
     }
-
-    console.log("Submitting:", apiPayload);
 
     try {
       try {
@@ -267,7 +264,6 @@ export default function AssessmentSplitScreen() {
         if (matrixErr.response && matrixErr.response.status === 422) {
           throw matrixErr; 
         }
-        console.warn("Matrix submission encountered an issue, proceeding smoothly assuming it potentially already exists:", matrixErr);
       }
 
       const updatedUserRes = await updateAssessment();
@@ -288,7 +284,6 @@ export default function AssessmentSplitScreen() {
       // Fade the global overlay away; FirstWelcomeOverlay (also navy) takes over instantly
       fadeIn();
     } catch (err) {
-      console.error("Submission failed:", err);
       toast.error("Submission failed. Please try again.");
     }
   };
