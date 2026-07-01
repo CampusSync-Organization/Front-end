@@ -817,7 +817,7 @@ const TEAM = [
     focus: "Machine Learning",
     init: "YM",
     color: "#E89310",
-    img: null,
+    img: "/avatars/youssef-mohammed.jpg",
   },
 ];
 
@@ -924,7 +924,7 @@ const CTA_FACES = [
   { src: "/avatars/youssef-nabil.jpg", init: "YN", bg: "#E89310" },
   { src: "/avatars/abdelrahman.jpg", init: "AA", bg: "#FCA311" },
   { src: "/avatars/hadeer.jpg", init: "HA", bg: "#E89310" },
-  { src: "/avatars/youssef-mohamed.jpg", init: "YM", bg: "#FCA311" },
+  { src: "/avatars/youssef-mohammed.jpg", init: "YM", bg: "#FCA311" },
 ];
 
 function CTA() {
