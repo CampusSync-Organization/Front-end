@@ -12,6 +12,7 @@ import { resolveAvatarUrl } from "../../../shared/hooks/resolveAvatarUrl";
 import { UserAvatar } from "../../../shared/ui/UserAvatar";
 import { useEditableSection } from "../hooks/useEditableSection";
 import AnnouncementCard from "../../announcement/components/AnnouncementCard";
+import ComposeBox from "../../announcement/components/ComposeBox";
 
 import {
   fetchMyProfile, updateMyProfile,
@@ -22,7 +23,7 @@ import {
   selectConnectedUserIds, selectPendingRequesterIds,
 } from "../../../services/connections/store/connectionsSlice";
 import {
-  fetchMyAnnouncements, createAnnouncement,
+  fetchMyAnnouncements,
   selectMyAnnouncements, selectMyAnnouncementStatus,
 } from "../../announcement/store/announcementSlice";
 
@@ -497,47 +498,11 @@ const ProjectsSection = ({ profile, projects }) => {
 
 /* Announcements ─────────────────────────────────────────────────────── */
 const AnnouncementsSection = ({ announcements, status }) => {
-  const dispatch = useDispatch();
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ course_name: "", content: "", num_members: "" });
-
-  const handleCreate = async () => {
-    if (!form.course_name.trim()) { toast.error("Course name is required"); return; }
-    try {
-      await dispatch(createAnnouncement({ announcement_type: "project-announcement", ...form, num_members: Number(form.num_members) || 1 })).unwrap();
-      toast.success("Announcement created!");
-      setCreating(false);
-      setForm({ course_name: "", content: "", num_members: "" });
-    } catch (e) { toast.error("Failed to create announcement."); }
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-primary">My Announcements</h2>
-        <button onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors">
-          <Plus className="w-4 h-4" /> New
-        </button>
-      </div>
+      <ComposeBox />
 
-      {creating && (
-        <SectionCard className="p-6">
-          <h3 className="text-sm font-bold text-primary mb-4">New Announcement</h3>
-          <div className="space-y-3">
-            <InlineInput value={form.course_name} onChange={(v) => setForm((f) => ({ ...f, course_name: v }))} placeholder="Course name *" />
-            <InlineInput value={form.num_members} onChange={(v) => setForm((f) => ({ ...f, num_members: v }))} placeholder="Members needed (e.g. 3)" />
-            <InlineInput value={form.content} onChange={(v) => setForm((f) => ({ ...f, content: v }))} placeholder="Details (optional)" multiline rows={3} />
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button onClick={() => setCreating(false)} className="text-sm font-semibold text-on-surface-variant/60 hover:text-primary px-3 py-1.5">Cancel</button>
-            <button onClick={handleCreate}
-              className="flex items-center gap-1.5 px-5 py-1.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90">
-              <Check className="w-3.5 h-3.5" /> Post
-            </button>
-          </div>
-        </SectionCard>
-      )}
+      <h2 className="text-[15px] font-bold text-primary">My Announcements</h2>
 
       {status === "loading" ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary/40" /></div>
